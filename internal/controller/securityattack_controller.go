@@ -249,15 +249,83 @@ func (r *SecurityAttackReconciler) buildPodSpec(sa *securityv1alpha1.SecurityAtt
 		return corev1.PodSpec{}, fmt.Errorf("failed to build command: %w", err)
 	}
 
+	// Wrap command in shell to properly handle redirection
+	shellCommand := joinCommand(command)
+	logsArgs := []string{
+		"sh",
+		"-c",
+		fmt.Sprintf("%s > /logs/output.log 2>&1", shellCommand),
+	}
+
 	container := corev1.Container{
 		Name:  "security-tool",
 		Image: image,
-		Args:  command, // preserve original ENTRYPOINT
+		Args:  logsArgs, // redirect logs to shared emptyDir via shell
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "logs",
+				MountPath: "/logs",
+			},
+		},
+	}
+
+	// Fluent-bit sidecar container
+	lokiLabels := fmt.Sprintf("app=security-attack,attack_type=%s,tool=%s,namespace=$(NAMESPACE),job=$(JOB_NAME)", sa.Spec.AttackType, sa.Spec.Tool)
+	fluentBitContainer := corev1.Container{
+		Name:  "fluent-bit",
+		Image: "fluent/fluent-bit:latest",
+		Args: []string{
+			"-i", "tail",
+			"-p", "Path=/logs/*.log",
+			"-p", "Read_from_Head=true",
+			"-p", "Refresh_Interval=5",
+			"-p", "Tag=security-attack",
+			"-o", "loki",
+			"-p", "host=192.168.1.172",
+			"-p", "port=3100",
+			"-p", "tls=off",
+			"-p", "tls.verify=off",
+			"-p", fmt.Sprintf("labels=%s", lokiLabels),
+			"-p", "tenant_id=1",
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "logs",
+				MountPath: "/logs",
+				ReadOnly:  true,
+			},
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "NAMESPACE",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.namespace",
+					},
+				},
+			},
+			{
+				Name: "JOB_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			},
+		},
 	}
 
 	podSpec := corev1.PodSpec{
 		RestartPolicy: corev1.RestartPolicyNever,
-		Containers:    []corev1.Container{container},
+		Containers:    []corev1.Container{container, fluentBitContainer},
+		Volumes: []corev1.Volume{
+			{
+				Name: "logs",
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+		},
 	}
 
 	capabilities, err := r.ToolSpecManager.GetToolCapabilities(sa.Spec.Tool)
