@@ -1,0 +1,237 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: customattacks.security.example.com
+spec:
+  group: security.example.com
+  names:
+    kind: CustomAttack
+    listKind: CustomAttackList
+    plural: customattacks
+    shortNames:
+    - ca
+    singular: customattack
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.description
+      name: Description
+      type: string
+    - jsonPath: .spec.tool
+      name: Tool
+      type: string
+    - jsonPath: .spec.periodic
+      name: Periodic
+      type: boolean
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: CustomAttack is the Schema for the customattacks API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CustomAttackSpec defines the desired state of CustomAttack
+            properties:
+              args:
+                description: Args contains arguments to pass to the tool
+                items:
+                  type: string
+                type: array
+              command:
+                description: Command overrides the entrypoint of the container
+                items:
+                  type: string
+                type: array
+              description:
+                description: Description is a human-readable description of what this
+                  attack does
+                type: string
+              envVars:
+                description: EnvVars are environment variables for the tool container
+                items:
+                  description: EnvVar represents an environment variable
+                  properties:
+                    name:
+                      description: Name of the environment variable
+                      type: string
+                    value:
+                      description: Value of the environment variable
+                      type: string
+                  required:
+                  - name
+                  - value
+                  type: object
+                type: array
+              imagePullPolicy:
+                default: IfNotPresent
+                description: ImagePullPolicy for the tool container
+                enum:
+                - Always
+                - IfNotPresent
+                - Never
+                type: string
+              imagePullSecrets:
+                description: ImagePullSecrets for pulling private images
+                items:
+                  type: string
+                type: array
+              periodic:
+                description: Periodic indicates if this should run on a schedule
+                type: boolean
+              resources:
+                description: Resources defines resource requests and limits
+                properties:
+                  claims:
+                    description: |-
+                      Claims lists the names of resources, defined in spec.resourceClaims,
+                      that are used by this container.
+
+                      This field depends on the
+                      DynamicResourceAllocation feature gate.
+
+                      This field is immutable. It can only be set for containers.
+                    items:
+                      description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                      properties:
+                        name:
+                          description: |-
+                            Name must match the name of one entry in pod.spec.resourceClaims of
+                            the Pod where this field is used. It makes that resource available
+                            inside a container.
+                          type: string
+                        request:
+                          description: |-
+                            Request is the name chosen for a request in the referenced claim.
+                            If empty, everything from the claim is made available, otherwise
+                            only the result of this request.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Limits describes the maximum amount of compute resources allowed.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Requests describes the minimum amount of compute resources required.
+                      If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                      otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                type: object
+              schedule:
+                default: 0 */6 * * *
+                description: Schedule is the cron schedule (only used if Periodic
+                  is true)
+                type: string
+              securityContext:
+                description: SecurityContext for the pod
+                properties:
+                  capabilities:
+                    description: Capabilities to add or drop
+                    properties:
+                      add:
+                        description: Add capabilities
+                        items:
+                          type: string
+                        type: array
+                      drop:
+                        description: Drop capabilities
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  fsGroup:
+                    description: FSGroup is the group ID for volume ownership
+                    format: int64
+                    type: integer
+                  runAsGroup:
+                    description: RunAsGroup is the GID to run the entrypoint
+                    format: int64
+                    type: integer
+                  runAsNonRoot:
+                    description: RunAsNonRoot indicates that the container must run
+                      as a non-root user
+                    type: boolean
+                  runAsUser:
+                    description: RunAsUser is the UID to run the entrypoint
+                    format: int64
+                    type: integer
+                type: object
+              tool:
+                description: Tool is the full container image reference (e.g., busybox:latest,
+                  myregistry/tool:v1.0)
+                example: busybox:latest
+                type: string
+            required:
+            - tool
+            type: object
+          status:
+            description: CustomAttackStatus defines the observed state of CustomAttack
+            properties:
+              jobName:
+                description: JobName is the name of the created job or cronjob
+                type: string
+              lastExecuted:
+                description: LastExecuted is the timestamp of last execution
+                type: string
+              message:
+                description: Message provides additional information about the state
+                type: string
+              state:
+                description: State represents the current state
+                enum:
+                - Pending
+                - Running
+                - Completed
+                - Failed
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
