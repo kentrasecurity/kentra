@@ -1,0 +1,25 @@
+CR Enumeration
+
+target:
+tool: (ex nmap)
+fileName: []
+periodic:
+http_proxy:
+capabilities:
+additional_env: []
+
+----
+
+CR Liveness
+
+target: (or targets)
+tool: (ex ping)
+fileName: []
+periodic:
+http_proxy:
+capabilities:
+additional_env: []
+
+---
+
+CR SecurityAttack for custom security tools

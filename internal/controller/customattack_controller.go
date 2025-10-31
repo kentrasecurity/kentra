@@ -26,9 +26,9 @@ type CustomAttackReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=security.example.com,resources=customattacks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=security.example.com,resources=customattacks/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=security.example.com,resources=customattacks/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kttack.io,resources=customattacks,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kttack.io,resources=customattacks/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kttack.io,resources=customattacks/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 
@@ -170,9 +170,9 @@ func (r *CustomAttackReconciler) reconcileCronJob(ctx context.Context, ca *secur
 
 func (r *CustomAttackReconciler) buildJob(ca *securityv1alpha1.CustomAttack, jobName string) *batchv1.Job {
 	labels := map[string]string{
-		"app":                     "custom-attack",
-		"controller":              ca.Name,
-		"security.example.com/cr": ca.Name,
+		"app":                   "custom-attack",
+		"controller":            ca.Name,
+		"kttack.io/cr": ca.Name,
 	}
 
 	podSpec := r.buildPodSpec(ca, labels)
@@ -183,7 +183,7 @@ func (r *CustomAttackReconciler) buildJob(ca *securityv1alpha1.CustomAttack, job
 			Namespace: ca.Namespace, // Same namespace as CR
 			Labels:    labels,
 			Annotations: map[string]string{
-				"security.example.com/description": ca.Spec.Description,
+				"kttack.io/description": ca.Spec.Description,
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -204,9 +204,9 @@ func (r *CustomAttackReconciler) buildJob(ca *securityv1alpha1.CustomAttack, job
 
 func (r *CustomAttackReconciler) buildCronJob(ca *securityv1alpha1.CustomAttack, cronJobName string) *batchv1.CronJob {
 	labels := map[string]string{
-		"app":                     "custom-attack",
-		"controller":              ca.Name,
-		"security.example.com/cr": ca.Name,
+		"app":                   "custom-attack",
+		"controller":            ca.Name,
+		"kttack.io/cr": ca.Name,
 	}
 
 	podSpec := r.buildPodSpec(ca, labels)
@@ -217,7 +217,7 @@ func (r *CustomAttackReconciler) buildCronJob(ca *securityv1alpha1.CustomAttack,
 			Namespace: ca.Namespace, // Same namespace as CR
 			Labels:    labels,
 			Annotations: map[string]string{
-				"security.example.com/description": ca.Spec.Description,
+				"kttack.io/description": ca.Spec.Description,
 			},
 		},
 		Spec: batchv1.CronJobSpec{

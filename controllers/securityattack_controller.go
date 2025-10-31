@@ -25,9 +25,9 @@ type SecurityAttackReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=security.example.com,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=security.example.com,resources=securityattacks/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=security.example.com,resources=securityattacks/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 

@@ -3,19 +3,19 @@
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
 cliVersion: 4.9.0
-domain: example.com
+domain: kttack.io
 layout:
 - go.kubebuilder.io/v4
 projectName: project
-repo: github.com/yourorg/security-operator
+repo: https://github.com/kttack/kttack
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: example.com
+  domain: kttack.io
   group: security
   kind: SecurityAttack
-  path: github.com/yourorg/security-operator/api/v1alpha1
+  path: github.com/kttack/kttack/api/v1alpha1
   version: v1alpha1
 version: "3"
