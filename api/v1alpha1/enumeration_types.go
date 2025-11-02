@@ -20,6 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// EnvVar represents an environment variable
+type EnvVar struct {
+	// Name of the environment variable
+	Name string `json:"name"`
+	// Value of the environment variable
+	Value string `json:"value"`
+}
+
 // EnumerationSpec defines the desired state of Enumeration
 type EnumerationSpec struct {
 	// Target is the IP, CIDR, or hostname to enumerate
@@ -57,11 +65,6 @@ type EnumerationSpec struct {
 	// Args contains additional arguments for the tool
 	// +optional
 	Args []string `json:"args,omitempty"`
-
-	// TargetNamespace is where jobs/cronjobs will be created
-	// +optional
-	// +kubebuilder:default="kttack-system"
-	TargetNamespace string `json:"targetNamespace,omitempty"`
 }
 
 // EnumerationStatus defines the observed state of Enumeration
@@ -86,7 +89,7 @@ type EnumerationStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=enum
+//+kubebuilder:resource:shortName=enum,singular=enumeration
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`

@@ -63,11 +63,8 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	// Determine target namespace
-	targetNamespace := liveness.Spec.TargetNamespace
-	if targetNamespace == "" {
-		targetNamespace = "kttack-system"
-	}
+	// Determine target namespace - use the CR's namespace
+	targetNamespace := liveness.Namespace
 
 	// Generate names for Job/CronJob
 	baseName := fmt.Sprintf("live-%s", liveness.Name)

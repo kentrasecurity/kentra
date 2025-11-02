@@ -4,30 +4,30 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: securityattacks.security.example.com
+  name: livenesses.kttack.io
 spec:
-  group: security.example.com
+  group: kttack.io
   names:
-    kind: SecurityAttack
-    listKind: SecurityAttackList
-    plural: securityattacks
+    kind: Liveness
+    listKind: LivenessList
+    plural: livenesses
     shortNames:
-    - sa
-    singular: securityattack
+    - live
+    singular: liveness
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.attackType
-      name: Type
+    - jsonPath: .spec.tool
+      name: Tool
       type: string
     - jsonPath: .spec.target
       name: Target
       type: string
-    - jsonPath: .spec.tool
-      name: Tool
-      type: string
     - jsonPath: .spec.periodic
       name: Periodic
+      type: boolean
+    - jsonPath: .status.lastResult
+      name: LastResult
       type: boolean
     - jsonPath: .status.state
       name: State
@@ -38,7 +38,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: SecurityAttack is the Schema for the securityattacks API
+        description: Liveness is the Schema for the livenesses API
         properties:
           apiVersion:
             description: |-
@@ -58,19 +58,42 @@ spec:
           metadata:
             type: object
           spec:
-            description: SecurityAttackSpec defines the desired state of SecurityAttack
+            description: LivenessSpec defines the desired state of Liveness
             properties:
+              additional_env:
+                description: AdditionalEnv contains additional environment variables
+                items:
+                  description: EnvVar represents an environment variable
+                  properties:
+                    name:
+                      description: Name of the environment variable
+                      type: string
+                    value:
+                      description: Value of the environment variable
+                      type: string
+                  required:
+                  - name
+                  - value
+                  type: object
+                type: array
               args:
                 description: Args contains additional arguments for the tool
                 items:
                   type: string
                 type: array
-              attackType:
-                description: AttackType specifies the type of security test
-                enum:
-                - Enumeration
-                - Vulnerability
-                - Exploitation
+              capabilities:
+                description: Capabilities are additional capabilities required by
+                  the tool
+                items:
+                  type: string
+                type: array
+              fileName:
+                description: FileName contains the output file names
+                items:
+                  type: string
+                type: array
+              http_proxy:
+                description: HTTPProxy is the HTTP proxy URL to use
                 type: string
               periodic:
                 description: Periodic indicates if this should run on a schedule
@@ -80,28 +103,35 @@ spec:
                   is true)
                 type: string
               target:
-                description: Target is the IP, CIDR, or hostname to attack
+                description: Target is the primary target for liveness check (IP,
+                  CIDR, or hostname)
                 type: string
-              targetNamespace:
-                default: kttack-system
-                description: TargetNamespace is where jobs/cronjobs will be created
-                type: string
+              targets:
+                description: Targets are additional targets for liveness checks
+                items:
+                  type: string
+                type: array
               tool:
-                description: Tool is the security tool to use
+                description: Tool is the liveness check tool to use (ex ping)
                 type: string
             required:
-            - attackType
             - target
             - tool
             type: object
           status:
-            description: SecurityAttackStatus defines the observed state of SecurityAttack
+            description: LivenessStatus defines the observed state of Liveness
             properties:
               jobName:
                 description: JobName is the name of the created job or cronjob
                 type: string
               lastExecuted:
                 description: LastExecuted is the timestamp of last execution
+                type: string
+              lastResult:
+                description: LastResult indicates if the target was reachable
+                type: boolean
+              resultsLocation:
+                description: ResultsLocation is the path where results are stored
                 type: string
               state:
                 description: State represents the current state

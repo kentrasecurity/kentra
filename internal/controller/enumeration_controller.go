@@ -63,11 +63,8 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// Determine target namespace
-	targetNamespace := enum.Spec.TargetNamespace
-	if targetNamespace == "" {
-		targetNamespace = "kttack-system"
-	}
+	// Determine target namespace - use the CR's namespace
+	targetNamespace := enum.Namespace
 
 	// Generate names for Job/CronJob
 	baseName := fmt.Sprintf("enum-%s", enum.Name)

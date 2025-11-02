@@ -27,9 +27,10 @@ rules:
   - update
   - watch
 - apiGroups:
-  - security.example.com
+  - kttack.io
   resources:
-  - customattacks
+  - enumerations
+  - livenesses
   - securityattacks
   verbs:
   - create
@@ -40,16 +41,18 @@ rules:
   - update
   - watch
 - apiGroups:
-  - security.example.com
+  - kttack.io
   resources:
-  - customattacks/finalizers
+  - enumerations/finalizers
+  - livenesses/finalizers
   - securityattacks/finalizers
   verbs:
   - update
 - apiGroups:
-  - security.example.com
+  - kttack.io
   resources:
-  - customattacks/status
+  - enumerations/status
+  - livenesses/status
   - securityattacks/status
   verbs:
   - get

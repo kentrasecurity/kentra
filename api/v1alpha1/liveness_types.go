@@ -61,11 +61,6 @@ type LivenessSpec struct {
 	// Args contains additional arguments for the tool
 	// +optional
 	Args []string `json:"args,omitempty"`
-
-	// TargetNamespace is where jobs/cronjobs will be created
-	// +optional
-	// +kubebuilder:default="kttack-system"
-	TargetNamespace string `json:"targetNamespace,omitempty"`
 }
 
 // LivenessStatus defines the observed state of Liveness
@@ -94,7 +89,7 @@ type LivenessStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=live
+//+kubebuilder:resource:shortName=live,singular=liveness
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`
