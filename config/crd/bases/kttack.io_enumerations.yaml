@@ -84,6 +84,10 @@ spec:
                 items:
                   type: string
                 type: array
+              debug:
+                description: Debug if true, logs are written to stdout instead of
+                  emptydir volume
+                type: boolean
               fileName:
                 description: FileName contains the output file names
                 items:

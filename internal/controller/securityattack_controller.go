@@ -64,10 +64,7 @@ func (r *SecurityAttackReconciler) reconcileJob(ctx context.Context, sa *securit
 	log := log.FromContext(ctx)
 
 	jobName := fmt.Sprintf("%s-job", sa.Name)
-	jobNamespace := sa.Spec.TargetNamespace
-	if jobNamespace == "" {
-		jobNamespace = sa.Namespace
-	}
+	jobNamespace := sa.Namespace
 
 	found := &batchv1.Job{}
 	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: jobNamespace}, found)
@@ -118,10 +115,7 @@ func (r *SecurityAttackReconciler) reconcileCronJob(ctx context.Context, sa *sec
 	log := log.FromContext(ctx)
 
 	cronJobName := fmt.Sprintf("%s-cronjob", sa.Name)
-	cronJobNamespace := sa.Spec.TargetNamespace
-	if cronJobNamespace == "" {
-		cronJobNamespace = sa.Namespace
-	}
+	cronJobNamespace := sa.Namespace
 
 	found := &batchv1.CronJob{}
 	err := r.Get(ctx, types.NamespacedName{Name: cronJobName, Namespace: cronJobNamespace}, found)

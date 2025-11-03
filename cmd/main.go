@@ -182,6 +182,20 @@ func main() {
 	toolSpecManager := controller.NewToolSpecManager(mgr.GetClient(), "kttack-system")
 	setupLog.Info("Tool spec manager created, will load tool specifications on first reconcile")
 
+	// Create ToolsConfigurator for Enumeration controller
+	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "tool-specs", "kttack-system")
+	setupLog.Info("ToolsConfigurator created for Enumeration controller")
+
+	// Setup EnumerationReconciler
+	if err := (&controller.EnumerationReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Configurator: toolsConfigurator,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Enumeration")
+		os.Exit(1)
+	}
+
 	if err := (&controller.SecurityAttackReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
@@ -192,13 +206,14 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
-	if err = (&controller.CustomAttackReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CustomAttack")
-		os.Exit(1)
-	}
+	// CustomAttackReconciler - TODO: implement if needed
+	// if err = (&controller.CustomAttackReconciler{
+	//	Client: mgr.GetClient(),
+	//	Scheme: mgr.GetScheme(),
+	// }).SetupWithManager(mgr); err != nil {
+	//	setupLog.Error(err, "unable to create controller", "controller", "CustomAttack")
+	//	os.Exit(1)
+	// }
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -38,7 +39,8 @@ import (
 // EnumerationReconciler reconciles a Enumeration object
 type EnumerationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme       *runtime.Scheme
+	Configurator *ToolsConfigurator
 }
 
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations,verbs=get;list;watch;create;update;patch;delete
@@ -51,6 +53,12 @@ type EnumerationReconciler struct {
 // Reconcile implements reconciliation for Enumeration resources
 func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
+
+	// Load tool configurations from ConfigMap if not already loaded
+	if err := r.Configurator.LoadConfig(ctx); err != nil {
+		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "tool-specs")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
+	}
 
 	// Fetch the Enumeration resource
 	enum := &securityv1alpha1.Enumeration{}
@@ -68,7 +76,7 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Generate names for Job/CronJob
 	baseName := fmt.Sprintf("enum-%s", enum.Name)
-	jobName := fmt.Sprintf("%s-job-%d", baseName, time.Now().Unix())
+	jobName := fmt.Sprintf("%s-job", baseName)
 	cronJobName := fmt.Sprintf("%s-cronjob", baseName)
 
 	// Check if we need to create a job or cronjob
@@ -121,7 +129,7 @@ func (r *EnumerationReconciler) buildJob(enum *securityv1alpha1.Enumeration, job
 		"tool": enum.Spec.Tool,
 	}
 
-	podSpec := r.buildPodSpec(enum)
+	podSpec, _ := r.buildPodSpec(enum)
 
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -152,7 +160,7 @@ func (r *EnumerationReconciler) buildCronJob(enum *securityv1alpha1.Enumeration,
 		"tool": enum.Spec.Tool,
 	}
 
-	podSpec := r.buildPodSpec(enum)
+	podSpec, _ := r.buildPodSpec(enum)
 
 	cronJob := &batchv1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -182,10 +190,17 @@ func (r *EnumerationReconciler) buildCronJob(enum *securityv1alpha1.Enumeration,
 	return cronJob
 }
 
-func (r *EnumerationReconciler) buildPodSpec(enum *securityv1alpha1.Enumeration) corev1.PodSpec {
-	command := []string{enum.Spec.Tool}
-	args := append([]string{enum.Spec.Target}, enum.Spec.Args...)
+func (r *EnumerationReconciler) buildPodSpec(enum *securityv1alpha1.Enumeration) (corev1.PodSpec, error) {
+	log := log.FromContext(context.Background())
 
+	// Get tool configuration from configurator
+	toolConfig, err := r.Configurator.GetToolConfig(enum.Spec.Tool)
+	if err != nil {
+		log.Error(err, "Failed to get tool configuration", "tool", enum.Spec.Tool)
+		return corev1.PodSpec{}, err
+	}
+
+	// Build environment variables
 	envVars := []corev1.EnvVar{}
 
 	if enum.Spec.HTTPProxy != "" {
@@ -202,18 +217,70 @@ func (r *EnumerationReconciler) buildPodSpec(enum *securityv1alpha1.Enumeration)
 		})
 	}
 
-	return corev1.PodSpec{
+	// Build command from template using proper template handling
+	command, err := r.Configurator.BuildCommand(enum.Spec.Tool, enum.Spec.Target, enum.Spec.Args)
+	if err != nil {
+		log.Error(err, "Failed to build command from template", "tool", enum.Spec.Tool)
+		return corev1.PodSpec{}, err
+	}
+
+	// Extract capabilities
+	capabilities, _ := r.Configurator.GetCapabilities(enum.Spec.Tool)
+	securityContext := &corev1.SecurityContext{}
+	if len(capabilities) > 0 {
+		capList := make([]corev1.Capability, len(capabilities))
+		for i, cap := range capabilities {
+			capList[i] = corev1.Capability(cap)
+		}
+		securityContext.Capabilities = &corev1.Capabilities{
+			Add: capList,
+		}
+	}
+
+	// Build command with shell wrapper for logging
+	fullCommand := strings.Join(command, " ")
+	var shellWrappedCommand string
+	if enum.Spec.Debug {
+		// Debug mode: output to stdout
+		shellWrappedCommand = fullCommand
+	} else {
+		// Normal mode: redirect to emptydir volume
+		shellWrappedCommand = fmt.Sprintf("%s > /logs/job.log 2>&1", fullCommand)
+	}
+
+	podSpec := corev1.PodSpec{
 		RestartPolicy: corev1.RestartPolicyNever,
 		Containers: []corev1.Container{
 			{
-				Name:    enum.Spec.Tool,
-				Image:   fmt.Sprintf("%s:latest", enum.Spec.Tool),
-				Command: command,
-				Args:    args,
-				Env:     envVars,
+				Name:            enum.Spec.Tool,
+				Image:           toolConfig.Image,
+				Command:         []string{"sh"},
+				Args:            []string{"-c", shellWrappedCommand},
+				Env:             envVars,
+				SecurityContext: securityContext,
 			},
 		},
 	}
+
+	// Add volume mount only if not in debug mode
+	if !enum.Spec.Debug {
+		podSpec.Volumes = []corev1.Volume{
+			{
+				Name: "logs",
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+		}
+		podSpec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+			{
+				Name:      "logs",
+				MountPath: "/logs",
+			},
+		}
+	}
+
+	return podSpec, nil
 }
 
 func (r *EnumerationReconciler) updateStatus(ctx context.Context, enum *securityv1alpha1.Enumeration, state, message string) {

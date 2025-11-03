@@ -65,6 +65,10 @@ type EnumerationSpec struct {
 	// Args contains additional arguments for the tool
 	// +optional
 	Args []string `json:"args,omitempty"`
+
+	// Debug if true, logs are written to stdout instead of emptydir volume
+	// +optional
+	Debug bool `json:"debug,omitempty"`
 }
 
 // EnumerationStatus defines the observed state of Enumeration
