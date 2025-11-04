@@ -13,10 +13,11 @@ data:
 
     [INPUT]
         Name              tail
-        Path              /logs/*.log
+        Path              /logs/job.log
         Read_from_Head    true
         Refresh_Interval  5
         Tag               kttack.job.*
+        Exit_On_Eof       true
 
     [FILTER]
         Name    modify

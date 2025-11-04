@@ -3,21 +3,18 @@ package controller
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/yourorg/security-operator/api/v1alpha1"
+	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
 )
 
 // SecurityAttackReconciler reconciles a SecurityAttack object
@@ -25,6 +22,7 @@ type SecurityAttackReconciler struct {
 	client.Client
 	Scheme          *runtime.Scheme
 	ToolSpecManager *ToolSpecManager
+	Configurator    *ToolsConfigurator
 }
 
 //+kubebuilder:rbac:groups=kttack.io,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
@@ -36,6 +34,12 @@ type SecurityAttackReconciler struct {
 func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
+	// Load tool configurations from ConfigMap if not already loaded
+	if err := r.Configurator.LoadConfig(ctx); err != nil {
+		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "tool-specs")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
+	}
+
 	sa := &securityv1alpha1.SecurityAttack{}
 	if err := r.Get(ctx, req.NamespacedName, sa); err != nil {
 		if errors.IsNotFound(err) {
@@ -46,330 +50,122 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ToolSpecManager.LoadToolSpecs(ctx); err != nil {
-		log.Error(err, "Failed to load tool specifications")
-		return ctrl.Result{}, err
-	}
-
-	if sa.Spec.Periodic {
-		return r.reconcileCronJob(ctx, sa)
-	}
-	return r.reconcileJob(ctx, sa)
-}
-
-// ----------------------------
-// Job Handling
-// ----------------------------
-func (r *SecurityAttackReconciler) reconcileJob(ctx context.Context, sa *securityv1alpha1.SecurityAttack) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-
-	jobName := fmt.Sprintf("%s-job", sa.Name)
-	jobNamespace := sa.Namespace
-
-	found := &batchv1.Job{}
-	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: jobNamespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		job, err := r.buildJob(sa, jobName, jobNamespace)
-		if err != nil {
-			log.Error(err, "Failed to build Job")
-			r.updateStatus(ctx, sa, "Failed")
-			return ctrl.Result{}, err
-		}
-
-		if err := controllerutil.SetControllerReference(sa, job, r.Scheme); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		log.Info("Creating new Job", "Namespace", job.Namespace, "Name", job.Name)
-		if err := r.Create(ctx, job); err != nil {
-			log.Error(err, "Failed to create Job")
-			return ctrl.Result{}, err
-		}
-
-		sa.Status.JobName = jobName
-		sa.Status.State = "Running"
-		sa.Status.LastExecuted = metav1.Now().Format(time.RFC3339)
-		if err := r.Status().Update(ctx, sa); err != nil {
-			log.Error(err, "Failed to update SecurityAttack status")
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
-	} else if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if found.Status.Succeeded > 0 {
-		r.updateStatus(ctx, sa, "Completed")
-	} else if found.Status.Failed > 0 {
-		r.updateStatus(ctx, sa, "Failed")
-	}
-
-	log.Info("Job already exists", "Namespace", found.Namespace, "Name", found.Name)
-	return ctrl.Result{}, nil
-}
-
-// ----------------------------
-// CronJob Handling
-// ----------------------------
-func (r *SecurityAttackReconciler) reconcileCronJob(ctx context.Context, sa *securityv1alpha1.SecurityAttack) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-
+	targetNamespace := sa.Namespace
+	jobName := sa.Name
 	cronJobName := fmt.Sprintf("%s-cronjob", sa.Name)
-	cronJobNamespace := sa.Namespace
 
-	found := &batchv1.CronJob{}
-	err := r.Get(ctx, types.NamespacedName{Name: cronJobName, Namespace: cronJobNamespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		cronJob, err := r.buildCronJob(sa, cronJobName, cronJobNamespace)
-		if err != nil {
-			log.Error(err, "Failed to build CronJob")
+	// Convert to SecurityResource adapter
+	adapter := &securityAttackAdapter{sa}
+
+	// Check if we need to create a job or cronjob
+	if sa.Spec.Periodic {
+		// Create or update CronJob
+		cronJob := &batchv1.CronJob{}
+		cronJobNN := types.NamespacedName{Name: cronJobName, Namespace: targetNamespace}
+
+		err := r.Get(ctx, cronJobNN, cronJob)
+		if err != nil && errors.IsNotFound(err) {
+			// Create new CronJob
+			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, cronJobName, targetNamespace, "security-attack")
+			if err != nil {
+				log.Error(err, "Failed to build CronJob")
+				return ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, cronJob); err != nil {
+				log.Error(err, "Failed to create CronJob")
+				return ctrl.Result{}, err
+			}
+			log.Info("Created new CronJob", "CronJob", cronJobName)
+			sa.Status.State = "Running"
+			sa.Status.LastExecuted = time.Now().Format(time.RFC3339)
+			if err := r.Status().Update(ctx, sa); err != nil {
+				log.Error(err, "Failed to update status")
+			}
+		} else if err != nil {
+			log.Error(err, "Failed to get CronJob")
 			return ctrl.Result{}, err
 		}
+	} else {
+		// Create one-time Job
+		job := &batchv1.Job{}
+		jobNN := types.NamespacedName{Name: jobName, Namespace: targetNamespace}
 
-		if err := controllerutil.SetControllerReference(sa, cronJob, r.Scheme); err != nil {
+		err := r.Get(ctx, jobNN, job)
+		if err != nil && errors.IsNotFound(err) {
+			// Create new Job
+			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, jobName, targetNamespace, "security-attack")
+			if err != nil {
+				log.Error(err, "Failed to build Job")
+				return ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, job); err != nil {
+				log.Error(err, "Failed to create Job")
+				return ctrl.Result{}, err
+			}
+			log.Info("Created new Job", "Job", jobName)
+			sa.Status.State = "Running"
+			sa.Status.LastExecuted = time.Now().Format(time.RFC3339)
+			if err := r.Status().Update(ctx, sa); err != nil {
+				log.Error(err, "Failed to update status")
+			}
+		} else if err != nil {
+			log.Error(err, "Failed to get Job")
 			return ctrl.Result{}, err
 		}
-
-		log.Info("Creating new CronJob", "Namespace", cronJob.Namespace, "Name", cronJob.Name)
-		if err := r.Create(ctx, cronJob); err != nil {
-			log.Error(err, "Failed to create CronJob")
-			return ctrl.Result{}, err
-		}
-
-		sa.Status.JobName = cronJobName
-		sa.Status.State = "Running"
-		if err := r.Status().Update(ctx, sa); err != nil {
-			log.Error(err, "Failed to update SecurityAttack status")
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
-	} else if err != nil {
-		return ctrl.Result{}, err
 	}
 
-	if found.Spec.Schedule != sa.Spec.Schedule {
-		found.Spec.Schedule = sa.Spec.Schedule
-		log.Info("Updating CronJob schedule", "NewSchedule", sa.Spec.Schedule)
-		if err := r.Update(ctx, found); err != nil {
-			log.Error(err, "Failed to update CronJob")
-			return ctrl.Result{}, err
-		}
-	}
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
-// ----------------------------
-// Builders
-// ----------------------------
-func (r *SecurityAttackReconciler) buildJob(sa *securityv1alpha1.SecurityAttack, name, namespace string) (*batchv1.Job, error) {
-	labels := map[string]string{
-		"app":         "security-attack",
-		"attack-type": sa.Spec.AttackType,
-		"controller":  sa.Name,
-		"tool":        sa.Spec.Tool,
-	}
-
-	podSpec, err := r.buildPodSpec(sa)
-	if err != nil {
-		return nil, err
-	}
-
-	return &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    labels,
-			Annotations: map[string]string{
-				"kttack.io/target":      sa.Spec.Target,
-				"kttack.io/attack-type": sa.Spec.AttackType,
-			},
-		},
-		Spec: batchv1.JobSpec{
-			BackoffLimit: int32Ptr(2),
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: labels},
-				Spec:       podSpec,
-			},
-		},
-	}, nil
+// securityAttackAdapter adapts SecurityAttack to SecurityResource interface
+type securityAttackAdapter struct {
+	sa *securityv1alpha1.SecurityAttack
 }
 
-func (r *SecurityAttackReconciler) buildCronJob(sa *securityv1alpha1.SecurityAttack, name, namespace string) (*batchv1.CronJob, error) {
-	labels := map[string]string{
-		"app":         "security-attack",
-		"attack-type": sa.Spec.AttackType,
-		"controller":  sa.Name,
-		"tool":        sa.Spec.Tool,
-	}
-
-	podSpec, err := r.buildPodSpec(sa)
-	if err != nil {
-		return nil, err
-	}
-
-	return &batchv1.CronJob{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    labels,
-			Annotations: map[string]string{
-				"kttack.io/target":      sa.Spec.Target,
-				"kttack.io/attack-type": sa.Spec.AttackType,
-			},
-		},
-		Spec: batchv1.CronJobSpec{
-			Schedule: sa.Spec.Schedule,
-			JobTemplate: batchv1.JobTemplateSpec{
-				Spec: batchv1.JobSpec{
-					BackoffLimit: int32Ptr(2),
-					Template: corev1.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{Labels: labels},
-						Spec:       podSpec,
-					},
-				},
-			},
-		},
-	}, nil
+func (a *securityAttackAdapter) GetName() string {
+	return a.sa.Name
 }
 
-func (r *SecurityAttackReconciler) buildPodSpec(sa *securityv1alpha1.SecurityAttack) (corev1.PodSpec, error) {
-	image, err := r.ToolSpecManager.GetToolImage(sa.Spec.Tool)
-	if err != nil {
-		return corev1.PodSpec{}, fmt.Errorf("failed to get tool image: %w", err)
-	}
+func (a *securityAttackAdapter) GetNamespace() string {
+	return a.sa.Namespace
+}
 
-	command, err := r.ToolSpecManager.BuildCommand(sa.Spec.Tool, sa.Spec.Target, sa.Spec.Args)
-	if err != nil {
-		return corev1.PodSpec{}, fmt.Errorf("failed to build command: %w", err)
-	}
-
-	// Wrap command in shell to properly handle redirection
-	shellCommand := joinCommand(command)
-	logsArgs := []string{
-		"sh",
-		"-c",
-		fmt.Sprintf("%s > /logs/output.log 2>&1", shellCommand),
-	}
-
-	container := corev1.Container{
-		Name:  "security-tool",
-		Image: image,
-		Args:  logsArgs, // redirect logs to shared emptyDir via shell
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "logs",
-				MountPath: "/logs",
-			},
-		},
-	}
-
-	// Fluent-bit sidecar container
-	lokiLabels := fmt.Sprintf("app=security-attack,attack_type=%s,tool=%s,namespace=$(NAMESPACE),job=$(JOB_NAME)", sa.Spec.AttackType, sa.Spec.Tool)
-	fluentBitContainer := corev1.Container{
-		Name:  "fluent-bit",
-		Image: "fluent/fluent-bit:latest",
-		Args: []string{
-			"-i", "tail",
-			"-p", "Path=/logs/*.log",
-			"-p", "Read_from_Head=true",
-			"-p", "Refresh_Interval=5",
-			"-p", "Tag=security-attack",
-			"-o", "loki",
-			"-p", "host=192.168.1.172",
-			"-p", "port=3100",
-			"-p", "tls=off",
-			"-p", "tls.verify=off",
-			"-p", fmt.Sprintf("labels=%s", lokiLabels),
-			"-p", "tenant_id=1",
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "logs",
-				MountPath: "/logs",
-				ReadOnly:  true,
-			},
-		},
-		Env: []corev1.EnvVar{
-			{
-				Name: "NAMESPACE",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "metadata.namespace",
-					},
-				},
-			},
-			{
-				Name: "JOB_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						FieldPath: "metadata.name",
-					},
-				},
-			},
-		},
-	}
-
-	podSpec := corev1.PodSpec{
-		RestartPolicy: corev1.RestartPolicyNever,
-		Containers:    []corev1.Container{container, fluentBitContainer},
-		Volumes: []corev1.Volume{
-			{
-				Name: "logs",
-				VolumeSource: corev1.VolumeSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				},
-			},
-		},
-	}
-
-	capabilities, err := r.ToolSpecManager.GetToolCapabilities(sa.Spec.Tool)
-	if err == nil && capabilities != nil && len(capabilities.Add) > 0 {
-		caps := make([]corev1.Capability, len(capabilities.Add))
-		for i, cap := range capabilities.Add {
-			caps[i] = corev1.Capability(cap)
+func (a *securityAttackAdapter) GetSpec() *ResourceSpec {
+	envVars := make([]corev1.EnvVar, len(a.sa.Spec.AdditionalEnv))
+	for i, ev := range a.sa.Spec.AdditionalEnv {
+		envVars[i] = corev1.EnvVar{
+			Name:  ev.Name,
+			Value: ev.Value,
 		}
-		container.SecurityContext = &corev1.SecurityContext{
-			Capabilities: &corev1.Capabilities{
-				Add: caps,
-			},
-		}
-		podSpec.Containers[0] = container
 	}
-
-	return podSpec, nil
-}
-
-// ----------------------------
-// Helpers
-// ----------------------------
-func (r *SecurityAttackReconciler) updateStatus(ctx context.Context, sa *securityv1alpha1.SecurityAttack, state string) {
-	sa.Status.State = state
-	if err := r.Status().Update(ctx, sa); err != nil {
-		log.FromContext(ctx).Error(err, "Failed to update status")
+	return &ResourceSpec{
+		Tool:          a.sa.Spec.Tool,
+		Target:        a.sa.Spec.Target,
+		Args:          a.sa.Spec.Args,
+		HTTPProxy:     a.sa.Spec.HTTPProxy,
+		AdditionalEnv: envVars,
+		Debug:         a.sa.Spec.Debug,
+		Periodic:      a.sa.Spec.Periodic,
+		Schedule:      a.sa.Spec.Schedule,
 	}
 }
 
+func (a *securityAttackAdapter) GetStatus() *ResourceStatus {
+	return &ResourceStatus{
+		State:        a.sa.Status.State,
+		LastExecuted: a.sa.Status.LastExecuted,
+	}
+}
+
+func (a *securityAttackAdapter) GetKubeObject() client.Object {
+	return a.sa
+}
+
+// SetupWithManager sets up the controller with the Manager.
 func (r *SecurityAttackReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&securityv1alpha1.SecurityAttack{}).
 		Owns(&batchv1.Job{}).
 		Owns(&batchv1.CronJob{}).
 		Complete(r)
-}
-
-func int32Ptr(i int32) *int32 { return &i }
-
-func joinCommand(cmd []string) string {
-	result := ""
-	for i, arg := range cmd {
-		if i > 0 {
-			result += " "
-		}
-		if strings.Contains(arg, " ") {
-			result += fmt.Sprintf("\"%s\"", arg)
-		} else {
-			result += arg
-		}
-	}
-	return result
 }

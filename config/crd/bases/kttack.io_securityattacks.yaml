@@ -60,6 +60,22 @@ spec:
           spec:
             description: SecurityAttackSpec defines the desired state of SecurityAttack
             properties:
+              additional_env:
+                description: AdditionalEnv contains additional environment variables
+                items:
+                  description: EnvVar represents an environment variable
+                  properties:
+                    name:
+                      description: Name of the environment variable
+                      type: string
+                    value:
+                      description: Value of the environment variable
+                      type: string
+                  required:
+                  - name
+                  - value
+                  type: object
+                type: array
               args:
                 description: Args contains additional arguments for the tool
                 items:
@@ -71,6 +87,13 @@ spec:
                 - Enumeration
                 - Vulnerability
                 - Exploitation
+                type: string
+              debug:
+                description: Debug enables debug mode (output to stdout instead of
+                  log file)
+                type: boolean
+              http_proxy:
+                description: HTTPProxy is the HTTP proxy URL to use
                 type: string
               periodic:
                 description: Periodic indicates if this should run on a schedule

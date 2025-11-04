@@ -18,6 +18,14 @@ type SecurityAttackSpec struct {
 	// +kubebuilder:validation:Required
 	Tool string `json:"tool"`
 
+	// HTTPProxy is the HTTP proxy URL to use
+	// +optional
+	HTTPProxy string `json:"http_proxy,omitempty"`
+
+	// AdditionalEnv contains additional environment variables
+	// +optional
+	AdditionalEnv []EnvVar `json:"additional_env,omitempty"`
+
 	// Periodic indicates if this should run on a schedule
 	// +optional
 	Periodic bool `json:"periodic,omitempty"`
@@ -29,6 +37,10 @@ type SecurityAttackSpec struct {
 	// Args contains additional arguments for the tool
 	// +optional
 	Args []string `json:"args,omitempty"`
+
+	// Debug enables debug mode (output to stdout instead of log file)
+	// +optional
+	Debug bool `json:"debug,omitempty"`
 }
 
 // SecurityAttackStatus defines the observed state of SecurityAttack

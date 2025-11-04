@@ -87,6 +87,10 @@ spec:
                 items:
                   type: string
                 type: array
+              debug:
+                description: Debug enables debug mode (output to stdout instead of
+                  log file)
+                type: boolean
               fileName:
                 description: FileName contains the output file names
                 items:

@@ -61,6 +61,10 @@ type LivenessSpec struct {
 	// Args contains additional arguments for the tool
 	// +optional
 	Args []string `json:"args,omitempty"`
+
+	// Debug enables debug mode (output to stdout instead of log file)
+	// +optional
+	Debug bool `json:"debug,omitempty"`
 }
 
 // LivenessStatus defines the observed state of Liveness

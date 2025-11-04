@@ -24,21 +24,20 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/yourorg/security-operator/api/v1alpha1"
+	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
 )
 
 // LivenessReconciler reconciles a Liveness object
 type LivenessReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme       *runtime.Scheme
+	Configurator *ToolsConfigurator
 }
 
 //+kubebuilder:rbac:groups=kttack.io,resources=livenesses,verbs=get;list;watch;create;update;patch;delete
@@ -52,6 +51,12 @@ type LivenessReconciler struct {
 func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
+	// Load tool configurations from ConfigMap if not already loaded
+	if err := r.Configurator.LoadConfig(ctx); err != nil {
+		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "tool-specs")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
+	}
+
 	// Fetch the Liveness resource
 	liveness := &securityv1alpha1.Liveness{}
 	if err := r.Get(ctx, req.NamespacedName, liveness); err != nil {
@@ -63,13 +68,16 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	// Determine target namespace - use the CR's namespace
+	// Determine target namespace
 	targetNamespace := liveness.Namespace
 
 	// Generate names for Job/CronJob
 	baseName := fmt.Sprintf("live-%s", liveness.Name)
 	jobName := fmt.Sprintf("%s-job-%d", baseName, time.Now().Unix())
 	cronJobName := fmt.Sprintf("%s-cronjob", baseName)
+
+	// Convert to SecurityResource adapter
+	adapter := &livenessAdapter{liveness}
 
 	// Check if we need to create a job or cronjob
 	if liveness.Spec.Periodic {
@@ -80,13 +88,21 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		err := r.Get(ctx, cronJobNN, cronJob)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new CronJob
-			cronJob = r.buildCronJob(liveness, cronJobName, targetNamespace)
+			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, cronJobName, targetNamespace, "liveness")
+			if err != nil {
+				log.Error(err, "Failed to build CronJob")
+				return ctrl.Result{}, err
+			}
 			if err := r.Create(ctx, cronJob); err != nil {
 				log.Error(err, "Failed to create CronJob")
 				return ctrl.Result{}, err
 			}
 			log.Info("Created new CronJob", "CronJob", cronJobName)
-			r.updateStatus(ctx, liveness, "Running", "CronJob created")
+			liveness.Status.State = "Running"
+			liveness.Status.LastExecuted = time.Now().Format(time.RFC3339)
+			if err := r.Status().Update(ctx, liveness); err != nil {
+				log.Error(err, "Failed to update status")
+			}
 		} else if err != nil {
 			log.Error(err, "Failed to get CronJob")
 			return ctrl.Result{}, err
@@ -99,13 +115,21 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		err := r.Get(ctx, jobNN, job)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new Job
-			job = r.buildJob(liveness, jobName, targetNamespace)
+			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, jobName, targetNamespace, "liveness")
+			if err != nil {
+				log.Error(err, "Failed to build Job")
+				return ctrl.Result{}, err
+			}
 			if err := r.Create(ctx, job); err != nil {
 				log.Error(err, "Failed to create Job")
 				return ctrl.Result{}, err
 			}
 			log.Info("Created new Job", "Job", jobName)
-			r.updateStatus(ctx, liveness, "Running", "Job created")
+			liveness.Status.State = "Running"
+			liveness.Status.LastExecuted = time.Now().Format(time.RFC3339)
+			if err := r.Status().Update(ctx, liveness); err != nil {
+				log.Error(err, "Failed to update status")
+			}
 		} else if err != nil {
 			log.Error(err, "Failed to get Job")
 			return ctrl.Result{}, err
@@ -115,116 +139,48 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
-func (r *LivenessReconciler) buildJob(liveness *securityv1alpha1.Liveness, jobName, namespace string) *batchv1.Job {
-	labels := map[string]string{
-		"app":  "liveness",
-		"tool": liveness.Spec.Tool,
-	}
-
-	podSpec := r.buildPodSpec(liveness)
-
-	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      jobName,
-			Namespace: namespace,
-			Labels:    labels,
-			Annotations: map[string]string{
-				"kttack.io/target": liveness.Spec.Target,
-				"kttack.io/tool":   liveness.Spec.Tool,
-			},
-		},
-		Spec: batchv1.JobSpec{
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: labels},
-				Spec:       podSpec,
-			},
-			BackoffLimit: int32Ptr(2),
-		},
-	}
-
-	controllerutil.SetControllerReference(liveness, job, r.Scheme)
-	return job
+// livenessAdapter adapts Liveness to SecurityResource interface
+type livenessAdapter struct {
+	liveness *securityv1alpha1.Liveness
 }
 
-func (r *LivenessReconciler) buildCronJob(liveness *securityv1alpha1.Liveness, cronJobName, namespace string) *batchv1.CronJob {
-	labels := map[string]string{
-		"app":  "liveness",
-		"tool": liveness.Spec.Tool,
-	}
-
-	podSpec := r.buildPodSpec(liveness)
-
-	cronJob := &batchv1.CronJob{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cronJobName,
-			Namespace: namespace,
-			Labels:    labels,
-			Annotations: map[string]string{
-				"kttack.io/target": liveness.Spec.Target,
-				"kttack.io/tool":   liveness.Spec.Tool,
-			},
-		},
-		Spec: batchv1.CronJobSpec{
-			Schedule: liveness.Spec.Schedule,
-			JobTemplate: batchv1.JobTemplateSpec{
-				Spec: batchv1.JobSpec{
-					Template: corev1.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{Labels: labels},
-						Spec:       podSpec,
-					},
-					BackoffLimit: int32Ptr(2),
-				},
-			},
-		},
-	}
-
-	controllerutil.SetControllerReference(liveness, cronJob, r.Scheme)
-	return cronJob
+func (a *livenessAdapter) GetName() string {
+	return a.liveness.Name
 }
 
-func (r *LivenessReconciler) buildPodSpec(liveness *securityv1alpha1.Liveness) corev1.PodSpec {
-	command := []string{liveness.Spec.Tool}
-	args := append([]string{liveness.Spec.Target}, liveness.Spec.Args...)
+func (a *livenessAdapter) GetNamespace() string {
+	return a.liveness.Namespace
+}
 
-	envVars := []corev1.EnvVar{}
-
-	if liveness.Spec.HTTPProxy != "" {
-		envVars = append(envVars, corev1.EnvVar{
-			Name:  "HTTP_PROXY",
-			Value: liveness.Spec.HTTPProxy,
-		})
-	}
-
-	for _, ev := range liveness.Spec.AdditionalEnv {
-		envVars = append(envVars, corev1.EnvVar{
+func (a *livenessAdapter) GetSpec() *ResourceSpec {
+	envVars := make([]corev1.EnvVar, len(a.liveness.Spec.AdditionalEnv))
+	for i, ev := range a.liveness.Spec.AdditionalEnv {
+		envVars[i] = corev1.EnvVar{
 			Name:  ev.Name,
 			Value: ev.Value,
-		})
+		}
 	}
-
-	return corev1.PodSpec{
-		RestartPolicy: corev1.RestartPolicyNever,
-		Containers: []corev1.Container{
-			{
-				Name:    liveness.Spec.Tool,
-				Image:   fmt.Sprintf("%s:latest", liveness.Spec.Tool),
-				Command: command,
-				Args:    args,
-				Env:     envVars,
-			},
-		},
+	return &ResourceSpec{
+		Tool:          a.liveness.Spec.Tool,
+		Target:        a.liveness.Spec.Target,
+		Args:          a.liveness.Spec.Args,
+		HTTPProxy:     a.liveness.Spec.HTTPProxy,
+		AdditionalEnv: envVars,
+		Debug:         a.liveness.Spec.Debug,
+		Periodic:      a.liveness.Spec.Periodic,
+		Schedule:      a.liveness.Spec.Schedule,
 	}
 }
 
-func (r *LivenessReconciler) updateStatus(ctx context.Context, liveness *securityv1alpha1.Liveness, state, message string) {
-	log := log.FromContext(ctx)
-
-	liveness.Status.State = state
-	liveness.Status.LastExecuted = time.Now().Format(time.RFC3339)
-
-	if err := r.Status().Update(ctx, liveness); err != nil {
-		log.Error(err, "Failed to update Liveness status")
+func (a *livenessAdapter) GetStatus() *ResourceStatus {
+	return &ResourceStatus{
+		State:        a.liveness.Status.State,
+		LastExecuted: a.liveness.Status.LastExecuted,
 	}
+}
+
+func (a *livenessAdapter) GetKubeObject() client.Object {
+	return a.liveness
 }
 
 // SetupWithManager sets up the controller with the Manager.
