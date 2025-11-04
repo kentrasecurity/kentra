@@ -1,3 +1,7 @@
+# ToDo List
+- Aggiunta Wordlist per enumeration, ddos, etc...
+- Aggiunta delle varie CRD aggiuntive
+
 # project
 // TODO(user): Add simple overview of use/purpose
 
