@@ -7,55 +7,30 @@ data:
   tools: |
     nmap:
       type: "enumeration"
+      category: "network"
       image: "instrumentisto/nmap:latest"
       commandTemplate: "/usr/bin/nmap {{.Args}} {{.Target}}"
       capabilities:
         add:
           - NET_RAW
     nikto:
-      type: "scanning"
-      image: "ghcr.io/sullo/nikto:latest"
-      commandTemplate: "/nikto -h {{.Target}} {{.Args}}"
+      type: "enumeration"
+      category: "network"
+      image: "alpine/nikto:2.1.6"
+      commandTemplate: "nikto.pl -h {{.Args}} {{.Target}}"
       capabilities:
         add: []
-    masscan:
-      # masscan needs raw sockets
+    rustscan:
       type: "enumeration"
-      image: "robertdavidgraham/masscan:latest"
-      commandTemplate: "/bin/masscan {{.Args}} {{.Target}}"
+      category: "network"
+      image: "rustscan/rustscan:latest"
+      commandTemplate: "/usr/local/bin/rustscan {{.Args}} {{.Target}}"
       capabilities:
         add:
-          - NET_RAW
-    gobuster:
-      # gobuster's container usually exposes gobuster as entrypoint
-      type: "scanning"
-      image: "aoighost/gobuster"
-      commandTemplate: "/go/bin/gobuster {{.Args}} {{.Target}}"
-      capabilities:
-        add: []
-    wpscan:
-      # WPScan usually runs via ruby wpscan; pass host/flags as args
-      type: "scanning"
-      image: "wpscanteam/wpscan:latest"
-      commandTemplate: "/wpscan --url {{.Target}} {{.Args}}"
-      capabilities:
-        add: []
-    sqlmap:
-      # sqlmap image usually exposes sqlmap as entrypoint
-      type: "exploitation"
-      image: "sqlmapproject/sqlmap:latest"
-      commandTemplate: "/sqlmap -u {{.Target}} {{.Args}}"
-      capabilities:
-        add: []
-    feroxbuster:
-      type: "scanning"
-      image: "epi052/feroxbuster"
-      commandTemplate: "/feroxbuster -u {{.Target}} {{.Args}}"
-      capabilities:
-        add: []
-    dirsearch:
-      type: "scanning"
-      image: "maurosoria/dirsearch:latest"
-      commandTemplate: "/dirsearch -u {{.Target}} {{.Args}}"
+          - NET_RAW        
+    ping:
+      type: "liveness"
+      image: "giantswarm/ping:3.3.5"
+      commandTemplate: "/ping {{.Args}} {{.Target}}"
       capabilities:
         add: []
