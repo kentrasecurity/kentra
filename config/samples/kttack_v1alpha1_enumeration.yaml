@@ -1,9 +1,11 @@
 apiVersion: kttack.io/v1alpha1
-kind: SecurityAttack
+kind: Enumeration
 metadata:
   labels:
     app.kubernetes.io/name: project
     app.kubernetes.io/managed-by: kustomize
-  name: securityattack-sample
+  name: enumeration-sample
 spec:
-  # TODO(user): Add fields here
+  target: 192.168.1.0/24
+  tool: nmap
+  periodic: false

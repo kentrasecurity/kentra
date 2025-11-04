@@ -1,4 +1,4 @@
-apiVersion: security.example.com/v1alpha1
+apiVersion: kttack.io/v1alpha1
 kind: SecurityAttack
 metadata:
   name: nmap-test

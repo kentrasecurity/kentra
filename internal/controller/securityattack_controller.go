@@ -27,9 +27,9 @@ type SecurityAttackReconciler struct {
 	ToolSpecManager *ToolSpecManager
 }
 
-//+kubebuilder:rbac:groups=security.example.com,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=security.example.com,resources=securityattacks/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=security.example.com,resources=securityattacks/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
 
@@ -64,10 +64,7 @@ func (r *SecurityAttackReconciler) reconcileJob(ctx context.Context, sa *securit
 	log := log.FromContext(ctx)
 
 	jobName := fmt.Sprintf("%s-job", sa.Name)
-	jobNamespace := sa.Spec.TargetNamespace
-	if jobNamespace == "" {
-		jobNamespace = sa.Namespace
-	}
+	jobNamespace := sa.Namespace
 
 	found := &batchv1.Job{}
 	err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: jobNamespace}, found)
@@ -118,10 +115,7 @@ func (r *SecurityAttackReconciler) reconcileCronJob(ctx context.Context, sa *sec
 	log := log.FromContext(ctx)
 
 	cronJobName := fmt.Sprintf("%s-cronjob", sa.Name)
-	cronJobNamespace := sa.Spec.TargetNamespace
-	if cronJobNamespace == "" {
-		cronJobNamespace = sa.Namespace
-	}
+	cronJobNamespace := sa.Namespace
 
 	found := &batchv1.CronJob{}
 	err := r.Get(ctx, types.NamespacedName{Name: cronJobName, Namespace: cronJobNamespace}, found)
@@ -186,8 +180,8 @@ func (r *SecurityAttackReconciler) buildJob(sa *securityv1alpha1.SecurityAttack,
 			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"security.example.com/target":      sa.Spec.Target,
-				"security.example.com/attack-type": sa.Spec.AttackType,
+				"kttack.io/target":      sa.Spec.Target,
+				"kttack.io/attack-type": sa.Spec.AttackType,
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -219,8 +213,8 @@ func (r *SecurityAttackReconciler) buildCronJob(sa *securityv1alpha1.SecurityAtt
 			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"security.example.com/target":      sa.Spec.Target,
-				"security.example.com/attack-type": sa.Spec.AttackType,
+				"kttack.io/target":      sa.Spec.Target,
+				"kttack.io/attack-type": sa.Spec.AttackType,
 			},
 		},
 		Spec: batchv1.CronJobSpec{

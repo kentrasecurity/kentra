@@ -1,9 +1,12 @@
 apiVersion: kttack.io/v1alpha1
-kind: SecurityAttack
+kind: Liveness
 metadata:
   labels:
     app.kubernetes.io/name: project
     app.kubernetes.io/managed-by: kustomize
-  name: securityattack-sample
+  name: liveness-sample
 spec:
-  # TODO(user): Add fields here
+  target: 8.8.8.8
+  tool: ping
+  periodic: true
+  schedule: "*/5 * * * *"

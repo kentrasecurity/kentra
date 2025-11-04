@@ -1,0 +1,39 @@
+apiVersion: kttack.io/v1alpha1
+kind: Enumeration
+metadata:
+  name: nmap-with-loki
+  namespace: default
+spec:
+  target: "192.168.1.0/24"
+  tool: nmap
+  fileName: "nmap-scan"
+  debug: false  # Abilita il sidecar Fluent Bit per l'invio dei log a Loki
+  periodic: false
+  args: ["-sV", "-sC"]
+---
+apiVersion: kttack.io/v1alpha1
+kind: Enumeration
+metadata:
+  name: nmap-scheduled-with-loki
+  namespace: default
+spec:
+  target: "192.168.1.0/24"
+  tool: nmap
+  fileName: "nmap-scheduled-scan"
+  debug: false  # Abilita il sidecar Fluent Bit per l'invio dei log a Loki
+  periodic: true
+  schedule: "0 2 * * *"  # Ogni giorno alle 2:00 AM
+  args: ["-sV", "-sC"]
+---
+apiVersion: kttack.io/v1alpha1
+kind: Enumeration
+metadata:
+  name: masscan-with-loki
+  namespace: default
+spec:
+  target: "192.168.1.0/24"
+  tool: masscan
+  fileName: "masscan-results"
+  debug: false  # Abilita il sidecar Fluent Bit
+  periodic: false
+  args: ["-p1-65535", "--rate=10000"]

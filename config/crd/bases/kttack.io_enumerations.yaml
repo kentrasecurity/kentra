@@ -1,0 +1,141 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: enumerations.kttack.io
+spec:
+  group: kttack.io
+  names:
+    kind: Enumeration
+    listKind: EnumerationList
+    plural: enumerations
+    shortNames:
+    - enum
+    singular: enumeration
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.tool
+      name: Tool
+      type: string
+    - jsonPath: .spec.target
+      name: Target
+      type: string
+    - jsonPath: .spec.periodic
+      name: Periodic
+      type: boolean
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Enumeration is the Schema for the enumerations API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: EnumerationSpec defines the desired state of Enumeration
+            properties:
+              additional_env:
+                description: AdditionalEnv contains additional environment variables
+                items:
+                  description: EnvVar represents an environment variable
+                  properties:
+                    name:
+                      description: Name of the environment variable
+                      type: string
+                    value:
+                      description: Value of the environment variable
+                      type: string
+                  required:
+                  - name
+                  - value
+                  type: object
+                type: array
+              args:
+                description: Args contains additional arguments for the tool
+                items:
+                  type: string
+                type: array
+              capabilities:
+                description: Capabilities are additional capabilities required by
+                  the tool
+                items:
+                  type: string
+                type: array
+              debug:
+                description: Debug if true, logs are written to stdout instead of
+                  emptydir volume
+                type: boolean
+              fileName:
+                description: FileName contains the output file names
+                items:
+                  type: string
+                type: array
+              http_proxy:
+                description: HTTPProxy is the HTTP proxy URL to use
+                type: string
+              periodic:
+                description: Periodic indicates if this should run on a schedule
+                type: boolean
+              schedule:
+                description: Schedule is the cron schedule (only used if Periodic
+                  is true)
+                type: string
+              target:
+                description: Target is the IP, CIDR, or hostname to enumerate
+                type: string
+              tool:
+                description: Tool is the enumeration tool to use (ex nmap)
+                type: string
+            required:
+            - target
+            - tool
+            type: object
+          status:
+            description: EnumerationStatus defines the observed state of Enumeration
+            properties:
+              jobName:
+                description: JobName is the name of the created job or cronjob
+                type: string
+              lastExecuted:
+                description: LastExecuted is the timestamp of last execution
+                type: string
+              resultsLocation:
+                description: ResultsLocation is the path where results are stored
+                type: string
+              state:
+                description: State represents the current state
+                enum:
+                - Pending
+                - Running
+                - Completed
+                - Failed
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
