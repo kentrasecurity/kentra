@@ -1,12 +1,12 @@
 # Adds namespace to all resources.
-namespace: project-system
+namespace: kttack-system
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
 # "wordpress" becomes "alices-wordpress".
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
-namePrefix: project-
+namePrefix: kttack-
 
 # Labels to add to all resources and selectors.
 #labels:
@@ -27,6 +27,10 @@ resources:
 #- ../prometheus
 # [METRICS] Expose the controller manager metrics service.
 - metrics_service.yaml
+# Tool specifications and logging configuration
+- tool-specs.yaml
+- fluent-bit-config.yaml
+- loki-secret.yaml
 # [NETWORK POLICY] Protect the /metrics endpoint and Webhook Server with NetworkPolicy.
 # Only Pod(s) running a namespace labeled with 'metrics: enabled' will be able to gather the metrics.
 # Only CR(s) which requires webhooks and are applied on namespaces labeled with 'webhooks: enabled' will

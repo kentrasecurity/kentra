@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: kttack-system
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush        5
+        Daemon       Off
+        Log_Level    info
+        Parsers_File parsers.conf
+
+    [INPUT]
+        Name              tail
+        Path              /logs/*.log
+        Read_from_Head    true
+        Refresh_Interval  5
+        Tag               kttack.job.*
+
+    [FILTER]
+        Name    modify
+        Match   *
+        Add     cluster ${CLUSTER_NAME}
+        Add     component job
+        Add     app kttack
+        Add     job ${JOB_NAME}
+        Add     tool ${TOOL_TYPE}
+        Add     namespace ${NAMESPACE}
+
+    [OUTPUT]
+        Name   loki
+        Match  *
+        host   ${LOKI_HOST}
+        port   ${LOKI_PORT}
+        tls    ${LOKI_TLS}
+        tls.verify ${LOKI_TLS_VERIFY}
+        tenant_id ${LOKI_TENANT_ID}
+        http_user ${LOKI_USER}
+        http_passwd ${LOKI_PASSWORD}
+        labels $job,$namespace,$tool,$cluster
+
+  parsers.conf: |
+    [PARSER]
+        Name   json
+        Format json
+        Time_Key timestamp
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z

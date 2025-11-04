@@ -183,7 +183,7 @@ func main() {
 	setupLog.Info("Tool spec manager created, will load tool specifications on first reconcile")
 
 	// Create ToolsConfigurator for Enumeration controller
-	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "tool-specs", "kttack-system")
+	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
 	setupLog.Info("ToolsConfigurator created for Enumeration controller")
 
 	// Setup EnumerationReconciler

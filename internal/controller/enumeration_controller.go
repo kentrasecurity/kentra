@@ -25,6 +25,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,7 +49,7 @@ type EnumerationReconciler struct {
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations/finalizers,verbs=update
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch
 
 // Reconcile implements reconciliation for Enumeration resources
 func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -238,14 +239,13 @@ func (r *EnumerationReconciler) buildPodSpec(enum *securityv1alpha1.Enumeration)
 	}
 
 	// Build command with shell wrapper for logging
-	fullCommand := strings.Join(command, " ")
 	var shellWrappedCommand string
 	if enum.Spec.Debug {
-		// Debug mode: output to stdout
-		shellWrappedCommand = fullCommand
+		// Debug mode: output to stdout - pass command directly
+		shellWrappedCommand = strings.Join(command, " ")
 	} else {
-		// Normal mode: redirect to emptydir volume
-		shellWrappedCommand = fmt.Sprintf("%s > /logs/job.log 2>&1", fullCommand)
+		// Normal mode: redirect to emptydir volume and create done file
+		shellWrappedCommand = strings.Join(command, " ") + " > /logs/job.log 2>&1 && touch /logs/done"
 	}
 
 	podSpec := corev1.PodSpec{
@@ -262,13 +262,24 @@ func (r *EnumerationReconciler) buildPodSpec(enum *securityv1alpha1.Enumeration)
 		},
 	}
 
-	// Add volume mount only if not in debug mode
+	// Add volume and sidecar only if not in debug mode
 	if !enum.Spec.Debug {
+		// Add logs volume
 		podSpec.Volumes = []corev1.Volume{
 			{
 				Name: "logs",
 				VolumeSource: corev1.VolumeSource{
 					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+			{
+				Name: "fluent-bit-config",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-fluent-bit-config",
+						},
+					},
 				},
 			},
 		}
@@ -278,9 +289,147 @@ func (r *EnumerationReconciler) buildPodSpec(enum *securityv1alpha1.Enumeration)
 				MountPath: "/logs",
 			},
 		}
+
+		// Add Fluent Bit sidecar
+		fluentBitSidecar := r.buildFluentBitSidecar(enum)
+		podSpec.Containers = append(podSpec.Containers, fluentBitSidecar)
 	}
 
 	return podSpec, nil
+}
+
+func (r *EnumerationReconciler) buildFluentBitSidecar(enum *securityv1alpha1.Enumeration) corev1.Container {
+	return corev1.Container{
+		Name:  "fluent-bit-sidecar",
+		Image: "fluent/fluent-bit:latest",
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "logs",
+				MountPath: "/logs",
+				ReadOnly:  true,
+			},
+			{
+				Name:      "fluent-bit-config",
+				MountPath: "/fluent-bit/etc",
+				ReadOnly:  true,
+			},
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "LOKI_HOST",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-loki-credentials",
+						},
+						Key: "loki-host",
+					},
+				},
+			},
+			{
+				Name: "LOKI_PORT",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-loki-credentials",
+						},
+						Key: "loki-port",
+					},
+				},
+			},
+			{
+				Name: "LOKI_TLS",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-loki-credentials",
+						},
+						Key: "loki-tls",
+					},
+				},
+			},
+			{
+				Name: "LOKI_TLS_VERIFY",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-loki-credentials",
+						},
+						Key: "loki-tls-verify",
+					},
+				},
+			},
+			{
+				Name: "LOKI_TENANT_ID",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-loki-credentials",
+						},
+						Key: "loki-tenant-id",
+					},
+				},
+			},
+			{
+				Name: "LOKI_USER",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-loki-credentials",
+						},
+						Key: "loki-user",
+					},
+				},
+			},
+			{
+				Name: "LOKI_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-loki-credentials",
+						},
+						Key: "loki-password",
+					},
+				},
+			},
+			{
+				Name: "CLUSTER_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "kttack-loki-credentials",
+						},
+						Key: "cluster-name",
+					},
+				},
+			},
+			{
+				Name:  "NAMESPACE",
+				Value: enum.Namespace,
+			},
+			{
+				Name:  "JOB_NAME",
+				Value: enum.Name,
+			},
+			{
+				Name:  "TOOL_TYPE",
+				Value: enum.Spec.Tool,
+			},
+		},
+		Command:   []string{"/fluent-bit/bin/fluent-bit"},
+		Args:      []string{"-c", "/fluent-bit/etc/fluent-bit.conf"},
+		Lifecycle: &corev1.Lifecycle{},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
+				corev1.ResourceMemory: *resource.NewQuantity(64*1024*1024, resource.BinarySI),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
+				corev1.ResourceMemory: *resource.NewQuantity(256*1024*1024, resource.BinarySI),
+			},
+		},
+	}
 }
 
 func (r *EnumerationReconciler) updateStatus(ctx context.Context, enum *securityv1alpha1.Enumeration, state, message string) {
