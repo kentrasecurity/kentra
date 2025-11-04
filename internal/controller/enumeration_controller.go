@@ -75,10 +75,9 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Determine target namespace - use the CR's namespace
 	targetNamespace := enum.Namespace
 
-	// Generate names for Job/CronJob
-	baseName := fmt.Sprintf("enum-%s", enum.Name)
-	jobName := fmt.Sprintf("%s-job", baseName)
-	cronJobName := fmt.Sprintf("%s-cronjob", baseName)
+	// Generate names for Job/CronJob - use enum name directly for consistency with Loki labels
+	jobName := enum.Name
+	cronJobName := fmt.Sprintf("%s-cronjob", enum.Name)
 
 	// Check if we need to create a job or cronjob
 	if enum.Spec.Periodic {
@@ -252,7 +251,7 @@ func (r *EnumerationReconciler) buildPodSpec(enum *securityv1alpha1.Enumeration)
 		RestartPolicy: corev1.RestartPolicyNever,
 		Containers: []corev1.Container{
 			{
-				Name:            enum.Spec.Tool,
+				Name:            "security-tool",
 				Image:           toolConfig.Image,
 				Command:         []string{"sh"},
 				Args:            []string{"-c", shellWrappedCommand},
