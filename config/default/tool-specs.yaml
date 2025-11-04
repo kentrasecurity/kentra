@@ -24,10 +24,18 @@ data:
       type: "enumeration"
       category: "network"
       image: "rustscan/rustscan:latest"
-      commandTemplate: "/usr/local/bin/rustscan {{.Args}} {{.Target}}"
+      commandTemplate: "/usr/local/bin/rustscan {{.Args}} --addresses {{.Target}}"
       capabilities:
         add:
-          - NET_RAW        
+          - NET_RAW
+    feroxbuster:
+      type: "enumeration"
+      category: "web"
+      image: "epi052/feroxbuster"
+      commandTemplate: "feroxbuster {{.Args}} -u {{.Target}}"
+      capabilities:
+        add:
+          - NET_RAW    
     ping:
       type: "liveness"
       image: "giantswarm/ping:3.3.5"
