@@ -1,4 +1,4 @@
-module github.com/yourorg/security-operator
+module github.com/kttack/kttack
 
 go 1.24.5
 
