@@ -1,126 +1,303 @@
-# ToDo List
-- Aggiunta Wordlist per enumeration, ddos, etc...
-- Aggiunta delle varie CRD aggiuntive
-- Capire come creare VPN sts
+# KTtack - Kubernetes Security Testing Framework
 
-# project
-// TODO(user): Add simple overview of use/purpose
+A comprehensive Kubernetes Operator for orchestrating and managing security testing operations within Kubernetes clusters. KTtack enables automated security scanning, enumeration, vulnerability testing, and security attack simulations through Kubernetes Custom Resource Definitions (CRDs).
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+## Overview
+
+KTtack provides a declarative way to define and execute security operations as native Kubernetes resources. Instead of manually managing security testing tools and scripts, you define your security tests as YAML manifests and let KTtack's Kubernetes Operator handle orchestration, scheduling, logging, and resource management.
+
+### Key Features
+
+- **Custom Resource Definitions (CRDs)**: Define security tests declaratively using Kubernetes-native resources
+  - `SecurityAttack`: Execute security testing operations
+  - `Enumeration`: Network and service enumeration
+  - `Liveness`: System health and availability checks
+
+- **Flexible Tool Integration**: Support for popular security tools (Nmap, Nikto, Feroxbuster, etc.)
+- **Periodic Execution**: Schedule security tests using standard Kubernetes CronJob syntax
+- **Centralized Logging**: Integrated Fluent Bit sidecar for log aggregation to Loki
+- **Multi-tenant Support**: Namespace-aware resource management
+- **Comprehensive Monitoring**: Prometheus metrics and health checks
+
+## Documentation
+
+Complete documentation is available in the [docs directory](./docs/):
+
+- **[Documentation Index](./docs/INDEX.md)** - Complete guide to all documentation resources
+- **[Getting Started](./docs/GETTING_STARTED.md)** - Quick start guide to create your first security test (5 minutes)
+- **[Installation Guide](./docs/INSTALLATION_GUIDE.md)** - Detailed installation instructions for all deployment methods
+- **[Architecture Guide](./docs/ARCHITECTURE.md)** - Comprehensive overview of system design, components, and interactions
+- **[API Reference](./docs/API_REFERENCE.md)** - Complete CRD specification and field reference
+- **[Fluent Bit Sidecar Documentation](./docs/FLUENT_BIT_SIDECAR.md)** - Setup and configuration for centralized logging
+
+## Quick Start
+
+For detailed installation instructions, refer to the [Installation Guide](./docs/INSTALLATION_GUIDE.md). Below is a quick overview of installation steps.
 
 ## Getting Started
 
 ### Prerequisites
-- go version v1.24.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+- **Go**: v1.24.0 or higher
+- **Docker**: v17.03 or higher
+- **kubectl**: v1.11.3 or higher
+- **Kubernetes Cluster**: v1.11.3 or higher with cluster-admin access
 
-```sh
-make docker-build docker-push IMG=<some-registry>/project:tag
-```
+### Installation Methods
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+Choose one of the following installation methods based on your needs:
 
-**Install the CRDs into the cluster:**
+#### Method 1: Quick Start with Pre-built Image
 
-```sh
+If you have a pre-built Docker image available in a registry:
+
+```bash
+# Set your image registry and tag
+export IMG=your-registry/kttack:v1.0.0
+
+# Install CRDs
 make install
+
+# Deploy the manager
+make deploy IMG=$IMG
 ```
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+#### Method 2: Build and Deploy from Source
 
-```sh
-make deploy IMG=<some-registry>/project:tag
+Build the controller from source code:
+
+```bash
+# Clone the repository
+git clone https://github.com/kttack/kttack.git
+cd kttack
+
+# Build the Docker image
+make docker-build IMG=your-registry/kttack:v1.0.0
+
+# Push to your registry (ensure you have push permissions)
+make docker-push IMG=your-registry/kttack:v1.0.0
+
+# Install CRDs into the cluster
+make install
+
+# Deploy the manager
+make deploy IMG=your-registry/kttack:v1.0.0
 ```
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
+**Note**: Replace `your-registry` with your actual Docker registry URL (e.g., `docker.io/myorg`, `ghcr.io/myorg`, `gcr.io/myproject`).
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+#### Method 3: Using Kustomize (Bundle Distribution)
 
-```sh
-kubectl apply -k config/samples/
+Create a bundled installation file:
+
+```bash
+# Build the installer bundle
+make build-installer IMG=your-registry/kttack:v1.0.0
 ```
 
->**NOTE**: Ensure that the samples has default values to test it out.
+This generates an `install.yaml` file in the `dist/` directory containing all resources. Users can then deploy with:
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+```bash
+# Install from bundle
+kubectl apply -f https://path-to-your-bundle/install.yaml
+```
 
-```sh
+#### Method 4: Using Helm Chart
+
+Helm chart support is available for simplified deployment. Refer to the Helm values documentation for configuration options.
+
+### Deployment Verification
+
+Verify the deployment was successful:
+
+```bash
+# Check if the manager pod is running
+kubectl get pods -n kttack-system
+
+# Check CRDs are installed
+kubectl get crds | grep kttack.io
+
+# View controller logs
+kubectl logs -n kttack-system deployment/kttack-controller-manager -f
+```
+
+### Configure Tool Specifications (Optional)
+
+KTtack uses a ConfigMap to define tool specifications:
+
+```bash
+kubectl apply -f config/default/tool-specs.yaml
+```
+
+### Configure Logging to Loki (Optional)
+
+For centralized logging with Fluent Bit and Loki:
+
+```bash
+# Apply Loki credentials secret
+kubectl apply -f config/default/loki-secret.yaml
+
+# Apply Fluent Bit configuration
+kubectl apply -f config/default/fluent-bit-config.yaml
+```
+
+See [Fluent Bit Sidecar Documentation](./docs/FLUENT_BIT_SIDECAR.md) for detailed configuration.
+
+## Usage Examples
+
+### Create a One-Time Security Test
+
+```bash
+kubectl apply -f config/samples/kttack_v1alpha1_securityattack.yaml
+```
+
+### Create a Periodic Enumeration
+
+```bash
+kubectl apply -f config/samples/kttack_v1alpha1_enumeration.yaml
+```
+
+### Monitor Running Tests
+
+```bash
+# List all security attacks
+kubectl get securityattacks -A
+
+# Watch a specific attack
+kubectl describe securityattack <name> -n <namespace>
+
+# View attack logs
+kubectl logs -n <namespace> -l job-name=<attack-name>
+```
+
+## First Test (5-minute Quick Start)
+
+To create your first security test, follow the [Getting Started Guide](./docs/GETTING_STARTED.md).
+
+Quick example:
+
+```yaml
+apiVersion: kttack.io/v1alpha1
+kind: SecurityAttack
+metadata:
+  name: my-first-scan
+  namespace: security-testing
+spec:
+  attackType: Enumeration
+  target: "192.168.1.0/24"
+  tool: nmap
+  periodic: false
+  debug: true
+  args:
+    - "-sV"
+```
+
+## Uninstallation
+
+### Remove Security Test Resources
+
+Delete all custom resources:
+
+```bash
 kubectl delete -k config/samples/
 ```
 
-**Delete the APIs(CRDs) from the cluster:**
+### Remove CRDs and Controller
 
-```sh
+Uninstall the controller and CRDs:
+
+```bash
+# Undeploy the manager
+make undeploy
+
+# Remove CRDs
 make uninstall
 ```
 
-**UnDeploy the controller from the cluster:**
+## Development
 
-```sh
-make undeploy
+### Building from Source
+
+```bash
+# Generate manifests (CRDs, RBAC)
+make manifests
+
+# Generate Go code
+make generate
+
+# Run tests
+make test
+
+# Build binary
+make build
+```
+
+### Testing
+
+```bash
+# Run unit tests
+make test
+
+# Run end-to-end tests (requires Kind cluster)
+make setup-test-e2e
+```
+
+### Code Style
+
+```bash
+# Format code
+make fmt
+
+# Run static analysis
+make vet
 ```
 
 ## Project Distribution
 
-Following the options to release and provide this solution to the users.
+### Publishing to Container Registry
 
-### By providing a bundle with all YAML files
+Ensure your image is published to a registry accessible from your Kubernetes cluster:
 
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/project:tag
+```bash
+make docker-build docker-push IMG=<registry>/kttack:tag
 ```
 
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
+### Creating Release Bundles
 
-2. Using the installer
+Generate a complete installation bundle:
 
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/project/<tag or branch>/dist/install.yaml
+```bash
+make build-installer IMG=<registry>/kttack:tag
 ```
 
-### By providing a Helm Chart
+Users can then deploy using:
 
-1. Build the chart using the optional helm plugin
+```bash
+kubectl apply -f dist/install.yaml
+```
 
-```sh
+### Helm Chart Distribution
+
+Build the Helm chart for distribution:
+
+```bash
 kubebuilder edit --plugins=helm/v1-alpha
 ```
 
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
+The generated chart will be available in the `dist/chart` directory.
 
 ## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
 
-**NOTE:** Run `make help` for more information on all potential `make` targets
+Contributions are welcome! Please ensure that any changes:
 
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+1. Follow the existing code style and patterns
+2. Include appropriate tests
+3. Update documentation as needed
+4. Pass all existing tests and linters
+
+## Support
+
+For issues, questions, or contributions, please visit the [GitHub Repository](https://github.com/kttack/kttack).
 
 ## License
 
@@ -137,4 +314,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
