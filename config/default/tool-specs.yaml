@@ -5,14 +5,105 @@ metadata:
   namespace: kttack-system
 data:
   tools: |
-    nmap:
+    amass:
       type: "enumeration"
-      category: "network"
-      image: "instrumentisto/nmap:latest"
-      commandTemplate: "/usr/bin/nmap {{.Args}} {{.Target}}"
+      category: "dns"
+      image: "caffix/amass:latest"
+      commandTemplate: "amass {{.Args}} -d {{.Target}}"
+      capabilities:
+        add: []
+
+    CrackMapExec:
+      type: "enumeration"
+      category: "windows"
+      image: "heywoodlh/crackmapexec:latest"
+      commandTemplate: "crackmapexec {{.Args}} {{.Target}}"
+      capabilities:
+        add: []
+
+    dirbuster:
+      type: "enumeration"
+      category: "web"
+      image: "hypnza/dirbuster:latest"
+      commandTemplate: "dirbuster {{.Args}} -u {{.Target}}"
+      capabilities:
+        add: []
+
+    dirsearch:
+      type: "enumeration"
+      category: "web"
+      image: "jefftadashi/dirsearch:latest"
+      commandTemplate: "dirsearch {{.Args}} -u {{.Target}}"
+      capabilities:
+        add: []
+
+    dnsrecon:
+      type: "enumeration"
+      category: "dns"
+      image: "germanramos/dnsrecon:latest"
+      commandTemplate: "dnsrecon {{.Args}} -d {{.Target}}"
+      capabilities:
+        add: []
+
+    enum4linux:
+      type: "enumeration"
+      category: "windows"
+      image: "alttas/enum4linux:v0.0.1"
+      commandTemplate: "enum4linux {{.Args}} {{.Target}}"
+      capabilities:
+        add: []
+
+    ffuf:
+      type: "enumeration"
+      category: "web"
+      image: "secsi/ffuf:2.0.0"
+      commandTemplate: "ffuf {{.Args}} -u {{.Target}}"
+      capabilities:
+        add: []
+
+    feroxbuster:
+      type: "enumeration"
+      category: "web"
+      image: "epi052/feroxbuster"
+      commandTemplate: "feroxbuster {{.Args}} -u {{.Target}}"
       capabilities:
         add:
           - NET_RAW
+
+    gobuster:
+      type: "enumeration"
+      category: "web"
+      image: "secsi/gobuster:3.2.0"
+      commandTemplate: "gobuster {{.Args}} -u {{.Target}}"
+      capabilities:
+        add: []
+
+    ldapsearch:
+      type: "enumeration"
+      category: "ldap"
+      image: "bitnami/openldap:latest"
+      commandTemplate: "ldapsearch {{.Args}} -H {{.Target}}"
+      capabilities:
+        add: []
+
+    masscan:
+      type: "enumeration"
+      category: "network"
+      image: "adarnimrod/masscan"
+      commandTemplate: "masscan {{.Target}} {{.Args}}"
+      capabilities:
+        add:
+          - NET_RAW 
+
+    nbtscan:
+      type: "enumeration"
+      category: "network"
+      image: "burstears/nbtscan:latest"
+      commandTemplate: "nbtscan -h {{.Target}} {{.Args}}"
+      capabilities:
+        add:
+          - NET_RAW 
+
     netcat:
       type: "enumeration"
       category: "network"
@@ -21,6 +112,7 @@ data:
       capabilities:
         add:
           - NET_RAW 
+
     nikto:
       type: "enumeration"
       category: "network"
@@ -28,26 +120,68 @@ data:
       commandTemplate: "nikto.pl -h {{.Args}} {{.Target}}"
       capabilities:
         add: []
+
+    nmap:
+      type: "enumeration"
+      category: "network"
+      image: "instrumentisto/nmap:latest"
+      commandTemplate: "nmap {{.Args}} {{.Target}}"
+      capabilities:
+        add:
+          - NET_RAW
+
     rustscan:
       type: "enumeration"
       category: "network"
       image: "rustscan/rustscan:latest"
-      commandTemplate: "/usr/local/bin/rustscan {{.Args}} --addresses {{.Target}}"
+      commandTemplate: "rustscan {{.Args}} --addresses {{.Target}}"
       capabilities:
         add:
           - NET_RAW
-    feroxbuster:
+
+    smbclient:
+      type: "enumeration"
+      category: "windows"
+      image: "johanmeiring/docker-samba-client:latest"
+      commandTemplate: "smbclient {{.Args}} {{.Target}}"
+      capabilities:
+        add: []
+
+    snmpwalk:
+      type: "enumeration"
+      category: "snmp"
+      image: "sevendollar/snmpwalk:latest"
+      commandTemplate: "snmpwalk {{.Args}} {{.Target}}"
+      capabilities:
+        add: []
+
+    subfinder:
+      type: "enumeration"
+      category: "dns"
+      image: "projectdiscovery/subfinder:latest"
+      commandTemplate: "subfinder {{.Args}} -d {{.Target}}"
+      capabilities:
+        add: []
+
+    wfuzz:
       type: "enumeration"
       category: "web"
-      image: "epi052/feroxbuster"
-      commandTemplate: "feroxbuster {{.Args}} -u {{.Target}}"
+      image: "hypnza/wfuzz:latest"
+      commandTemplate: "wfuzz {{.Args}} {{.Target}}"
       capabilities:
-        add:
-          - NET_RAW              
+        add: []
+
+    wpscan:
+      type: "enumeration"
+      category: "web"
+      image: "wpscanteam/wpscan:latest"
+      commandTemplate: "wpscan {{.Args}} --url {{.Target}}"
+      capabilities:
+        add: []
 
     ping:
       type: "liveness"
       image: "giantswarm/ping:3.3.5"
-      commandTemplate: "/ping {{.Args}} {{.Target}}"
+      commandTemplate: "ping {{.Args}} {{.Target}}"
       capabilities:
         add: []
