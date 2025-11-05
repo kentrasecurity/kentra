@@ -194,7 +194,7 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 		shellWrappedCommand = "sleep 5 && " + strings.Join(command, " ")
 	} else {
 		// Normal mode: redirect to emptydir volume and create done file with 5 sec delay
-		shellWrappedCommand = "sleep 5 && " + strings.Join(command, " ") + " > /logs/job.log 2>&1"
+		shellWrappedCommand = "sleep 5 && " + strings.Join(command, " ") + " > /logs/job.log 2>&1; touch /logs/done"
 	}
 
 	podSpec := corev1.PodSpec{
@@ -251,7 +251,7 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 func buildFluentBitSidecar(namespace, resourceName, toolType string) corev1.Container {
 	return corev1.Container{
 		Name:  "fluent-bit-sidecar",
-		Image: "fluent/fluent-bit:latest",
+		Image: "percona/fluentbit:4.0.1",
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "logs",
@@ -366,8 +366,8 @@ func buildFluentBitSidecar(namespace, resourceName, toolType string) corev1.Cont
 				Value: toolType,
 			},
 		},
-		Command:   []string{"/fluent-bit/bin/fluent-bit"},
-		Args:      []string{"-c", "/fluent-bit/etc/fluent-bit.conf"},
+		Command:   []string{"sh"},
+		Args:      []string{"-c", `/opt/fluent-bit/bin/fluent-bit -c /fluent-bit/etc/fluent-bit.conf & PID=$!; while [ ! -f /logs/done ]; do sleep 1; done; kill $PID; wait $PID 2>/dev/null || true`},
 		Lifecycle: &corev1.Lifecycle{},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
