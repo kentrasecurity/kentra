@@ -13,6 +13,14 @@ data:
       capabilities:
         add:
           - NET_RAW
+    netcat:
+      type: "enumeration"
+      category: "network"
+      image: "subfuzion/netcat"
+      commandTemplate: "nc {{.Args}} {{.Target}}"
+      capabilities:
+        add:
+          - NET_RAW 
     nikto:
       type: "enumeration"
       category: "network"
@@ -35,7 +43,8 @@ data:
       commandTemplate: "feroxbuster {{.Args}} -u {{.Target}}"
       capabilities:
         add:
-          - NET_RAW    
+          - NET_RAW              
+
     ping:
       type: "liveness"
       image: "giantswarm/ping:3.3.5"
