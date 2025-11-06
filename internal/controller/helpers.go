@@ -67,6 +67,7 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 	labels := map[string]string{
 		"app":  appType,
 		"tool": spec.Tool,
+		"task": "job",
 	}
 
 	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug)
@@ -104,6 +105,7 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 	labels := map[string]string{
 		"app":  appType,
 		"tool": spec.Tool,
+		"task": "cronjob",
 	}
 
 	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug)
@@ -365,9 +367,17 @@ func buildFluentBitSidecar(namespace, resourceName, toolType string) corev1.Cont
 				Name:  "TOOL_TYPE",
 				Value: toolType,
 			},
+			{
+				Name: "POD_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			},
 		},
 		Command:   []string{"sh"},
-		Args:      []string{"-c", `/opt/fluent-bit/bin/fluent-bit -c /fluent-bit/etc/fluent-bit.conf & PID=$!; while [ ! -f /logs/done ]; do sleep 1; done; kill $PID; wait $PID 2>/dev/null || true`},
+		Args:      []string{"-c", `/opt/fluent-bit/bin/fluent-bit -c /fluent-bit/etc/fluent-bit.conf & PID=$!; while [ ! -f /logs/done ]; do sleep 1; done; sleep 5; kill $PID; wait $PID 2>/dev/null || true`},
 		Lifecycle: &corev1.Lifecycle{},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
