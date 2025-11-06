@@ -70,7 +70,7 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 		"task": "job",
 	}
 
-	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug)
+	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "job", appType)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 		"task": "cronjob",
 	}
 
-	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug)
+	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "cronjob", appType)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 }
 
 // buildPodSpec creates the PodSpec for a security resource
-func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string, debug bool) (corev1.PodSpec, error) {
+func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string, debug bool, taskType, resourceType string) (corev1.PodSpec, error) {
 	log := log.FromContext(ctx)
 
 	// Get tool configuration from configurator
@@ -242,7 +242,7 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 		}
 
 		// Add Fluent Bit sidecar
-		fluentBitSidecar := buildFluentBitSidecar(namespace, resourceName, spec.Tool)
+		fluentBitSidecar := buildFluentBitSidecar(namespace, resourceName, spec.Tool, taskType, resourceType)
 		podSpec.Containers = append(podSpec.Containers, fluentBitSidecar)
 	}
 
@@ -250,7 +250,7 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 }
 
 // buildFluentBitSidecar creates the Fluent Bit sidecar container
-func buildFluentBitSidecar(namespace, resourceName, toolType string) corev1.Container {
+func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resourceType string) corev1.Container {
 	return corev1.Container{
 		Name:  "fluent-bit-sidecar",
 		Image: "percona/fluentbit:4.0.1",
@@ -374,6 +374,14 @@ func buildFluentBitSidecar(namespace, resourceName, toolType string) corev1.Cont
 						FieldPath: "metadata.name",
 					},
 				},
+			},
+			{
+				Name:  "TASK_TYPE",
+				Value: taskType,
+			},
+			{
+				Name:  "RESOURCE_TYPE",
+				Value: resourceType,
 			},
 		},
 		Command:   []string{"sh"},

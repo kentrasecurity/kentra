@@ -27,9 +27,10 @@ data:
         Name    modify
         Match   *
         Add     cluster ${CLUSTER_NAME}
-        Add     component job
         Add     app kttack
-        Add     job ${JOB_NAME}
+        Add     type ${RESOURCE_TYPE}
+        Add     task ${TASK_TYPE}
+        Add     name ${JOB_NAME}
         Add     tool ${TOOL_TYPE}
         Add     namespace ${NAMESPACE}
         Add     pod_name ${POD_NAME}
@@ -44,7 +45,7 @@ data:
         tenant_id ${LOKI_TENANT_ID}
         http_user ${LOKI_USER}
         http_passwd ${LOKI_PASSWORD}
-        labels $job,$namespace,$tool,$cluster,$pod_name
+        labels $name,$namespace,$tool,$cluster,$pod_name,$type,$task
 
   parsers.conf: |
     [PARSER]
