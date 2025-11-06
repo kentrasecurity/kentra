@@ -6,7 +6,7 @@ metadata:
 data:
   fluent-bit.conf: |
     [SERVICE]
-        Flush        5
+        Flush        1
         Daemon       Off
         Log_Level    info
         Parsers_File parsers.conf
@@ -17,7 +17,11 @@ data:
         Read_from_Head    true
         Refresh_Interval  5
         Tag               kttack.job.*
-        Exit_On_Eof       true
+
+    [FILTER]
+        Name    grep
+        Match   *
+        Regex   log .+
 
     [FILTER]
         Name    modify
@@ -28,6 +32,7 @@ data:
         Add     job ${JOB_NAME}
         Add     tool ${TOOL_TYPE}
         Add     namespace ${NAMESPACE}
+        Add     pod_name ${POD_NAME}
 
     [OUTPUT]
         Name   loki
@@ -39,7 +44,7 @@ data:
         tenant_id ${LOKI_TENANT_ID}
         http_user ${LOKI_USER}
         http_passwd ${LOKI_PASSWORD}
-        labels $job,$namespace,$tool,$cluster
+        labels $job,$namespace,$tool,$cluster,$pod_name
 
   parsers.conf: |
     [PARSER]
