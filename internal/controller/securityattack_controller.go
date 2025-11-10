@@ -141,6 +141,7 @@ func (a *securityAttackAdapter) GetSpec() *ResourceSpec {
 	return &ResourceSpec{
 		Tool:          a.sa.Spec.Tool,
 		Target:        a.sa.Spec.Target,
+		Category:      a.sa.Spec.Category,
 		Args:          a.sa.Spec.Args,
 		HTTPProxy:     a.sa.Spec.HTTPProxy,
 		AdditionalEnv: envVars,

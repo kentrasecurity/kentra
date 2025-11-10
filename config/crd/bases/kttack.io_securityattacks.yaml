@@ -26,6 +26,9 @@ spec:
     - jsonPath: .spec.tool
       name: Tool
       type: string
+    - jsonPath: .spec.category
+      name: Category
+      type: string
     - jsonPath: .spec.periodic
       name: Periodic
       type: boolean
@@ -87,6 +90,10 @@ spec:
                 - Enumeration
                 - Vulnerability
                 - Exploitation
+                type: string
+              category:
+                description: Category is a label to categorize the security attack
+                  (e.g., 'vulnerability-scan')
                 type: string
               debug:
                 description: Debug enables debug mode (output to stdout instead of

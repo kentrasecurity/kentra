@@ -46,6 +46,7 @@ type SecurityResource interface {
 type ResourceSpec struct {
 	Tool          string
 	Target        string
+	Category      string
 	Args          []string
 	HTTPProxy     string
 	AdditionalEnv []corev1.EnvVar
@@ -81,8 +82,9 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"kttack.io/target": spec.Target,
-				"kttack.io/tool":   spec.Tool,
+				"kttack.io/target":   spec.Target,
+				"kttack.io/tool":     spec.Tool,
+				"kttack.io/category": spec.Category,
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -119,8 +121,9 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"kttack.io/target": spec.Target,
-				"kttack.io/tool":   spec.Tool,
+				"kttack.io/target":   spec.Target,
+				"kttack.io/tool":     spec.Tool,
+				"kttack.io/category": spec.Category,
 			},
 		},
 		Spec: batchv1.CronJobSpec{

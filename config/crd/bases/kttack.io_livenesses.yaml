@@ -23,6 +23,9 @@ spec:
     - jsonPath: .spec.target
       name: Target
       type: string
+    - jsonPath: .spec.category
+      name: Category
+      type: string
     - jsonPath: .spec.periodic
       name: Periodic
       type: boolean
@@ -87,6 +90,10 @@ spec:
                 items:
                   type: string
                 type: array
+              category:
+                description: Category is a label to categorize the liveness check
+                  (e.g., 'critical-targets')
+                type: string
               debug:
                 description: Debug enables debug mode (output to stdout instead of
                   log file)

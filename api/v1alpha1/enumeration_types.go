@@ -69,6 +69,10 @@ type EnumerationSpec struct {
 	// Debug if true, logs are written to stdout instead of emptydir volume
 	// +optional
 	Debug bool `json:"debug,omitempty"`
+
+	// Category is a label to categorize the enumeration (e.g., 'normal-scan', 'deep-scan')
+	// +optional
+	Category string `json:"category,omitempty"`
 }
 
 // EnumerationStatus defines the observed state of Enumeration
@@ -96,6 +100,7 @@ type EnumerationStatus struct {
 //+kubebuilder:resource:shortName=enum,singular=enumeration
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
+//+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`
 //+kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.state`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`

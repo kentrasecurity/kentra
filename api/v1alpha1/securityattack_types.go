@@ -41,6 +41,10 @@ type SecurityAttackSpec struct {
 	// Debug enables debug mode (output to stdout instead of log file)
 	// +optional
 	Debug bool `json:"debug,omitempty"`
+
+	// Category is a label to categorize the security attack (e.g., 'vulnerability-scan')
+	// +optional
+	Category string `json:"category,omitempty"`
 }
 
 // SecurityAttackStatus defines the observed state of SecurityAttack
@@ -65,6 +69,7 @@ type SecurityAttackStatus struct {
 //+kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.attackType`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
+//+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`
 //+kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.state`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`

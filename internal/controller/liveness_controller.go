@@ -163,6 +163,7 @@ func (a *livenessAdapter) GetSpec() *ResourceSpec {
 	return &ResourceSpec{
 		Tool:          a.liveness.Spec.Tool,
 		Target:        a.liveness.Spec.Target,
+		Category:      a.liveness.Spec.Category,
 		Args:          a.liveness.Spec.Args,
 		HTTPProxy:     a.liveness.Spec.HTTPProxy,
 		AdditionalEnv: envVars,

@@ -162,6 +162,7 @@ func (a *enumerationAdapter) GetSpec() *ResourceSpec {
 	return &ResourceSpec{
 		Tool:          a.enum.Spec.Tool,
 		Target:        a.enum.Spec.Target,
+		Category:      a.enum.Spec.Category,
 		Args:          a.enum.Spec.Args,
 		HTTPProxy:     a.enum.Spec.HTTPProxy,
 		AdditionalEnv: envVars,
