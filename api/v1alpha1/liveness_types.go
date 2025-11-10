@@ -65,6 +65,10 @@ type LivenessSpec struct {
 	// Debug enables debug mode (output to stdout instead of log file)
 	// +optional
 	Debug bool `json:"debug,omitempty"`
+
+	// Category is a label to categorize the liveness check (e.g., 'critical-targets')
+	// +optional
+	Category string `json:"category,omitempty"`
 }
 
 // LivenessStatus defines the observed state of Liveness
@@ -96,6 +100,7 @@ type LivenessStatus struct {
 //+kubebuilder:resource:shortName=live,singular=liveness
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
+//+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`
 //+kubebuilder:printcolumn:name="LastResult",type=boolean,JSONPath=`.status.lastResult`
 //+kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.state`
