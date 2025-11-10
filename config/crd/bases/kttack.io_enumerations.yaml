@@ -88,8 +88,8 @@ spec:
                   type: string
                 type: array
               category:
-                description: Category is a label to categorize the enumeration (e.g.,
-                  'normal-scan', 'deep-scan')
+                description: Category is a label to categorize the enumeration category (e.g.
+                  'Web', 'DNS', 'Network')
                 type: string
               debug:
                 description: Debug if true, logs are written to stdout instead of
