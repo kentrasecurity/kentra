@@ -93,7 +93,7 @@ spec:
                 type: string
               category:
                 description: Category is a label to categorize the security attack
-                  (e.g.'Web', 'DNS', 'Network')
+                  (e.g., 'vulnerability-scan')
                 type: string
               debug:
                 description: Debug enables debug mode (output to stdout instead of

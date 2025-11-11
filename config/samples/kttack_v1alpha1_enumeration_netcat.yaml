@@ -1,0 +1,16 @@
+apiVersion: kttack.io/v1alpha1
+kind: Enumeration
+metadata:
+  name: netcat-banner-grab
+  namespace: kttack-system
+spec:
+  tool: netcat
+  target: 192.168.1.22
+  port: "8006"
+  category: Reconnaissance
+  debug: true
+  periodic: false
+  args:
+    - "-v"
+    - "-w"
+    - "5"

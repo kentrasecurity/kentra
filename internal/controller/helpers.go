@@ -53,6 +53,7 @@ type ResourceSpec struct {
 	Debug         bool
 	Periodic      bool
 	Schedule      string
+	Port          string
 }
 
 // ResourceStatus defines the common status fields across security resources
@@ -173,7 +174,7 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 	}
 
 	// Build command from template using proper template handling
-	command, err := configurator.BuildCommand(spec.Tool, spec.Target, spec.Args)
+	command, err := configurator.BuildCommand(spec.Tool, spec.Target, spec.Port, spec.Args)
 	if err != nil {
 		log.Error(err, "Failed to build command from template", "tool", spec.Tool)
 		return corev1.PodSpec{}, err

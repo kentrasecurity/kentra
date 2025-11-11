@@ -144,7 +144,7 @@ func (tc *ToolsConfigurator) IsToolAvailable(toolName string) bool {
 
 // BuildCommand builds the command from the template using Go's text/template
 // This replaces the simple string replacement approach with proper template handling
-func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, args []string) ([]string, error) {
+func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, port string, args []string) ([]string, error) {
 	tc.mu.RLock()
 	config, ok := tc.tools[toolName]
 	tc.mu.RUnlock()
@@ -160,6 +160,7 @@ func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, args [
 
 	data := map[string]interface{}{
 		"Target": target,
+		"Port":   port,
 		"Args":   strings.Join(args, " "),
 	}
 
