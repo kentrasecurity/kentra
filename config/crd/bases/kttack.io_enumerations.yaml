@@ -23,6 +23,9 @@ spec:
     - jsonPath: .spec.target
       name: Target
       type: string
+    - jsonPath: .spec.port
+      name: Port
+      type: string
     - jsonPath: .spec.category
       name: Category
       type: string
@@ -88,8 +91,8 @@ spec:
                   type: string
                 type: array
               category:
-                description: Category is a label to categorize the enumeration category (e.g.
-                  'Web', 'DNS', 'Network')
+                description: Category is a label to categorize the enumeration (e.g.,
+                  'normal-scan', 'deep-scan')
                 type: string
               debug:
                 description: Debug if true, logs are written to stdout instead of
@@ -106,6 +109,10 @@ spec:
               periodic:
                 description: Periodic indicates if this should run on a schedule
                 type: boolean
+              port:
+                description: Port is the port(s) to target (e.g., '22', '80,443',
+                  '8000-8100')
+                type: string
               schedule:
                 description: Schedule is the cron schedule (only used if Periodic
                   is true)

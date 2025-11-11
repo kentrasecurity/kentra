@@ -169,6 +169,7 @@ func (a *enumerationAdapter) GetSpec() *ResourceSpec {
 		Debug:         a.enum.Spec.Debug,
 		Periodic:      a.enum.Spec.Periodic,
 		Schedule:      a.enum.Spec.Schedule,
+		Port:          a.enum.Spec.Port,
 	}
 }
 

@@ -73,6 +73,10 @@ type EnumerationSpec struct {
 	// Category is a label to categorize the enumeration (e.g., 'normal-scan', 'deep-scan')
 	// +optional
 	Category string `json:"category,omitempty"`
+
+	// Port is the port(s) to target (e.g., '22', '80,443', '8000-8100')
+	// +optional
+	Port string `json:"port,omitempty"`
 }
 
 // EnumerationStatus defines the observed state of Enumeration
@@ -100,6 +104,7 @@ type EnumerationStatus struct {
 //+kubebuilder:resource:shortName=enum,singular=enumeration
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
+//+kubebuilder:printcolumn:name="Port",type=string,JSONPath=`.spec.port`
 //+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`
 //+kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.state`
