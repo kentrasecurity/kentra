@@ -20,7 +20,10 @@ spec:
     - jsonPath: .spec.tool
       name: Tool
       type: string
-    - jsonPath: .spec.target
+    - jsonPath: .spec.targetGroup
+      name: TargetGroup
+      type: string
+    - jsonPath: .status.resolvedTarget
       name: Target
       type: string
     - jsonPath: .spec.category
@@ -92,7 +95,7 @@ spec:
                 type: array
               category:
                 description: Category is a label to categorize the liveness check
-                  (e.g. 'ping', 'http')
+                  (e.g., 'critical-targets')
                 type: string
               debug:
                 description: Debug enables debug mode (output to stdout instead of
@@ -115,7 +118,12 @@ spec:
                 type: string
               target:
                 description: Target is the primary target for liveness check (IP,
-                  CIDR, or hostname)
+                  CIDR, or hostname). Can be either a direct target or a reference
+                  to a TargetGroup name.
+                type: string
+              targetGroup:
+                description: TargetGroup is the name of a TargetGroup resource to
+                  reference for target and port information
                 type: string
               targets:
                 description: Targets are additional targets for liveness checks
@@ -126,7 +134,6 @@ spec:
                 description: Tool is the liveness check tool to use (ex ping)
                 type: string
             required:
-            - target
             - tool
             type: object
           status:
@@ -141,6 +148,10 @@ spec:
               lastResult:
                 description: LastResult indicates if the target was reachable
                 type: boolean
+              resolvedTarget:
+                description: ResolvedTarget is the resolved target after TargetGroup
+                  reference is applied
+                type: string
               resultsLocation:
                 description: ResultsLocation is the path where results are stored
                 type: string

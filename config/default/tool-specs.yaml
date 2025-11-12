@@ -106,9 +106,8 @@ data:
 
     netcat:
       type: "enumeration"
-      category: "network"
       image: "subfuzion/netcat"
-      commandTemplate: "nc {{.Args}} {{.Target}}"
+      commandTemplate: "nc {{.Args}} {{.Target}} {{.Port}}"
       capabilities:
         add:
           - NET_RAW 
@@ -125,7 +124,7 @@ data:
       type: "enumeration"
       category: "network"
       image: "instrumentisto/nmap:latest"
-      commandTemplate: "nmap {{.Args}} {{.Target}}"
+      commandTemplate: "nmap {{.Args}} -p {{.Port}} {{.Target}}"
       capabilities:
         add:
           - NET_RAW

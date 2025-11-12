@@ -43,6 +43,7 @@ type LivenessReconciler struct {
 //+kubebuilder:rbac:groups=kttack.io,resources=livenesses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kttack.io,resources=livenesses/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kttack.io,resources=livenesses/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kttack.io,resources=targetgroups,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
@@ -66,6 +67,29 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		log.Error(err, "Failed to get Liveness")
 		return ctrl.Result{}, err
+	}
+
+	// Resolve TargetGroup reference if provided
+	if liveness.Spec.TargetGroup != "" {
+		tg := &securityv1alpha1.TargetGroup{}
+		tgNN := types.NamespacedName{Name: liveness.Spec.TargetGroup, Namespace: liveness.Namespace}
+		if err := r.Get(ctx, tgNN, tg); err != nil {
+			log.Error(err, "Failed to get referenced TargetGroup", "TargetGroup", liveness.Spec.TargetGroup)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+		}
+		// Set target and port from TargetGroup
+		liveness.Spec.Target = tg.Spec.Target
+		// Update resolved status
+		liveness.Status.ResolvedTarget = tg.Spec.Target
+	} else {
+		// Use direct target
+		liveness.Status.ResolvedTarget = liveness.Spec.Target
+	}
+
+	// Validate that either Target or TargetGroup is set
+	if liveness.Spec.Target == "" {
+		log.Error(fmt.Errorf("neither target nor targetGroup specified"), "Invalid Liveness resource")
+		return ctrl.Result{}, fmt.Errorf("Liveness must have either 'target' or 'targetGroup' specified")
 	}
 
 	// Determine target namespace
@@ -134,6 +158,12 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			log.Error(err, "Failed to get Job")
 			return ctrl.Result{}, err
 		}
+	}
+
+	// Update status with resolved target
+	if err := r.Status().Update(ctx, liveness); err != nil {
+		log.Error(err, "Failed to update status")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil

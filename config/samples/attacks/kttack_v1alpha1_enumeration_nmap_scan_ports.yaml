@@ -1,16 +1,12 @@
+---
 apiVersion: kttack.io/v1alpha1
 kind: Enumeration
 metadata:
-  name: netcat-banner-grab
+  name: nmap-scan-ports
   namespace: kttack-system
 spec:
-  tool: netcat
-  target: 192.168.1.22
-  port: "8006"
+  tool: nmap
+  targetGroup: nmap-scan-targets
   category: Reconnaissance
-  debug: true
+  debug: false
   periodic: false
-  args:
-    - "-v"
-    - "-w"
-    - "5"

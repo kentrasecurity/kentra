@@ -1,0 +1,16 @@
+---
+apiVersion: kttack.io/v1alpha1
+kind: Enumeration
+metadata:
+  name: netcat-banner-grab
+  namespace: kttack-system
+spec:
+  args:
+    - '-v'
+    - '-w'
+    - '5'
+  category: Reconnaissance
+  debug: true
+  periodic: false
+  targetGroup: test-pool
+  tool: netcat
