@@ -33,6 +33,7 @@ rules:
   - enumerations
   - livenesses
   - securityattacks
+  - targetgroups
   verbs:
   - create
   - delete
@@ -47,6 +48,7 @@ rules:
   - enumerations/finalizers
   - livenesses/finalizers
   - securityattacks/finalizers
+  - targetgroups/finalizers
   verbs:
   - update
 - apiGroups:
@@ -55,6 +57,7 @@ rules:
   - enumerations/status
   - livenesses/status
   - securityattacks/status
+  - targetgroups/status
   verbs:
   - get
   - patch

@@ -43,6 +43,7 @@ type EnumerationReconciler struct {
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kttack.io,resources=targetgroups,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch
@@ -66,6 +67,34 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		log.Error(err, "Failed to get Enumeration")
 		return ctrl.Result{}, err
+	}
+
+	// Resolve TargetGroup reference if provided
+	if enum.Spec.TargetGroup != "" {
+		tg := &securityv1alpha1.TargetGroup{}
+		tgNN := types.NamespacedName{Name: enum.Spec.TargetGroup, Namespace: enum.Namespace}
+		if err := r.Get(ctx, tgNN, tg); err != nil {
+			log.Error(err, "Failed to get referenced TargetGroup", "TargetGroup", enum.Spec.TargetGroup)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+		}
+		// Set target and port from TargetGroup
+		enum.Spec.Target = tg.Spec.Target
+		if tg.Spec.Port != "" && enum.Spec.Port == "" {
+			enum.Spec.Port = tg.Spec.Port
+		}
+		// Update resolved status
+		enum.Status.ResolvedTarget = tg.Spec.Target
+		enum.Status.ResolvedPort = tg.Spec.Port
+	} else {
+		// Use direct target and port
+		enum.Status.ResolvedTarget = enum.Spec.Target
+		enum.Status.ResolvedPort = enum.Spec.Port
+	}
+
+	// Validate that either Target or TargetGroup is set
+	if enum.Spec.Target == "" {
+		log.Error(fmt.Errorf("neither target nor targetGroup specified"), "Invalid Enumeration resource")
+		return ctrl.Result{}, fmt.Errorf("Enumeration must have either 'target' or 'targetGroup' specified")
 	}
 
 	// Determine target namespace
@@ -99,9 +128,6 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			log.Info("Created new CronJob", "CronJob", cronJobName)
 			enum.Status.State = "Running"
 			enum.Status.LastExecuted = time.Now().Format(time.RFC3339)
-			if err := r.Status().Update(ctx, enum); err != nil {
-				log.Error(err, "Failed to update status")
-			}
 		} else if err != nil {
 			log.Error(err, "Failed to get CronJob")
 			return ctrl.Result{}, err
@@ -126,13 +152,16 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			log.Info("Created new Job", "Job", jobName)
 			enum.Status.State = "Running"
 			enum.Status.LastExecuted = time.Now().Format(time.RFC3339)
-			if err := r.Status().Update(ctx, enum); err != nil {
-				log.Error(err, "Failed to update status")
-			}
 		} else if err != nil {
 			log.Error(err, "Failed to get Job")
 			return ctrl.Result{}, err
 		}
+	}
+
+	// Update status with resolved target and port
+	if err := r.Status().Update(ctx, enum); err != nil {
+		log.Error(err, "Failed to update status")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil

@@ -30,9 +30,14 @@ type EnvVar struct {
 
 // EnumerationSpec defines the desired state of Enumeration
 type EnumerationSpec struct {
-	// Target is the IP, CIDR, or hostname to enumerate
-	// +kubebuilder:validation:Required
-	Target string `json:"target"`
+	// Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetGroup name.
+	// If TargetGroup is specified, this field may be empty.
+	// +optional
+	Target string `json:"target,omitempty"`
+
+	// TargetGroup is the name of a TargetGroup resource to reference for target and port information
+	// +optional
+	TargetGroup string `json:"targetGroup,omitempty"`
 
 	// Tool is the enumeration tool to use (ex nmap)
 	// +kubebuilder:validation:Required
@@ -74,7 +79,7 @@ type EnumerationSpec struct {
 	// +optional
 	Category string `json:"category,omitempty"`
 
-	// Port is the port(s) to target (e.g., '22', '80,443', '8000-8100')
+	// Port is the port(s) to target (e.g., '22', '80,443', '8000-8100'). Can be overridden per resource.
 	// +optional
 	Port string `json:"port,omitempty"`
 }
@@ -97,14 +102,23 @@ type EnumerationStatus struct {
 	// ResultsLocation is the path where results are stored
 	// +optional
 	ResultsLocation string `json:"resultsLocation,omitempty"`
+
+	// ResolvedTarget is the resolved target after TargetGroup reference is applied
+	// +optional
+	ResolvedTarget string `json:"resolvedTarget,omitempty"`
+
+	// ResolvedPort is the resolved port after TargetGroup reference is applied
+	// +optional
+	ResolvedPort string `json:"resolvedPort,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=enum,singular=enumeration
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
-//+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
-//+kubebuilder:printcolumn:name="Port",type=string,JSONPath=`.spec.port`
+//+kubebuilder:printcolumn:name="TargetGroup",type=string,JSONPath=`.spec.targetGroup`
+//+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.status.resolvedTarget`
+//+kubebuilder:printcolumn:name="Port",type=string,JSONPath=`.status.resolvedPort`
 //+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`
 //+kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.state`

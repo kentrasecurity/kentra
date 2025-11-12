@@ -20,7 +20,10 @@ spec:
     - jsonPath: .spec.attackType
       name: Type
       type: string
-    - jsonPath: .spec.target
+    - jsonPath: .spec.targetGroup
+      name: TargetGroup
+      type: string
+    - jsonPath: .status.resolvedTarget
       name: Target
       type: string
     - jsonPath: .spec.tool
@@ -93,7 +96,7 @@ spec:
                 type: string
               category:
                 description: Category is a label to categorize the security attack
-                  (e.g. 'Web', 'Network')
+                  (e.g., 'vulnerability-scan')
                 type: string
               debug:
                 description: Debug enables debug mode (output to stdout instead of
@@ -110,14 +113,18 @@ spec:
                   is true)
                 type: string
               target:
-                description: Target is the IP, CIDR, or hostname to attack
+                description: Target is the IP, CIDR, or hostname to attack. Can be
+                  either a direct target or a reference to a TargetGroup name.
+                type: string
+              targetGroup:
+                description: TargetGroup is the name of a TargetGroup resource to
+                  reference for target and port information
                 type: string
               tool:
                 description: Tool is the security tool to use
                 type: string
             required:
             - attackType
-            - target
             - tool
             type: object
           status:
@@ -128,6 +135,10 @@ spec:
                 type: string
               lastExecuted:
                 description: LastExecuted is the timestamp of last execution
+                type: string
+              resolvedTarget:
+                description: ResolvedTarget is the resolved target after TargetGroup
+                  reference is applied
                 type: string
               state:
                 description: State represents the current state
