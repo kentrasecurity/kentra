@@ -29,6 +29,9 @@ spec:
     - jsonPath: .status.resolvedPort
       name: Port
       type: string
+    - jsonPath: .spec.storageGroup
+      name: StorageGroup
+      type: string
     - jsonPath: .spec.category
       name: Category
       type: string
@@ -119,6 +122,10 @@ spec:
               schedule:
                 description: Schedule is the cron schedule (only used if Periodic
                   is true)
+                type: string
+              storageGroup:
+                description: StorageGroup is the name of a StorageGroup resource to
+                  reference for files to download from S3
                 type: string
               target:
                 description: |-

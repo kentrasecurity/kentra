@@ -200,6 +200,7 @@ func (a *livenessAdapter) GetSpec() *ResourceSpec {
 		Debug:         a.liveness.Spec.Debug,
 		Periodic:      a.liveness.Spec.Periodic,
 		Schedule:      a.liveness.Spec.Schedule,
+		Files:         []string{},
 	}
 }
 

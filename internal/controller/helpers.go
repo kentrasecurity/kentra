@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -54,6 +55,7 @@ type ResourceSpec struct {
 	Periodic      bool
 	Schedule      string
 	Port          string
+	Files         []string
 }
 
 // ResourceStatus defines the common status fields across security resources
@@ -217,40 +219,125 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 		},
 	}
 
-	// Add volume and sidecar only if not in debug mode
+	// Initialize volumes and volume mounts
+	volumes := []corev1.Volume{}
+	volumeMounts := []corev1.VolumeMount{}
+
+	// Add logs volume and mount if not in debug mode
 	if !debug {
-		// Add logs volume
-		podSpec.Volumes = []corev1.Volume{
-			{
-				Name: "logs",
-				VolumeSource: corev1.VolumeSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				},
+		volumes = append(volumes, corev1.Volume{
+			Name: "logs",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
-			{
-				Name: "fluent-bit-config",
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-fluent-bit-config",
-						},
+		})
+		volumes = append(volumes, corev1.Volume{
+			Name: "fluent-bit-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "kttack-fluent-bit-config",
 					},
 				},
 			},
-		}
-		podSpec.Containers[0].VolumeMounts = []corev1.VolumeMount{
-			{
-				Name:      "logs",
-				MountPath: "/logs",
-			},
-		}
+		})
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "logs",
+			MountPath: "/logs",
+		})
+	}
 
-		// Add Fluent Bit sidecar
+	// Add config volume and mount if files are specified
+	if len(spec.Files) > 0 {
+		volumes = append(volumes, corev1.Volume{
+			Name: "config",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "config",
+			MountPath: "/config",
+		})
+	}
+
+	// Set volumes and mounts on pod spec
+	podSpec.Volumes = volumes
+	podSpec.Containers[0].VolumeMounts = volumeMounts
+
+	// Add init container if files are specified
+	if len(spec.Files) > 0 {
+		podSpec.InitContainers = []corev1.Container{
+			buildS3FileDownloaderInitContainer(spec.Files),
+		}
+	}
+
+	// Add Fluent Bit sidecar only if not in debug mode
+	if !debug {
 		fluentBitSidecar := buildFluentBitSidecar(namespace, resourceName, spec.Tool, taskType, resourceType)
 		podSpec.Containers = append(podSpec.Containers, fluentBitSidecar)
 	}
 
 	return podSpec, nil
+}
+
+// buildS3FileDownloaderInitContainer creates an init container that downloads files from S3
+func buildS3FileDownloaderInitContainer(files []string) corev1.Container {
+	// Build the script to download files from S3
+	// Script uses minio/mc to download files from s3://configs bucket
+	var downloadScript strings.Builder
+	downloadScript.WriteString("#!/bin/sh\n")
+	downloadScript.WriteString("set -e\n")
+	downloadScript.WriteString("echo 'Starting S3 file download...'\n")
+	downloadScript.WriteString("# Configure minio/mc with credentials\n")
+	downloadScript.WriteString("mc alias set s3 http://loki-minio-svc.kttack-system.svc.cluster.local:9000 \"${MINIO_ROOT_USER}\" \"${MINIO_ROOT_PASSWORD}\" --api S3v4\n")
+
+	for _, file := range files {
+		downloadScript.WriteString(fmt.Sprintf("echo 'Downloading %s...'\n", file))
+		downloadScript.WriteString(fmt.Sprintf("mc cp s3/configs/%s /config/%s\n", file, file))
+	}
+
+	downloadScript.WriteString("echo 'S3 file download completed successfully'\n")
+
+	return corev1.Container{
+		Name:  "s3-file-downloader",
+		Image: "minio/mc:latest",
+		Command: []string{
+			"sh",
+			"-c",
+			downloadScript.String(),
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "config",
+				MountPath: "/config",
+			},
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "MINIO_ROOT_USER",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "loki-minio",
+						},
+						Key: "rootUser",
+					},
+				},
+			},
+			{
+				Name: "MINIO_ROOT_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "loki-minio",
+						},
+						Key: "rootPassword",
+					},
+				},
+			},
+		},
+	}
 }
 
 // buildFluentBitSidecar creates the Fluent Bit sidecar container

@@ -82,6 +82,10 @@ type EnumerationSpec struct {
 	// Port is the port(s) to target (e.g., '22', '80,443', '8000-8100'). Can be overridden per resource.
 	// +optional
 	Port string `json:"port,omitempty"`
+
+	// StorageGroup is the name of a StorageGroup resource to reference for files to download from S3
+	// +optional
+	StorageGroup string `json:"storageGroup,omitempty"`
 }
 
 // EnumerationStatus defines the observed state of Enumeration
@@ -119,6 +123,7 @@ type EnumerationStatus struct {
 //+kubebuilder:printcolumn:name="TargetGroup",type=string,JSONPath=`.spec.targetGroup`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.status.resolvedTarget`
 //+kubebuilder:printcolumn:name="Port",type=string,JSONPath=`.status.resolvedPort`
+//+kubebuilder:printcolumn:name="StorageGroup",type=string,JSONPath=`.spec.storageGroup`
 //+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`
 //+kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.state`

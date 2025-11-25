@@ -33,6 +33,7 @@ rules:
   - enumerations
   - livenesses
   - securityattacks
+  - storagegroups
   - targetgroups
   verbs:
   - create
@@ -48,6 +49,7 @@ rules:
   - enumerations/finalizers
   - livenesses/finalizers
   - securityattacks/finalizers
+  - storagegroups/finalizers
   - targetgroups/finalizers
   verbs:
   - update
@@ -57,6 +59,7 @@ rules:
   - enumerations/status
   - livenesses/status
   - securityattacks/status
+  - storagegroups/status
   - targetgroups/status
   verbs:
   - get

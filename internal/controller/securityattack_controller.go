@@ -178,6 +178,7 @@ func (a *securityAttackAdapter) GetSpec() *ResourceSpec {
 		Debug:         a.sa.Spec.Debug,
 		Periodic:      a.sa.Spec.Periodic,
 		Schedule:      a.sa.Spec.Schedule,
+		Files:         []string{},
 	}
 }
 

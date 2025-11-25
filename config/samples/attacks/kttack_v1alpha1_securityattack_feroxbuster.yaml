@@ -1,19 +1,20 @@
----
 apiVersion: kttack.io/v1alpha1
 kind: Enumeration
 metadata:
   name: feroxbuster-web-scan
   namespace: kttack-system
 spec:
-  tool: feroxbuster
-  targetGroup: web-targets
-  category: "Web Application Security"
+  args:
+    - '-d'
+    - '3'
+    - '-t'
+    - '50'
+    - '-C'
+    - '404'
+    - '-w /config/raft-medium-directories.txt'
+  category: Web Application Security
   debug: true
   periodic: false
-  args:
-    - "-d"
-    - "3"
-    - "-t"
-    - "50"
-    - "-C"
-    - "404"
+  storageGroup: web-wordlists
+  targetGroup: web-targets
+  tool: feroxbuster

@@ -5,6 +5,8 @@ resources:
 - bases/kttack.io_enumerations.yaml
 - bases/kttack.io_livenesses.yaml
 - bases/kttack.io_securityattacks.yaml
+- bases/kttack.io_targetgroups.yaml
+- bases/kttack.io_storagegroups.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

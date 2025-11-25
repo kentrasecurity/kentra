@@ -44,6 +44,10 @@ type EnumerationReconciler struct {
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations/finalizers,verbs=update
 //+kubebuilder:rbac:groups=kttack.io,resources=targetgroups,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kttack.io,resources=storagegroups,verbs=get;list;watch
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch
@@ -67,6 +71,22 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		log.Error(err, "Failed to get Enumeration")
 		return ctrl.Result{}, err
+	}
+
+	// Initialize files slice
+	var resolvedFiles []string
+
+	// Resolve StorageGroup reference if provided
+	if enum.Spec.StorageGroup != "" {
+		sg := &securityv1alpha1.StorageGroup{}
+		sgNN := types.NamespacedName{Name: enum.Spec.StorageGroup, Namespace: enum.Namespace}
+		if err := r.Get(ctx, sgNN, sg); err != nil {
+			log.Error(err, "Failed to get referenced StorageGroup", "StorageGroup", enum.Spec.StorageGroup)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+		}
+		// Set files from StorageGroup
+		resolvedFiles = sg.Spec.Files
+		log.Info("Resolved StorageGroup", "StorageGroup", enum.Spec.StorageGroup, "filesCount", len(resolvedFiles))
 	}
 
 	// Resolve TargetGroup reference if provided
@@ -105,7 +125,9 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	cronJobName := fmt.Sprintf("%s-cronjob", enum.Name)
 
 	// Convert to SecurityResource adapter
-	adapter := &enumerationAdapter{enum}
+	adapter := &enumerationAdapter{enum, resolvedFiles}
+
+	log.Info("Building resource with spec", "tool", adapter.GetSpec().Tool, "filesCount", len(adapter.GetSpec().Files))
 
 	// Check if we need to create a job or cronjob
 	if enum.Spec.Periodic {
@@ -169,7 +191,8 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 // enumerationAdapter adapts Enumeration to SecurityResource interface
 type enumerationAdapter struct {
-	enum *securityv1alpha1.Enumeration
+	enum          *securityv1alpha1.Enumeration
+	resolvedFiles []string
 }
 
 func (a *enumerationAdapter) GetName() string {
@@ -199,6 +222,7 @@ func (a *enumerationAdapter) GetSpec() *ResourceSpec {
 		Periodic:      a.enum.Spec.Periodic,
 		Schedule:      a.enum.Spec.Schedule,
 		Port:          a.enum.Spec.Port,
+		Files:         a.resolvedFiles,
 	}
 }
 
