@@ -10,3 +10,5 @@
 - Mettere nella CR le credenziali (così è possibile cambiare tipo di storage)
 - configurare namespace per usare configmap dal namespace kttacks-system
 - attualmente i targetgroup e storagegroup funzionano solo sul namespace kttack-system
+- initcontainer per spawnare un listener dopo che l'exploit è runnato (solo per la CR exploit)
+
