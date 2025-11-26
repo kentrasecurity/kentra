@@ -223,6 +223,17 @@ golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
+
+.PHONY: all
+all: build
+
+.PHONY: all-crd
+all-crd: manifests generate install ## Generate, create, and install CRDs into the cluster
+
+.PHONY: all-crd-run
+all-crd-run: manifests generate install run ## Generate, create, install CRDs, and run controller locally
+
+
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
 # $2 - package url which can be installed
