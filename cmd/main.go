@@ -186,6 +186,20 @@ func main() {
 	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
 	setupLog.Info("ToolsConfigurator created for Enumeration controller")
 
+	// Create ToolsConfigurator for Osint controller
+	osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+	setupLog.Info("ToolsConfigurator created for Osint controller")
+
+	// Setup OsintReconciler
+	if err := (&controller.OsintReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Configurator: osintConfigurator,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Osint")
+		os.Exit(1)
+	}
+
 	// Setup EnumerationReconciler
 	if err := (&controller.EnumerationReconciler{
 		Client:       mgr.GetClient(),
@@ -204,6 +218,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "SecurityAttack")
 		os.Exit(1)
 	}
+
 	// +kubebuilder:scaffold:builder
 
 	// CustomAttackReconciler - TODO: implement if needed

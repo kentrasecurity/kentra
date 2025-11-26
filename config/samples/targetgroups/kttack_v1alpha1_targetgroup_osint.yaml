@@ -1,0 +1,9 @@
+---
+apiVersion: kttack.io/v1alpha1
+kind: TargetGroup
+metadata:
+  name: osint-targets
+  namespace: kttack-system
+spec:
+  target: "patrickdifazio"
+  description: "Target group for osint Patrick Di Fazio"

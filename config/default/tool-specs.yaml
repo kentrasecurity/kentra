@@ -184,3 +184,11 @@ data:
       commandTemplate: "ping {{.Args}} {{.Target}}"
       capabilities:
         add: []
+
+    sherlock:
+      type: "osint"
+      image: "sherlock/sherlock:0.16.0"
+      commandTemplate: "sherlock {{.Args}} {{.Target}}"
+      capabilities:
+        add: []
+
