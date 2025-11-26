@@ -482,6 +482,8 @@ To add a new CRD (e.g., `VulnerabilityAssessment`):
 4. **Generate CRD** with `make manifests`
 5. **Add RBAC** rules to reconciler
 
+For more info on this topic, refer to this [example](./NEW_CRD_EXAMPLE.md).
+
 ### Adding New Tool Support
 
 To support a new security tool:
