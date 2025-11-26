@@ -43,7 +43,7 @@ type LivenessReconciler struct {
 //+kubebuilder:rbac:groups=kttack.io,resources=livenesses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kttack.io,resources=livenesses/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kttack.io,resources=livenesses/finalizers,verbs=update
-//+kubebuilder:rbac:groups=kttack.io,resources=targetgroups,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kttack.io,resources=targetpools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
@@ -69,15 +69,33 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	// Resolve TargetGroup reference if provided
-	if liveness.Spec.TargetGroup != "" {
-		tg := &securityv1alpha1.TargetGroup{}
-		tgNN := types.NamespacedName{Name: liveness.Spec.TargetGroup, Namespace: liveness.Namespace}
+	// Ensure labels are set
+	if liveness.Labels == nil {
+		liveness.Labels = make(map[string]string)
+	}
+	needsUpdate := false
+	if liveness.Labels["kttack-resource-type"] != "attack" {
+		liveness.Labels["kttack-resource-type"] = "attack"
+		needsUpdate = true
+	}
+
+	// Update the resource if labels were modified
+	if needsUpdate {
+		if err := r.Update(ctx, liveness); err != nil {
+			log.Error(err, "Failed to update Liveness labels")
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Resolve TargetPool reference if provided
+	if liveness.Spec.TargetPool != "" {
+		tg := &securityv1alpha1.TargetPool{}
+		tgNN := types.NamespacedName{Name: liveness.Spec.TargetPool, Namespace: liveness.Namespace}
 		if err := r.Get(ctx, tgNN, tg); err != nil {
-			log.Error(err, "Failed to get referenced TargetGroup", "TargetGroup", liveness.Spec.TargetGroup)
+			log.Error(err, "Failed to get referenced TargetPool", "TargetPool", liveness.Spec.TargetPool)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// Set target and port from TargetGroup
+		// Set target and port from TargetPool
 		liveness.Spec.Target = tg.Spec.Target
 		// Update resolved status
 		liveness.Status.ResolvedTarget = tg.Spec.Target
@@ -86,10 +104,10 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		liveness.Status.ResolvedTarget = liveness.Spec.Target
 	}
 
-	// Validate that either Target or TargetGroup is set
+	// Validate that either Target or TargetPool is set
 	if liveness.Spec.Target == "" {
-		log.Error(fmt.Errorf("neither target nor targetGroup specified"), "Invalid Liveness resource")
-		return ctrl.Result{}, fmt.Errorf("Liveness must have either 'target' or 'targetGroup' specified")
+		log.Error(fmt.Errorf("neither target nor targetPool specified"), "Invalid Liveness resource")
+		return ctrl.Result{}, fmt.Errorf("Liveness must have either 'target' or 'targetPool' specified")
 	}
 
 	// Determine target namespace

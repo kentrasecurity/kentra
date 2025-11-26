@@ -9,8 +9,11 @@ type OsintSpec struct {
 	// Target specifies the target username(s) for OSINT operations
 	Target string `json:"target,omitempty"`
 
-	// TargetGroup references a TargetGroup resource
-	TargetGroup string `json:"targetGroup,omitempty"`
+	// TargetPool references a TargetPool resource
+	TargetPool string `json:"targetPool,omitempty"`
+
+	// AssetPool references an AssetPool resource for OSINT targets
+	AssetPool string `json:"assetPool,omitempty"`
 
 	// Tool specifies which OSINT tool to use (e.g., sherlock)
 	Tool string `json:"tool"`
@@ -45,8 +48,8 @@ type OsintSpec struct {
 	// Port specifies a port (if applicable)
 	Port string `json:"port,omitempty"`
 
-	// StorageGroup references a StorageGroup resource for file inputs
-	StorageGroup string `json:"storageGroup,omitempty"`
+	// StoragePool references a StoragePool resource for file inputs
+	StoragePool string `json:"storagePool,omitempty"`
 }
 
 // OsintStatus defines the observed state of Osint
@@ -63,11 +66,17 @@ type OsintStatus struct {
 	// ResultsLocation indicates where results are stored
 	ResultsLocation string `json:"resultsLocation,omitempty"`
 
-	// ResolvedTarget is the actual target after TargetGroup resolution
+	// ResolvedTarget is the actual target after TargetPool resolution
 	ResolvedTarget string `json:"resolvedTarget,omitempty"`
 
-	// ResolvedPort is the actual port after TargetGroup resolution
+	// ResolvedPort is the actual port after TargetPool resolution
 	ResolvedPort string `json:"resolvedPort,omitempty"`
+
+	// ResolvedAsset is the actual asset value after AssetPool resolution
+	ResolvedAsset string `json:"resolvedAsset,omitempty"`
+
+	// ResolvedAssetType is the type of asset after AssetPool resolution
+	ResolvedAssetType string `json:"resolvedAssetType,omitempty"`
 }
 
 // +kubebuilder:object:root=true

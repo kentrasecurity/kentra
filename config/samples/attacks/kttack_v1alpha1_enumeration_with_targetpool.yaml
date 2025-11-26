@@ -12,5 +12,5 @@ spec:
   category: Reconnaissance
   debug: true
   periodic: false
-  targetGroup: test-pool
+  targetPool: test-pool
   tool: netcat

@@ -5,6 +5,6 @@ metadata:
   namespace: kttack-system
 spec:
   tool: sherlock
-  targetGroup: osint-targets
+  targetPool: osint-targets
   category: username-enumeration
   periodic: false

@@ -15,6 +15,6 @@ spec:
   category: Web Application Security
   debug: true
   periodic: false
-  storageGroup: web-wordlists
-  targetGroup: web-targets
+  storagePool: web-wordlists
+  targetPool: web-targets
   tool: feroxbuster

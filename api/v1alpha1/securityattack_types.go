@@ -10,13 +10,13 @@ type SecurityAttackSpec struct {
 	// +kubebuilder:validation:Enum=Enumeration;Vulnerability;Exploitation
 	AttackType string `json:"attackType"`
 
-	// Target is the IP, CIDR, or hostname to attack. Can be either a direct target or a reference to a TargetGroup name.
+	// Target is the IP, CIDR, or hostname to attack. Can be either a direct target or a reference to a TargetPool name.
 	// +optional
 	Target string `json:"target,omitempty"`
 
-	// TargetGroup is the name of a TargetGroup resource to reference for target and port information
+	// TargetPool is the name of a TargetPool resource to reference for target and port information
 	// +optional
-	TargetGroup string `json:"targetGroup,omitempty"`
+	TargetPool string `json:"targetPool,omitempty"`
 
 	// Tool is the security tool to use
 	// +kubebuilder:validation:Required
@@ -66,7 +66,7 @@ type SecurityAttackStatus struct {
 	// +kubebuilder:validation:Enum=Pending;Running;Completed;Failed
 	State string `json:"state,omitempty"`
 
-	// ResolvedTarget is the resolved target after TargetGroup reference is applied
+	// ResolvedTarget is the resolved target after TargetPool reference is applied
 	// +optional
 	ResolvedTarget string `json:"resolvedTarget,omitempty"`
 }
@@ -75,7 +75,7 @@ type SecurityAttackStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=sa,singular=securityattack
 //+kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.attackType`
-//+kubebuilder:printcolumn:name="TargetGroup",type=string,JSONPath=`.spec.targetGroup`
+//+kubebuilder:printcolumn:name="TargetPool",type=string,JSONPath=`.spec.targetPool`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.status.resolvedTarget`
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
 //+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`

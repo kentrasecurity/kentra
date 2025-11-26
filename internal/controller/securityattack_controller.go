@@ -28,7 +28,7 @@ type SecurityAttackReconciler struct {
 //+kubebuilder:rbac:groups=kttack.io,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kttack.io,resources=securityattacks/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kttack.io,resources=securityattacks/finalizers,verbs=update
-//+kubebuilder:rbac:groups=kttack.io,resources=targetgroups,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kttack.io,resources=targetpools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
 
@@ -51,15 +51,33 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	// Resolve TargetGroup reference if provided
-	if sa.Spec.TargetGroup != "" {
-		tg := &securityv1alpha1.TargetGroup{}
-		tgNN := types.NamespacedName{Name: sa.Spec.TargetGroup, Namespace: sa.Namespace}
+	// Ensure labels are set
+	if sa.Labels == nil {
+		sa.Labels = make(map[string]string)
+	}
+	needsUpdate := false
+	if sa.Labels["kttack-resource-type"] != "attack" {
+		sa.Labels["kttack-resource-type"] = "attack"
+		needsUpdate = true
+	}
+
+	// Update the resource if labels were modified
+	if needsUpdate {
+		if err := r.Update(ctx, sa); err != nil {
+			log.Error(err, "Failed to update SecurityAttack labels")
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Resolve TargetPool reference if provided
+	if sa.Spec.TargetPool != "" {
+		tg := &securityv1alpha1.TargetPool{}
+		tgNN := types.NamespacedName{Name: sa.Spec.TargetPool, Namespace: sa.Namespace}
 		if err := r.Get(ctx, tgNN, tg); err != nil {
-			log.Error(err, "Failed to get referenced TargetGroup", "TargetGroup", sa.Spec.TargetGroup)
+			log.Error(err, "Failed to get referenced TargetPool", "TargetPool", sa.Spec.TargetPool)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// Set target and port from TargetGroup
+		// Set target and port from TargetPool
 		sa.Spec.Target = tg.Spec.Target
 		// Update resolved status
 		sa.Status.ResolvedTarget = tg.Spec.Target
@@ -68,10 +86,10 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		sa.Status.ResolvedTarget = sa.Spec.Target
 	}
 
-	// Validate that either Target or TargetGroup is set
+	// Validate that either Target or TargetPool is set
 	if sa.Spec.Target == "" {
-		log.Error(fmt.Errorf("neither target nor targetGroup specified"), "Invalid SecurityAttack resource")
-		return ctrl.Result{}, fmt.Errorf("SecurityAttack must have either 'target' or 'targetGroup' specified")
+		log.Error(fmt.Errorf("neither target nor targetPool specified"), "Invalid SecurityAttack resource")
+		return ctrl.Result{}, fmt.Errorf("SecurityAttack must have either 'target' or 'targetPool' specified")
 	}
 
 	targetNamespace := sa.Namespace

@@ -20,17 +20,11 @@ spec:
     - jsonPath: .spec.tool
       name: Tool
       type: string
-    - jsonPath: .spec.targetGroup
-      name: TargetGroup
+    - jsonPath: .spec.targetPool
+      name: TargetPool
       type: string
-    - jsonPath: .status.resolvedTarget
-      name: Target
-      type: string
-    - jsonPath: .status.resolvedPort
-      name: Port
-      type: string
-    - jsonPath: .spec.storageGroup
-      name: StorageGroup
+    - jsonPath: .spec.storagePool
+      name: StoragePool
       type: string
     - jsonPath: .spec.category
       name: Category
@@ -123,18 +117,18 @@ spec:
                 description: Schedule is the cron schedule (only used if Periodic
                   is true)
                 type: string
-              storageGroup:
-                description: StorageGroup is the name of a StorageGroup resource to
+              storagePool:
+                description: StoragePool is the name of a StoragePool resource to
                   reference for files to download from S3
                 type: string
               target:
                 description: |-
-                  Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetGroup name.
-                  If TargetGroup is specified, this field may be empty.
+                  Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetPool name.
+                  If TargetPool is specified, this field may be empty.
                 type: string
-              targetGroup:
-                description: TargetGroup is the name of a TargetGroup resource to
-                  reference for target and port information
+              targetPool:
+                description: TargetPool is the name of a TargetPool resource to reference
+                  for target and port information
                 type: string
               tool:
                 description: Tool is the enumeration tool to use (ex nmap)
@@ -152,11 +146,11 @@ spec:
                 description: LastExecuted is the timestamp of last execution
                 type: string
               resolvedPort:
-                description: ResolvedPort is the resolved port after TargetGroup reference
+                description: ResolvedPort is the resolved port after TargetPool reference
                   is applied
                 type: string
               resolvedTarget:
-                description: ResolvedTarget is the resolved target after TargetGroup
+                description: ResolvedTarget is the resolved target after TargetPool
                   reference is applied
                 type: string
               resultsLocation:

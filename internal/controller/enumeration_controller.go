@@ -43,8 +43,8 @@ type EnumerationReconciler struct {
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kttack.io,resources=enumerations/finalizers,verbs=update
-//+kubebuilder:rbac:groups=kttack.io,resources=targetgroups,verbs=get;list;watch
-//+kubebuilder:rbac:groups=kttack.io,resources=storagegroups,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kttack.io,resources=targetpools,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kttack.io,resources=storagepools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch
@@ -73,31 +73,49 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
+	// Ensure labels are set
+	if enum.Labels == nil {
+		enum.Labels = make(map[string]string)
+	}
+	needsUpdate := false
+	if enum.Labels["kttack-resource-type"] != "attack" {
+		enum.Labels["kttack-resource-type"] = "attack"
+		needsUpdate = true
+	}
+
+	// Update the resource if labels were modified
+	if needsUpdate {
+		if err := r.Update(ctx, enum); err != nil {
+			log.Error(err, "Failed to update Enumeration labels")
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Initialize files slice
 	var resolvedFiles []string
 
-	// Resolve StorageGroup reference if provided
-	if enum.Spec.StorageGroup != "" {
-		sg := &securityv1alpha1.StorageGroup{}
-		sgNN := types.NamespacedName{Name: enum.Spec.StorageGroup, Namespace: enum.Namespace}
+	// Resolve StoragePool reference if provided
+	if enum.Spec.StoragePool != "" {
+		sg := &securityv1alpha1.StoragePool{}
+		sgNN := types.NamespacedName{Name: enum.Spec.StoragePool, Namespace: enum.Namespace}
 		if err := r.Get(ctx, sgNN, sg); err != nil {
-			log.Error(err, "Failed to get referenced StorageGroup", "StorageGroup", enum.Spec.StorageGroup)
+			log.Error(err, "Failed to get referenced StoragePool", "StoragePool", enum.Spec.StoragePool)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// Set files from StorageGroup
+		// Set files from StoragePool
 		resolvedFiles = sg.Spec.Files
-		log.Info("Resolved StorageGroup", "StorageGroup", enum.Spec.StorageGroup, "filesCount", len(resolvedFiles))
+		log.Info("Resolved StoragePool", "StoragePool", enum.Spec.StoragePool, "filesCount", len(resolvedFiles))
 	}
 
-	// Resolve TargetGroup reference if provided
-	if enum.Spec.TargetGroup != "" {
-		tg := &securityv1alpha1.TargetGroup{}
-		tgNN := types.NamespacedName{Name: enum.Spec.TargetGroup, Namespace: enum.Namespace}
+	// Resolve TargetPool reference if provided
+	if enum.Spec.TargetPool != "" {
+		tg := &securityv1alpha1.TargetPool{}
+		tgNN := types.NamespacedName{Name: enum.Spec.TargetPool, Namespace: enum.Namespace}
 		if err := r.Get(ctx, tgNN, tg); err != nil {
-			log.Error(err, "Failed to get referenced TargetGroup", "TargetGroup", enum.Spec.TargetGroup)
+			log.Error(err, "Failed to get referenced TargetPool", "TargetPool", enum.Spec.TargetPool)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// Set target and port from TargetGroup
+		// Set target and port from TargetPool
 		enum.Spec.Target = tg.Spec.Target
 		if tg.Spec.Port != "" && enum.Spec.Port == "" {
 			enum.Spec.Port = tg.Spec.Port
@@ -111,10 +129,10 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		enum.Status.ResolvedPort = enum.Spec.Port
 	}
 
-	// Validate that either Target or TargetGroup is set
+	// Validate that either Target or TargetPool is set
 	if enum.Spec.Target == "" {
-		log.Error(fmt.Errorf("neither target nor targetGroup specified"), "Invalid Enumeration resource")
-		return ctrl.Result{}, fmt.Errorf("Enumeration must have either 'target' or 'targetGroup' specified")
+		log.Error(fmt.Errorf("neither target nor targetPool specified"), "Invalid Enumeration resource")
+		return ctrl.Result{}, fmt.Errorf("Enumeration must have either 'target' or 'targetPool' specified")
 	}
 
 	// Determine target namespace

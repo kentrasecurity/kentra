@@ -30,14 +30,14 @@ type EnvVar struct {
 
 // EnumerationSpec defines the desired state of Enumeration
 type EnumerationSpec struct {
-	// Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetGroup name.
-	// If TargetGroup is specified, this field may be empty.
+	// Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetPool name.
+	// If TargetPool is specified, this field may be empty.
 	// +optional
 	Target string `json:"target,omitempty"`
 
-	// TargetGroup is the name of a TargetGroup resource to reference for target and port information
+	// TargetPool is the name of a TargetPool resource to reference for target and port information
 	// +optional
-	TargetGroup string `json:"targetGroup,omitempty"`
+	TargetPool string `json:"targetPool,omitempty"`
 
 	// Tool is the enumeration tool to use (ex nmap)
 	// +kubebuilder:validation:Required
@@ -83,9 +83,9 @@ type EnumerationSpec struct {
 	// +optional
 	Port string `json:"port,omitempty"`
 
-	// StorageGroup is the name of a StorageGroup resource to reference for files to download from S3
+	// StoragePool is the name of a StoragePool resource to reference for files to download from S3
 	// +optional
-	StorageGroup string `json:"storageGroup,omitempty"`
+	StoragePool string `json:"storagePool,omitempty"`
 }
 
 // EnumerationStatus defines the observed state of Enumeration
@@ -107,11 +107,11 @@ type EnumerationStatus struct {
 	// +optional
 	ResultsLocation string `json:"resultsLocation,omitempty"`
 
-	// ResolvedTarget is the resolved target after TargetGroup reference is applied
+	// ResolvedTarget is the resolved target after TargetPool reference is applied
 	// +optional
 	ResolvedTarget string `json:"resolvedTarget,omitempty"`
 
-	// ResolvedPort is the resolved port after TargetGroup reference is applied
+	// ResolvedPort is the resolved port after TargetPool reference is applied
 	// +optional
 	ResolvedPort string `json:"resolvedPort,omitempty"`
 }
@@ -120,10 +120,8 @@ type EnumerationStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=enum,singular=enumeration
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
-//+kubebuilder:printcolumn:name="TargetGroup",type=string,JSONPath=`.spec.targetGroup`
-//+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.status.resolvedTarget`
-//+kubebuilder:printcolumn:name="Port",type=string,JSONPath=`.status.resolvedPort`
-//+kubebuilder:printcolumn:name="StorageGroup",type=string,JSONPath=`.spec.storageGroup`
+//+kubebuilder:printcolumn:name="TargetPool",type=string,JSONPath=`.spec.targetPool`
+//+kubebuilder:printcolumn:name="StoragePool",type=string,JSONPath=`.spec.storagePool`
 //+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`
 //+kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.state`

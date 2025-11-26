@@ -29,29 +29,47 @@ import (
 	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
 )
 
-// TargetGroupReconciler reconciles a TargetGroup object
-type TargetGroupReconciler struct {
+// TargetPoolReconciler reconciles a TargetPool object
+type TargetPoolReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=kttack.io,resources=targetgroups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kttack.io,resources=targetgroups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kttack.io,resources=targetgroups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kttack.io,resources=targetpools,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kttack.io,resources=targetpools/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kttack.io,resources=targetpools/finalizers,verbs=update
 
-// Reconcile implements reconciliation for TargetGroup resources
-func (r *TargetGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// Reconcile implements reconciliation for TargetPool resources
+func (r *TargetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Fetch the TargetGroup resource
-	tg := &securityv1alpha1.TargetGroup{}
+	// Fetch the TargetPool resource
+	tg := &securityv1alpha1.TargetPool{}
 	if err := r.Get(ctx, req.NamespacedName, tg); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("TargetGroup resource not found, ignoring since object must be deleted")
+			log.Info("TargetPool resource not found, ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Failed to get TargetGroup")
+		log.Error(err, "Failed to get TargetPool")
 		return ctrl.Result{}, err
+	}
+
+	// Ensure labels are set
+	if tg.Labels == nil {
+		tg.Labels = make(map[string]string)
+	}
+	needsUpdate := false
+	if tg.Labels["kttack-resource-type"] != "target" {
+		tg.Labels["kttack-resource-type"] = "target"
+		needsUpdate = true
+	}
+
+	// Update the resource if labels were modified
+	if needsUpdate {
+		if err := r.Update(ctx, tg); err != nil {
+			log.Error(err, "Failed to update TargetPool labels")
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Update the status with current timestamp
@@ -59,17 +77,17 @@ func (r *TargetGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	tg.Status.ObservedGeneration = tg.ObjectMeta.Generation
 
 	if err := r.Status().Update(ctx, tg); err != nil {
-		log.Error(err, "Failed to update TargetGroup status")
+		log.Error(err, "Failed to update TargetPool status")
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Successfully reconciled TargetGroup", "TargetGroup", tg.Name)
+	log.Info("Successfully reconciled TargetPool", "TargetPool", tg.Name)
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *TargetGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *TargetPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&securityv1alpha1.TargetGroup{}).
+		For(&securityv1alpha1.TargetPool{}).
 		Complete(r)
 }

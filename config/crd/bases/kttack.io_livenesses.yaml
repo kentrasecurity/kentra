@@ -20,8 +20,8 @@ spec:
     - jsonPath: .spec.tool
       name: Tool
       type: string
-    - jsonPath: .spec.targetGroup
-      name: TargetGroup
+    - jsonPath: .spec.targetPool
+      name: TargetPool
       type: string
     - jsonPath: .status.resolvedTarget
       name: Target
@@ -119,11 +119,11 @@ spec:
               target:
                 description: Target is the primary target for liveness check (IP,
                   CIDR, or hostname). Can be either a direct target or a reference
-                  to a TargetGroup name.
+                  to a TargetPool name.
                 type: string
-              targetGroup:
-                description: TargetGroup is the name of a TargetGroup resource to
-                  reference for target and port information
+              targetPool:
+                description: TargetPool is the name of a TargetPool resource to reference
+                  for target and port information
                 type: string
               targets:
                 description: Targets are additional targets for liveness checks
@@ -149,7 +149,7 @@ spec:
                 description: LastResult indicates if the target was reachable
                 type: boolean
               resolvedTarget:
-                description: ResolvedTarget is the resolved target after TargetGroup
+                description: ResolvedTarget is the resolved target after TargetPool
                   reference is applied
                 type: string
               resultsLocation:

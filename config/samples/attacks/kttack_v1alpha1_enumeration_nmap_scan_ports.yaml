@@ -6,7 +6,7 @@ metadata:
   namespace: kttack-system
 spec:
   tool: nmap
-  targetGroup: nmap-scan-targets
+  targetPool: nmap-scan-targets
   category: Reconnaissance
   debug: false
   periodic: false

@@ -20,26 +20,37 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// TargetGroupSpec defines the desired state of TargetGroup
-type TargetGroupSpec struct {
-	// Description is an optional description of the target group
+// AssetItem defines a single asset in the pool
+type AssetItem struct {
+	// Type specifies the type of asset (e.g., username, email, domain, ip)
+	// +kubebuilder:validation:Required
+	Type string `json:"type"`
+
+	// Value is the actual value of the asset
+	// +kubebuilder:validation:Required
+	Value string `json:"value"`
+}
+
+// AssetPoolSpec defines the desired state of AssetPool
+type AssetPoolSpec struct {
+	// Description is an optional description of the asset pool
 	// +optional
 	Description string `json:"description,omitempty"`
 
-	// Target is the IP address, CIDR, or hostname to target
+	// Items is the list of assets in this pool
 	// +kubebuilder:validation:Required
-	Target string `json:"target"`
-
-	// Port is the port or port range to target (e.g., '22', '80,443', '8000-8100')
-	// +optional
-	Port string `json:"port,omitempty"`
+	Items []AssetItem `json:"items"`
 }
 
-// TargetGroupStatus defines the observed state of TargetGroup
-type TargetGroupStatus struct {
+// AssetPoolStatus defines the observed state of AssetPool
+type AssetPoolStatus struct {
 	// LastUpdated is the timestamp of last update
 	// +optional
 	LastUpdated string `json:"lastUpdated,omitempty"`
+
+	// ItemCount is the number of items in this asset pool
+	// +optional
+	ItemCount int `json:"itemCount,omitempty"`
 
 	// ObservedGeneration is the generation observed by the controller
 	// +optional
@@ -48,30 +59,29 @@ type TargetGroupStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=tg,singular=targetgroup
-//+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
-//+kubebuilder:printcolumn:name="Port",type=string,JSONPath=`.spec.port`
+//+kubebuilder:resource:shortName=ap,singular=assetpool
+//+kubebuilder:printcolumn:name="Items",type=integer,JSONPath=`.status.itemCount`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// TargetGroup is the Schema for the targetgroups API
-type TargetGroup struct {
+// AssetPool is the Schema for the assetpools API
+type AssetPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   TargetGroupSpec   `json:"spec,omitempty"`
-	Status TargetGroupStatus `json:"status,omitempty"`
+	Spec   AssetPoolSpec   `json:"spec,omitempty"`
+	Status AssetPoolStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// TargetGroupList contains a list of TargetGroup
-type TargetGroupList struct {
+// AssetPoolList contains a list of AssetPool
+type AssetPoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []TargetGroup `json:"items"`
+	Items           []AssetPool `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&TargetGroup{}, &TargetGroupList{})
+	SchemeBuilder.Register(&AssetPool{}, &AssetPoolList{})
 }
