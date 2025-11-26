@@ -20,8 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// StorageGroupSpec defines the desired state of StorageGroup
-type StorageGroupSpec struct {
+// StoragePoolSpec defines the desired state of StoragePool
+type StoragePoolSpec struct {
 	// Files is a list of files to download from S3 bucket (s3://configs)
 	// +optional
 	Files []string `json:"files,omitempty"`
@@ -31,8 +31,8 @@ type StorageGroupSpec struct {
 	Description string `json:"description,omitempty"`
 }
 
-// StorageGroupStatus defines the observed state of StorageGroup
-type StorageGroupStatus struct {
+// StoragePoolStatus defines the observed state of StoragePool
+type StoragePoolStatus struct {
 	// LastSyncTime is the timestamp of the last successful sync
 	// +optional
 	LastSyncTime string `json:"lastSyncTime,omitempty"`
@@ -41,37 +41,37 @@ type StorageGroupStatus struct {
 	// +optional
 	FileCount int `json:"fileCount,omitempty"`
 
-	// ObservedGeneration reflects the generation of the most recently observed StorageGroup
+	// ObservedGeneration reflects the generation of the most recently observed StoragePool
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=sg,singular=storagegroup
+//+kubebuilder:resource:shortName=sg,singular=storagepool
 //+kubebuilder:printcolumn:name="Files",type=string,JSONPath=`.spec.files`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 //+kubebuilder:printcolumn:name="LastSync",type=date,JSONPath=`.status.lastSyncTime`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
-// StorageGroup is the Schema for the storagegroups API
-type StorageGroup struct {
+// StoragePool is the Schema for the storagepools API
+type StoragePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   StorageGroupSpec   `json:"spec,omitempty"`
-	Status StorageGroupStatus `json:"status,omitempty"`
+	Spec   StoragePoolSpec   `json:"spec,omitempty"`
+	Status StoragePoolStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// StorageGroupList contains a list of StorageGroup
-type StorageGroupList struct {
+// StoragePoolList contains a list of StoragePool
+type StoragePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []StorageGroup `json:"items"`
+	Items           []StoragePool `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&StorageGroup{}, &StorageGroupList{})
+	SchemeBuilder.Register(&StoragePool{}, &StoragePoolList{})
 }

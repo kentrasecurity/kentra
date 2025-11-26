@@ -51,31 +51,72 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
+	// Ensure labels are set
+	if osint.Labels == nil {
+		osint.Labels = make(map[string]string)
+	}
+	needsUpdate := false
+	if osint.Labels["kttack-resource-type"] != "attack" {
+		osint.Labels["kttack-resource-type"] = "attack"
+		needsUpdate = true
+	}
+
+	// Update the resource if labels were modified
+	if needsUpdate {
+		if err := r.Update(ctx, osint); err != nil {
+			log.Error(err, "Failed to update Osint labels")
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Initialize files slice
 	var resolvedFiles []string
 
-	// Resolve StorageGroup reference if provided
-	if osint.Spec.StorageGroup != "" {
-		sg := &securityv1alpha1.StorageGroup{}
-		sgNN := types.NamespacedName{Name: osint.Spec.StorageGroup, Namespace: osint.Namespace}
+	// Resolve StoragePool reference if provided
+	if osint.Spec.StoragePool != "" {
+		sg := &securityv1alpha1.StoragePool{}
+		sgNN := types.NamespacedName{Name: osint.Spec.StoragePool, Namespace: osint.Namespace}
 		if err := r.Get(ctx, sgNN, sg); err != nil {
-			log.Error(err, "Failed to get referenced StorageGroup", "StorageGroup", osint.Spec.StorageGroup)
+			log.Error(err, "Failed to get referenced StoragePool", "StoragePool", osint.Spec.StoragePool)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// Set files from StorageGroup
+		// Set files from StoragePool
 		resolvedFiles = sg.Spec.Files
-		log.Info("Resolved StorageGroup", "StorageGroup", osint.Spec.StorageGroup, "filesCount", len(resolvedFiles))
+		log.Info("Resolved StoragePool", "StoragePool", osint.Spec.StoragePool, "filesCount", len(resolvedFiles))
 	}
 
-	// Resolve TargetGroup reference if provided
-	if osint.Spec.TargetGroup != "" {
-		tg := &securityv1alpha1.TargetGroup{}
-		tgNN := types.NamespacedName{Name: osint.Spec.TargetGroup, Namespace: osint.Namespace}
-		if err := r.Get(ctx, tgNN, tg); err != nil {
-			log.Error(err, "Failed to get referenced TargetGroup", "TargetGroup", osint.Spec.TargetGroup)
+	// Resolve AssetPool reference if provided
+	if osint.Spec.AssetPool != "" {
+		ap := &securityv1alpha1.AssetPool{}
+		apNN := types.NamespacedName{Name: osint.Spec.AssetPool, Namespace: osint.Namespace}
+		if err := r.Get(ctx, apNN, ap); err != nil {
+			log.Error(err, "Failed to get referenced AssetPool", "AssetPool", osint.Spec.AssetPool)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// Set target and port from TargetGroup
+		// For now, use the first item from AssetPool
+		// TODO: In the future, we could create multiple jobs, one per item
+		if len(ap.Spec.Items) > 0 {
+			firstItem := ap.Spec.Items[0]
+			osint.Spec.Target = firstItem.Value
+			osint.Status.ResolvedAsset = firstItem.Value
+			osint.Status.ResolvedAssetType = firstItem.Type
+			log.Info("Resolved AssetPool", "AssetPool", osint.Spec.AssetPool, "asset", firstItem.Value, "type", firstItem.Type)
+		} else {
+			err := fmt.Errorf("assetPool %s has no items", osint.Spec.AssetPool)
+			log.Error(err, "Invalid AssetPool")
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Resolve TargetPool reference if provided
+	if osint.Spec.TargetPool != "" {
+		tg := &securityv1alpha1.TargetPool{}
+		tgNN := types.NamespacedName{Name: osint.Spec.TargetPool, Namespace: osint.Namespace}
+		if err := r.Get(ctx, tgNN, tg); err != nil {
+			log.Error(err, "Failed to get referenced TargetPool", "TargetPool", osint.Spec.TargetPool)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+		}
+		// Set target and port from TargetPool
 		osint.Spec.Target = tg.Spec.Target
 		if tg.Spec.Port != "" && osint.Spec.Port == "" {
 			osint.Spec.Port = tg.Spec.Port
@@ -83,16 +124,16 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		// Update resolved status
 		osint.Status.ResolvedTarget = tg.Spec.Target
 		osint.Status.ResolvedPort = tg.Spec.Port
-		log.Info("Resolved TargetGroup", "TargetGroup", osint.Spec.TargetGroup, "target", tg.Spec.Target)
+		log.Info("Resolved TargetPool", "TargetPool", osint.Spec.TargetPool, "target", tg.Spec.Target)
 	} else {
 		// Use direct target and port
 		osint.Status.ResolvedTarget = osint.Spec.Target
 		osint.Status.ResolvedPort = osint.Spec.Port
 	}
 
-	// Validate that either Target or TargetGroup is set
+	// Validate that either Target, TargetPool, or AssetPool is set
 	if osint.Spec.Target == "" {
-		err := fmt.Errorf("neither target nor targetGroup specified")
+		err := fmt.Errorf("neither target, targetPool, nor assetPool specified")
 		log.Error(err, "Invalid Osint resource")
 		return ctrl.Result{}, err
 	}
@@ -118,7 +159,7 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		err := r.Get(ctx, cronJobNN, cronJob)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new CronJob
-			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, cronJobName, targetNamespace, "Osint")
+			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, cronJobName, targetNamespace, "osint")
 			if err != nil {
 				log.Error(err, "Failed to build CronJob")
 				return ctrl.Result{}, err
@@ -145,7 +186,7 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		err := r.Get(ctx, jobNN, job)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new Job
-			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, jobName, targetNamespace, "Osint")
+			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, jobName, targetNamespace, "osint")
 			if err != nil {
 				log.Error(err, "Failed to build Job")
 				return ctrl.Result{}, err

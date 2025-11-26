@@ -64,14 +64,31 @@ type ResourceStatus struct {
 	LastExecuted string
 }
 
+// getResourceType returns the kttack-resource-type label value based on appType
+func getResourceType(appType string) string {
+	switch appType {
+	case "enumeration", "osint", "liveness", "securityattack":
+		return "attack"
+	case "storagepool":
+		return "storage"
+	case "targetpool":
+		return "target"
+	case "assetpool":
+		return "asset"
+	default:
+		return appType
+	}
+}
+
 // BuildJob creates a Job object for a security resource
 func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, jobName, namespace, appType string) (*batchv1.Job, error) {
 	spec := res.GetSpec()
 
 	labels := map[string]string{
-		"app":  appType,
-		"tool": spec.Tool,
-		"task": "job",
+		"app":                  appType,
+		"tool":                 spec.Tool,
+		"task":                 "job",
+		"kttack-resource-type": getResourceType(appType),
 	}
 
 	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "job", appType)
@@ -108,9 +125,10 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 	spec := res.GetSpec()
 
 	labels := map[string]string{
-		"app":  appType,
-		"tool": spec.Tool,
-		"task": "cronjob",
+		"app":                  appType,
+		"tool":                 spec.Tool,
+		"task":                 "cronjob",
+		"kttack-resource-type": getResourceType(appType),
 	}
 
 	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "cronjob", appType)

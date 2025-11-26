@@ -178,10 +178,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create tool spec manager (lazy loading - will load on first reconcile)
-	toolSpecManager := controller.NewToolSpecManager(mgr.GetClient(), "kttack-system")
-	setupLog.Info("Tool spec manager created, will load tool specifications on first reconcile")
-
 	// Create ToolsConfigurator for Enumeration controller
 	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
 	setupLog.Info("ToolsConfigurator created for Enumeration controller")
@@ -210,12 +206,57 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create ToolsConfigurator for Liveness controller
+	livenessConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+	setupLog.Info("ToolsConfigurator created for Liveness controller")
+
+	// Setup LivenessReconciler
+	if err := (&controller.LivenessReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Configurator: livenessConfigurator,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Liveness")
+		os.Exit(1)
+	}
+
+	// Create ToolsConfigurator for SecurityAttack controller
+	securityAttackConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+	setupLog.Info("ToolsConfigurator created for SecurityAttack controller")
+
 	if err := (&controller.SecurityAttackReconciler{
-		Client:          mgr.GetClient(),
-		Scheme:          mgr.GetScheme(),
-		ToolSpecManager: toolSpecManager,
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Configurator: securityAttackConfigurator,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SecurityAttack")
+		os.Exit(1)
+	}
+
+	// Setup TargetPoolReconciler
+	if err := (&controller.TargetPoolReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "TargetPool")
+		os.Exit(1)
+	}
+
+	// Setup StoragePoolReconciler
+	if err := (&controller.StoragePoolReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "StoragePool")
+		os.Exit(1)
+	}
+
+	// Setup AssetPoolReconciler
+	if err := (&controller.AssetPoolReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AssetPool")
 		os.Exit(1)
 	}
 

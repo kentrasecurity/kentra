@@ -36,7 +36,7 @@ type EnvVar struct {
 // <Resource>Spec defines the desired state of <Resource>
 type <Resource>Spec struct {
     Target        string   `json:"target,omitempty"`
-    TargetGroup   string   `json:"targetGroup,omitempty"`
+    TargetPool   string   `json:"targetPool,omitempty"`
     Tool          string   `json:"tool"`
     Periodic      bool     `json:"periodic,omitempty"`
     Schedule      string   `json:"schedule,omitempty"`
@@ -45,7 +45,7 @@ type <Resource>Spec struct {
     Args          []string `json:"args,omitempty"`
     Debug         bool     `json:"debug,omitempty"`
     Port          string   `json:"port,omitempty"`
-    StorageGroup  string   `json:"storageGroup,omitempty"`
+    StoragePool  string   `json:"storagePool,omitempty"`
 }
 ```
 
@@ -142,9 +142,9 @@ make all-crd-run #with make run
 ```
 
 ## 5. Test the new CRD
-- if needed, create the targetgroup under `config/samples/targetgroups`
+- if needed, create the targetpool under `config/samples/targetpools`
 - create the new attack under `config/samples/attacks`
-- create the targetgroup and the attack in the cluster: `kubectl apply -f config/samples/targetgroups/kttack_v1alpha1_targetgroup_<resource>.yaml` , `kubectl apply -f config/samples/attacks/kttack_v1alpha1_<resource>.yaml`  
+- create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kttack_v1alpha1_targetpool_<resource>.yaml` , `kubectl apply -f config/samples/attacks/kttack_v1alpha1_<resource>.yaml`  
 - add in the configmap `config/default/tool-specs.yaml` the new tool in `data.tools` like:
   ```yaml
     <tool>:
@@ -175,7 +175,7 @@ Summary:
 File: `api/v1alpha1/osint_types.go`
 The OsintSpec includes standard fields (Target, Tool, Periodic, etc.) plus optional Category field for classifying OSINT operations.
 File: `internal/controller/osint_controller.go`
-The OsintReconciler follows the standard reconciliation pattern: loads tool configurations, resolves TargetGroup/StorageGroup references, validates inputs, creates Jobs or CronJobs based on the Periodic flag, and updates status.
+The OsintReconciler follows the standard reconciliation pattern: loads tool configurations, resolves TargetPool/StoragePool references, validates inputs, creates Jobs or CronJobs based on the Periodic flag, and updates status.
 Registration in `cmd/main.go`:
 
 ```go
@@ -211,12 +211,12 @@ make all-crd-run #with make run
 ```
 
 Test it:
-- create the targetgroup under `config/samples/targetgroups`
+- create the targetpool under `config/samples/targetpools`
 
 ```yaml
 ---
 apiVersion: kttack.io/v1alpha1
-kind: TargetGroup
+kind: TargetPool
 metadata:
   name: osint-targets
   namespace: kttack-system
@@ -235,12 +235,12 @@ metadata:
   namespace: kttack-system
 spec:
   tool: sherlock
-  targetGroup: osint-targets
+  targetPool: osint-targets
   category: username-enumeration
   periodic: false
 ```
 
-- create the targetgroup and the attack in the cluster: `kubectl apply -f config/samples/targetgroups/kttack_v1alpha1_targetgroup_osint.yaml` , `kubectl apply -f config/samples/attacks/kttack_v1alpha1_osint.yaml`  
+- create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kttack_v1alpha1_targetpool_osint.yaml` , `kubectl apply -f config/samples/attacks/kttack_v1alpha1_osint.yaml`  
 - 
 - add in the configmap `config/default/tool-specs.yaml` the new tool in `data.tools` like:
   ```yaml

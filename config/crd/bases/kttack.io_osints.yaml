@@ -60,6 +60,10 @@ spec:
                 items:
                   type: string
                 type: array
+              assetPool:
+                description: AssetPool references an AssetPool resource for OSINT
+                  targets
+                type: string
               capabilities:
                 description: Capabilities specifies additional Linux capabilities
                 items:
@@ -87,15 +91,15 @@ spec:
                 description: Schedule defines the cron schedule (required if Periodic
                   is true)
                 type: string
-              storageGroup:
-                description: StorageGroup references a StorageGroup resource for file
+              storagePool:
+                description: StoragePool references a StoragePool resource for file
                   inputs
                 type: string
               target:
                 description: Target specifies the target username(s) for OSINT operations
                 type: string
-              targetGroup:
-                description: TargetGroup references a TargetGroup resource
+              targetPool:
+                description: TargetPool references a TargetPool resource
                 type: string
               tool:
                 description: Tool specifies which OSINT tool to use (e.g., sherlock)
@@ -112,11 +116,19 @@ spec:
               lastExecuted:
                 description: LastExecuted timestamp of the last execution
                 type: string
+              resolvedAsset:
+                description: ResolvedAsset is the actual asset value after AssetPool
+                  resolution
+                type: string
+              resolvedAssetType:
+                description: ResolvedAssetType is the type of asset after AssetPool
+                  resolution
+                type: string
               resolvedPort:
-                description: ResolvedPort is the actual port after TargetGroup resolution
+                description: ResolvedPort is the actual port after TargetPool resolution
                 type: string
               resolvedTarget:
-                description: ResolvedTarget is the actual target after TargetGroup
+                description: ResolvedTarget is the actual target after TargetPool
                   resolution
                 type: string
               resultsLocation:

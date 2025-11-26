@@ -22,13 +22,13 @@ import (
 
 // LivenessSpec defines the desired state of Liveness
 type LivenessSpec struct {
-	// Target is the primary target for liveness check (IP, CIDR, or hostname). Can be either a direct target or a reference to a TargetGroup name.
+	// Target is the primary target for liveness check (IP, CIDR, or hostname). Can be either a direct target or a reference to a TargetPool name.
 	// +optional
 	Target string `json:"target,omitempty"`
 
-	// TargetGroup is the name of a TargetGroup resource to reference for target and port information
+	// TargetPool is the name of a TargetPool resource to reference for target and port information
 	// +optional
-	TargetGroup string `json:"targetGroup,omitempty"`
+	TargetPool string `json:"targetPool,omitempty"`
 
 	// Targets are additional targets for liveness checks
 	// +optional
@@ -98,7 +98,7 @@ type LivenessStatus struct {
 	// +optional
 	ResultsLocation string `json:"resultsLocation,omitempty"`
 
-	// ResolvedTarget is the resolved target after TargetGroup reference is applied
+	// ResolvedTarget is the resolved target after TargetPool reference is applied
 	// +optional
 	ResolvedTarget string `json:"resolvedTarget,omitempty"`
 }
@@ -107,7 +107,7 @@ type LivenessStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=live,singular=liveness
 //+kubebuilder:printcolumn:name="Tool",type=string,JSONPath=`.spec.tool`
-//+kubebuilder:printcolumn:name="TargetGroup",type=string,JSONPath=`.spec.targetGroup`
+//+kubebuilder:printcolumn:name="TargetPool",type=string,JSONPath=`.spec.targetPool`
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.status.resolvedTarget`
 //+kubebuilder:printcolumn:name="Category",type=string,JSONPath=`.spec.category`
 //+kubebuilder:printcolumn:name="Periodic",type=boolean,JSONPath=`.spec.periodic`

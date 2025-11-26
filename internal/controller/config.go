@@ -162,6 +162,7 @@ func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, port s
 		"Target": target,
 		"Port":   port,
 		"Args":   strings.Join(args, " "),
+		"Item":   target, // Alias for Target, used by AssetPool-based commands
 	}
 
 	var out bytes.Buffer

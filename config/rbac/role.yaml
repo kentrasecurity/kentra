@@ -30,11 +30,12 @@ rules:
 - apiGroups:
   - kttack.io
   resources:
+  - assetpools
   - enumerations
   - livenesses
   - securityattacks
-  - storagegroups
-  - targetgroups
+  - storagepools
+  - targetpools
   verbs:
   - create
   - delete
@@ -46,21 +47,23 @@ rules:
 - apiGroups:
   - kttack.io
   resources:
+  - assetpools/finalizers
   - enumerations/finalizers
   - livenesses/finalizers
   - securityattacks/finalizers
-  - storagegroups/finalizers
-  - targetgroups/finalizers
+  - storagepools/finalizers
+  - targetpools/finalizers
   verbs:
   - update
 - apiGroups:
   - kttack.io
   resources:
+  - assetpools/status
   - enumerations/status
   - livenesses/status
   - securityattacks/status
-  - storagegroups/status
-  - targetgroups/status
+  - storagepools/status
+  - targetpools/status
   verbs:
   - get
   - patch

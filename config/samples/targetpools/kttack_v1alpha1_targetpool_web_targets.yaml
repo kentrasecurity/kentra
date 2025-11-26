@@ -1,6 +1,6 @@
 ---
 apiVersion: kttack.io/v1alpha1
-kind: TargetGroup
+kind: TargetPool
 metadata:
   name: web-targets
   namespace: kttack-system

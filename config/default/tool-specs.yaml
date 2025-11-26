@@ -188,7 +188,7 @@ data:
     sherlock:
       type: "osint"
       image: "sherlock/sherlock:0.16.0"
-      commandTemplate: "sherlock {{.Args}} {{.Target}}"
+      commandTemplate: "sherlock {{.Args}} {{.Item}}"
       capabilities:
         add: []
 

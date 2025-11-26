@@ -1,5 +1,5 @@
 apiVersion: kttack.io/v1alpha1
-kind: StorageGroup
+kind: StoragePool
 metadata:
   name: web-wordlists
   namespace: kttack-system
@@ -8,3 +8,4 @@ spec:
   - raft-medium-directories.txt
   - raft-large-directories-lowercase.txt
   description: "Storage group for web enumeration wordlists"
+      

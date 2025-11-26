@@ -29,29 +29,47 @@ import (
 	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
 )
 
-// StorageGroupReconciler reconciles a StorageGroup object
-type StorageGroupReconciler struct {
+// StoragePoolReconciler reconciles a StoragePool object
+type StoragePoolReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=kttack.io,resources=storagegroups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kttack.io,resources=storagegroups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kttack.io,resources=storagegroups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kttack.io,resources=storagepools,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kttack.io,resources=storagepools/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kttack.io,resources=storagepools/finalizers,verbs=update
 
-// Reconcile implements reconciliation for StorageGroup resources
-func (r *StorageGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// Reconcile implements reconciliation for StoragePool resources
+func (r *StoragePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Fetch the StorageGroup resource
-	sg := &securityv1alpha1.StorageGroup{}
+	// Fetch the StoragePool resource
+	sg := &securityv1alpha1.StoragePool{}
 	if err := r.Get(ctx, req.NamespacedName, sg); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("StorageGroup resource not found, ignoring since object must be deleted")
+			log.Info("StoragePool resource not found, ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Failed to get StorageGroup")
+		log.Error(err, "Failed to get StoragePool")
 		return ctrl.Result{}, err
+	}
+
+	// Ensure labels are set
+	if sg.Labels == nil {
+		sg.Labels = make(map[string]string)
+	}
+	needsUpdate := false
+	if sg.Labels["kttack-resource-type"] != "storage" {
+		sg.Labels["kttack-resource-type"] = "storage"
+		needsUpdate = true
+	}
+
+	// Update the resource if labels were modified
+	if needsUpdate {
+		if err := r.Update(ctx, sg); err != nil {
+			log.Error(err, "Failed to update StoragePool labels")
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Update status with file count and sync time
@@ -65,13 +83,13 @@ func (r *StorageGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	log.Info("StorageGroup reconciled successfully", "StorageGroup", sg.Name, "FileCount", len(sg.Spec.Files))
+	log.Info("StoragePool reconciled successfully", "StoragePool", sg.Name, "FileCount", len(sg.Spec.Files))
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *StorageGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *StoragePoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&securityv1alpha1.StorageGroup{}).
+		For(&securityv1alpha1.StoragePool{}).
 		Complete(r)
 }
