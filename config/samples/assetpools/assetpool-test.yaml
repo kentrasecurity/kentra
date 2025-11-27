@@ -7,4 +7,4 @@ spec:
   description: "Pool of username targets for OSINT"
   items:
     - type: username
-      value: root00leo
+      value: johndoe
