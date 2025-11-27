@@ -192,3 +192,9 @@ data:
       capabilities:
         add: []
 
+    maigret:
+      type: "osint"
+      image: "soxoj/maigret:latest"
+      commandTemplate: "maigret {{.Args}} {{.Item}}"
+      capabilities:
+        add: []
