@@ -28,7 +28,7 @@ resources:
 # [METRICS] Expose the controller manager metrics service.
 - metrics_service.yaml
 # Tool specifications and logging configuration
-- kttack-tool-specs.yaml
+- tool-specs.yaml
 - fluent-bit-config.yaml
 - loki-secret.yaml
 # [NETWORK POLICY] Protect the /metrics endpoint and Webhook Server with NetworkPolicy.
