@@ -8,3 +8,9 @@ spec:
   items:
     - type: username
       value: johndoe
+    - type: email
+      value: johndoe@email.com
+    - type: username
+      value: janedoe
+    - type: phone
+      value: "+1234567890"

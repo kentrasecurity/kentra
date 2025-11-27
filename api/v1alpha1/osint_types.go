@@ -72,11 +72,14 @@ type OsintStatus struct {
 	// ResolvedPort is the actual port after TargetPool resolution
 	ResolvedPort string `json:"resolvedPort,omitempty"`
 
-	// ResolvedAsset is the actual asset value after AssetPool resolution
+	// ResolvedAsset is the resolved asset value from AssetPool
 	ResolvedAsset string `json:"resolvedAsset,omitempty"`
 
-	// ResolvedAssetType is the type of asset after AssetPool resolution
+	// ResolvedAssetType is the type of the resolved asset
 	ResolvedAssetType string `json:"resolvedAssetType,omitempty"`
+
+	// ResolvedAssets contains all resolved assets from AssetPool
+	ResolvedAssets []AssetItem `json:"resolvedAssets,omitempty"`
 }
 
 // +kubebuilder:object:root=true

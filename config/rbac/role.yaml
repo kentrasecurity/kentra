@@ -33,6 +33,7 @@ rules:
   - assetpools
   - enumerations
   - livenesses
+  - osints
   - securityattacks
   - storagepools
   - targetpools
@@ -50,6 +51,7 @@ rules:
   - assetpools/finalizers
   - enumerations/finalizers
   - livenesses/finalizers
+  - osints/finalizers
   - securityattacks/finalizers
   - storagepools/finalizers
   - targetpools/finalizers
@@ -61,35 +63,10 @@ rules:
   - assetpools/status
   - enumerations/status
   - livenesses/status
+  - osints/status
   - securityattacks/status
   - storagepools/status
   - targetpools/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - security.kttack.io
-  resources:
-  - osints
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - security.kttack.io
-  resources:
-  - osints/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - security.kttack.io
-  resources:
-  - osints/status
   verbs:
   - get
   - patch

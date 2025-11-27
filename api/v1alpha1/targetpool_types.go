@@ -48,7 +48,7 @@ type TargetPoolStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=tg,singular=targetpool
+//+kubebuilder:resource:shortName=tp,singular=targetpool
 //+kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
 //+kubebuilder:printcolumn:name="Port",type=string,JSONPath=`.spec.port`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`

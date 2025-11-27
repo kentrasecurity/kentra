@@ -24,9 +24,9 @@ type OsintReconciler struct {
 	Configurator *ToolsConfigurator
 }
 
-// +kubebuilder:rbac:groups=security.kttack.io,resources=osints,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=security.kttack.io,resources=osints/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=security.kttack.io,resources=osints/finalizers,verbs=update
+// +kubebuilder:rbac:groups=kttack.io,resources=osints,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kttack.io,resources=osints/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kttack.io,resources=osints/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 
@@ -69,8 +69,9 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
-	// Initialize files slice
+	// Initialize slices
 	var resolvedFiles []string
+	var resolvedAssets []securityv1alpha1.AssetItem
 
 	// Resolve StoragePool reference if provided
 	if osint.Spec.StoragePool != "" {
@@ -93,19 +94,36 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			log.Error(err, "Failed to get referenced AssetPool", "AssetPool", osint.Spec.AssetPool)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// For now, use the first item from AssetPool
-		// TODO: In the future, we could create multiple jobs, one per item
-		if len(ap.Spec.Items) > 0 {
-			firstItem := ap.Spec.Items[0]
-			osint.Spec.Target = firstItem.Value
-			osint.Status.ResolvedAsset = firstItem.Value
-			osint.Status.ResolvedAssetType = firstItem.Type
-			log.Info("Resolved AssetPool", "AssetPool", osint.Spec.AssetPool, "asset", firstItem.Value, "type", firstItem.Type)
-		} else {
+
+		if len(ap.Spec.Items) == 0 {
 			err := fmt.Errorf("assetPool %s has no items", osint.Spec.AssetPool)
 			log.Error(err, "Invalid AssetPool")
 			return ctrl.Result{}, err
 		}
+
+		// Collect all assets for processing
+		resolvedAssets = make([]securityv1alpha1.AssetItem, len(ap.Spec.Items))
+		for i, item := range ap.Spec.Items {
+			resolvedAssets[i] = securityv1alpha1.AssetItem{
+				Type:  item.Type,
+				Value: item.Value,
+			}
+		}
+
+		// Update status with all resolved assets
+		osint.Status.ResolvedAssets = resolvedAssets
+
+		// For backward compatibility, set first item as primary
+		firstItem := ap.Spec.Items[0]
+		osint.Spec.Target = firstItem.Value
+		osint.Status.ResolvedAsset = firstItem.Value
+		osint.Status.ResolvedAssetType = firstItem.Type
+
+		log.Info("Resolved AssetPool",
+			"AssetPool", osint.Spec.AssetPool,
+			"totalAssets", len(resolvedAssets),
+			"primaryAsset", firstItem.Value,
+			"primaryType", firstItem.Type)
 	}
 
 	// Resolve TargetPool reference if provided
@@ -146,9 +164,17 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	cronJobName := fmt.Sprintf("%s-cronjob", osint.Name)
 
 	// Convert to SecurityResource adapter
-	adapter := &OsintAdapter{osint, resolvedFiles}
+	adapter := &OsintAdapter{
+		osint:          osint,
+		resolvedFiles:  resolvedFiles,
+		resolvedAssets: resolvedAssets,
+	}
 
-	log.Info("Building resource with spec", "tool", adapter.GetSpec().Tool, "target", adapter.GetSpec().Target, "filesCount", len(adapter.GetSpec().Files))
+	log.Info("Building resource with spec",
+		"tool", adapter.GetSpec().Tool,
+		"target", adapter.GetSpec().Target,
+		"filesCount", len(adapter.GetSpec().Files),
+		"assetsCount", len(adapter.GetSpec().Assets))
 
 	// Check if we need to create a job or cronjob
 	if osint.Spec.Periodic {
@@ -218,8 +244,9 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 // OsintAdapter adapts Osint to SecurityResource interface
 type OsintAdapter struct {
-	osint         *securityv1alpha1.Osint
-	resolvedFiles []string
+	osint          *securityv1alpha1.Osint
+	resolvedFiles  []string
+	resolvedAssets []securityv1alpha1.AssetItem
 }
 
 func (a *OsintAdapter) GetName() string {
@@ -250,6 +277,7 @@ func (a *OsintAdapter) GetSpec() *ResourceSpec {
 		Schedule:      a.osint.Spec.Schedule,
 		Port:          a.osint.Spec.Port,
 		Files:         a.resolvedFiles,
+		Assets:        a.resolvedAssets,
 	}
 }
 

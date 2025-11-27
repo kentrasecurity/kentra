@@ -35,7 +35,7 @@ This document provides a comprehensive overview of the KTtack Kubernetes Operato
 │  │                                                    │    │
 │  │  ┌──────────────────────────────────────────┐    │    │
 │  │  │  ConfigMaps & Secrets                    │    │    │
-│  │  │  - tool-specs (tool definitions)         │    │    │
+│  │  │  - kttack-tool-specs (tool definitions)         │    │    │
 │  │  │  - fluent-bit-config (logging)           │    │    │
 │  │  │  - loki-credentials (log destination)    │    │    │
 │  │  └──────────────────────────────────────────┘    │    │
@@ -221,7 +221,7 @@ Event Triggered
     ↓
 ┌─────────────────────────────────────────┐
 │ Load Tool Configurations                │
-│ (from ConfigMap - tool-specs)           │
+│ (from ConfigMap - kttack-tool-specs)           │
 └─────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────┐
@@ -304,13 +304,13 @@ Pod
 
 ### Tool Specification Format
 
-Tools are defined in the `tool-specs` ConfigMap:
+Tools are defined in the `kttack-tool-specs` ConfigMap:
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tool-specs
+  name: kttack-tool-specs
   namespace: kttack-system
 data:
   tools.yaml: |
@@ -444,7 +444,7 @@ Kubernetes API Server
   ↓ (CRD stored in etcd)
 SecurityAttackReconciler
   ↓ (watch event triggered)
-Load tool-specs ConfigMap
+Load kttack-tool-specs ConfigMap
   ↓ (resolve nmap configuration)
 Validate target and tool
   ↓
@@ -489,7 +489,7 @@ For more info on this topic, refer to this [example](./NEW_CRD_EXAMPLE.md).
 To support a new security tool:
 
 1. **Create Tool Image**: Build or use existing Docker image
-2. **Define ToolSpec**: Add entry to `tool-specs` ConfigMap
+2. **Define ToolSpec**: Add entry to `kttack-tool-specs` ConfigMap
 3. **Test**: Create SecurityAttack with new tool
 4. **Document**: Update tool configuration examples
 
@@ -507,7 +507,7 @@ To support a new security tool:
 
 **Issue**: SecurityAttack stuck in "Pending"
 
-- Check if tool-specs ConfigMap exists
+- Check if kttack-tool-specs ConfigMap exists
 - Verify tool image is accessible
 - Check node capacity (CPU/memory limits)
 

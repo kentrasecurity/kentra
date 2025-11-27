@@ -48,7 +48,7 @@ type StoragePoolStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=sg,singular=storagepool
+//+kubebuilder:resource:shortName=sp,singular=storagepool
 //+kubebuilder:printcolumn:name="Files",type=string,JSONPath=`.spec.files`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 //+kubebuilder:printcolumn:name="LastSync",type=date,JSONPath=`.status.lastSyncTime`

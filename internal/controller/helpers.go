@@ -56,6 +56,7 @@ type ResourceSpec struct {
 	Schedule      string
 	Port          string
 	Files         []string
+	Assets        []securityv1alpha1.AssetItem
 }
 
 // ResourceStatus defines the common status fields across security resources
@@ -194,7 +195,17 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 	}
 
 	// Build command from template using proper template handling
-	command, err := configurator.BuildCommand(spec.Tool, spec.Target, spec.Port, spec.Args)
+	var command []string
+	if len(spec.Assets) > 0 {
+		// Use asset-aware command building
+		log.Info("Building command with assets", "tool", spec.Tool, "assetsCount", len(spec.Assets))
+		command, err = configurator.BuildCommandWithAssets(spec.Tool, spec.Assets, spec.Args)
+		log.Info("Built command", "command", command)
+	} else {
+		// Use standard command building
+		command, err = configurator.BuildCommand(spec.Tool, spec.Target, spec.Port, spec.Args)
+	}
+
 	if err != nil {
 		log.Error(err, "Failed to build command from template", "tool", spec.Tool)
 		return corev1.PodSpec{}, err
@@ -522,6 +533,9 @@ func UpdateResourceStatus(ctx context.Context, statusWriter client.StatusWriter,
 		v.Status.State = state
 		v.Status.LastExecuted = time.Now().Format(time.RFC3339)
 	case *securityv1alpha1.SecurityAttack:
+		v.Status.State = state
+		v.Status.LastExecuted = time.Now().Format(time.RFC3339)
+	case *securityv1alpha1.Osint:
 		v.Status.State = state
 		v.Status.LastExecuted = time.Now().Format(time.RFC3339)
 	}

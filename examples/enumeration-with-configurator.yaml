@@ -2,7 +2,7 @@
 # Example: Complete setup for Enumeration with ToolsConfigurator
 #
 # This example shows how to:
-# 1. Create the tool-specs ConfigMap in kttack-system namespace
+# 1. Create the kttack-tool-specs ConfigMap in kttack-system namespace
 # 2. Create an Enumeration resource that uses the configured tools
 #
 
@@ -14,7 +14,7 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tool-specs
+  name: kttack-tool-specs
   namespace: kttack-system
 data:
   tools: |

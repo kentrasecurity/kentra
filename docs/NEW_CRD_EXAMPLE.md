@@ -145,7 +145,7 @@ make all-crd-run #with make run
 - if needed, create the targetpool under `config/samples/targetpools`
 - create the new attack under `config/samples/attacks`
 - create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kttack_v1alpha1_targetpool_<resource>.yaml` , `kubectl apply -f config/samples/attacks/kttack_v1alpha1_<resource>.yaml`  
-- add in the configmap `config/default/tool-specs.yaml` the new tool in `data.tools` like:
+- add in the configmap `config/default/kttack-tool-specs.yaml` the new tool in `data.tools` like:
   ```yaml
     <tool>:
       type: "<resource>"
@@ -194,7 +194,7 @@ if err := (&controller.OsintReconciler{
 Usage example:
 
 ```yaml
-apiVersion: security.kttack.io/v1alpha1
+apiVersion: kttack.io/v1alpha1
 kind: Osint
 metadata:
   name: sherlock-scan
@@ -242,7 +242,7 @@ spec:
 
 - create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kttack_v1alpha1_targetpool_osint.yaml` , `kubectl apply -f config/samples/attacks/kttack_v1alpha1_osint.yaml`  
 - 
-- add in the configmap `config/default/tool-specs.yaml` the new tool in `data.tools` like:
+- add in the configmap `config/default/kttack-tool-specs.yaml` the new tool in `data.tools` like:
   ```yaml
     sherlock:
       type: "osint"

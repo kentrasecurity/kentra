@@ -54,7 +54,7 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// Load tool configurations from ConfigMap if not already loaded
 	if err := r.Configurator.LoadConfig(ctx); err != nil {
-		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "tool-specs")
+		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "kttack-tool-specs")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 	}
 

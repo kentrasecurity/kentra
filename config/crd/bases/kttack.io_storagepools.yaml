@@ -12,7 +12,7 @@ spec:
     listKind: StoragePoolList
     plural: storagepools
     shortNames:
-    - sg
+    - sp
     singular: storagepool
   scope: Namespaced
   versions:

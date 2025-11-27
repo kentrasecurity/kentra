@@ -29,6 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
+
+	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
 )
 
 // ToolConfig represents the configuration for a single tool
@@ -36,6 +38,7 @@ type ToolConfig struct {
 	Type            string                 `yaml:"type"`
 	Image           string                 `yaml:"image"`
 	CommandTemplate string                 `yaml:"commandTemplate"`
+	AssetTypeFlags  map[string]string      `yaml:"assetTypeFlags"`
 	Capabilities    map[string]interface{} `yaml:"capabilities"`
 }
 
@@ -67,7 +70,7 @@ func (tc *ToolsConfigurator) LoadConfig(ctx context.Context) error {
 		Name:      tc.configMapName,
 		Namespace: tc.configMapNS,
 	}, cm); err != nil {
-		log.Error(err, "Failed to get tool-specs ConfigMap", "ConfigMap", fmt.Sprintf("%s/%s", tc.configMapNS, tc.configMapName))
+		log.Error(err, "Failed to get kttack-tool-specs ConfigMap", "ConfigMap", fmt.Sprintf("%s/%s", tc.configMapNS, tc.configMapName))
 		return err
 	}
 
@@ -171,6 +174,57 @@ func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, port s
 	}
 
 	cmd := strings.Fields(out.String())
+	return cmd, nil
+}
+
+// BuildCommandWithAssets builds command with assets as individual template variables
+func (tc *ToolsConfigurator) BuildCommandWithAssets(toolName string, assets []securityv1alpha1.AssetItem, args []string) ([]string, error) {
+	tc.mu.RLock()
+	config, ok := tc.tools[toolName]
+	tc.mu.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("tool %q not found in configuration", toolName)
+	}
+
+	// Build a map of asset type -> value(s)
+	// If multiple assets of the same type exist, we'll use the first one
+	// or concatenate them depending on the use case
+	assetMap := make(map[string]string)
+
+	for _, asset := range assets {
+		// If the type already exists, append with space
+		if existing, exists := assetMap[asset.Type]; exists {
+			assetMap[asset.Type] = existing + " " + asset.Value
+		} else {
+			assetMap[asset.Type] = asset.Value
+		}
+	}
+
+	// Parse and execute template
+	tmpl, err := template.New("cmd").Parse(config.CommandTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse command template: %w", err)
+	}
+
+	// Create nested Item map for template access like {{.Item.username}}
+	data := map[string]interface{}{
+		"Args": strings.Join(args, " "),
+		"Item": assetMap,
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, data); err != nil {
+		return nil, fmt.Errorf("failed to execute command template: %w", err)
+	}
+
+	resultString := out.String()
+
+	// Clean up any <no value> placeholders and extra spaces
+	resultString = strings.ReplaceAll(resultString, "<no value>", "")
+	resultString = strings.Join(strings.Fields(resultString), " ")
+
+	cmd := strings.Fields(resultString)
 	return cmd, nil
 }
 

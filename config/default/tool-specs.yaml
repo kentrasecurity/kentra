@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tool-specs
+  name: kttack-tool-specs
   namespace: kttack-system
 data:
   tools: |
@@ -185,16 +185,16 @@ data:
       capabilities:
         add: []
 
-    sherlock:
-      type: "osint"
-      image: "sherlock/sherlock:0.16.0"
-      commandTemplate: "sherlock {{.Args}} {{.Item}}"
-      capabilities:
-        add: []
-
     maigret:
       type: "osint"
       image: "soxoj/maigret:latest"
-      commandTemplate: "maigret {{.Args}} {{.Item}}"
+      commandTemplate: "maigret {{.Args}} {{.Item.username}}"
+      capabilities:
+        add: []
+
+    sherlock:
+      type: "osint"
+      image: "sherlock/sherlock:0.16.0"
+      commandTemplate: "sherlock {{.Args}} {{.Item.username}}"
       capabilities:
         add: []

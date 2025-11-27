@@ -294,13 +294,13 @@ Tool specifications define which security tools are available and their configur
 
 #### Step 1: Create Tool Specs ConfigMap
 
-Create a file `tool-specs.yaml`:
+Create a file `kttack-tool-specs.yaml`:
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tool-specs
+  name: kttack-tool-specs
   namespace: kttack-system
 data:
   tools.yaml: |
@@ -337,11 +337,11 @@ data:
 #### Step 2: Apply ConfigMap
 
 ```bash
-kubectl apply -f tool-specs.yaml
+kubectl apply -f kttack-tool-specs.yaml
 
 # Verify ConfigMap
-kubectl get cm -n kttack-system tool-specs
-kubectl get cm -n kttack-system tool-specs -o yaml
+kubectl get cm -n kttack-system kttack-tool-specs
+kubectl get cm -n kttack-system kttack-tool-specs -o yaml
 ```
 
 ### Configure Fluent Bit Logging (Optional)
@@ -481,7 +481,7 @@ kubectl describe pod -n kttack-system <pod-name>
 kubectl logs -n kttack-system <pod-name>
 
 # Common causes:
-# - Missing tool-specs ConfigMap
+# - Missing kttack-tool-specs ConfigMap
 # - Invalid RBAC permissions
 # - Image pull errors
 ```
@@ -615,7 +615,7 @@ After installation, verify:
 - [ ] RBAC configured: `kubectl get rolebinding -n kttack-system`
 - [ ] Webhook ready: `kubectl get validatingwebhookconfigurations`
 - [ ] Metrics accessible: `kubectl port-forward -n kttack-system svc/kttack-controller-manager-metrics-service 8080:8080`
-- [ ] Tool specs configured: `kubectl get cm -n kttack-system tool-specs`
+- [ ] Tool specs configured: `kubectl get cm -n kttack-system kttack-tool-specs`
 - [ ] (Optional) Loki credentials: `kubectl get secret -n kttack-system loki-credentials`
 
 ## Next Steps
@@ -625,5 +625,5 @@ After successful installation:
 1. Read [Architecture Guide](./ARCHITECTURE.md) to understand system design
 2. Review [Fluent Bit Documentation](./FLUENT_BIT_SIDECAR.md) for logging setup
 3. Create your first SecurityAttack: see examples in `config/samples/`
-4. Configure tool specifications in `config/default/tool-specs.yaml`
+4. Configure tool specifications in `config/default/kttack-tool-specs.yaml`
 5. Set up monitoring and alerting for your security operations
