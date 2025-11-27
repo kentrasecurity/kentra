@@ -185,16 +185,16 @@ data:
       capabilities:
         add: []
 
+    maigret:
+      type: "osint"
+      image: "soxoj/maigret:latest"
+      commandTemplate: "maigret {{.Args}} {{.Item.username}}"
+      capabilities:
+        add: []
+
     sherlock:
       type: "osint"
       image: "sherlock/sherlock:0.16.0"
       commandTemplate: "sherlock {{.Args}} {{.Item.username}}"
-      capabilities:
-        add: []
-
-    twint:
-      type: "osint"
-      image: "thetwintproject/twint:2.1.10-alpine"
-      commandTemplate: "twint {{.Args}} {{.Item.username}} --email --phone --year {{.Item.year}}"
       capabilities:
         add: []
