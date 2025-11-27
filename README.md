@@ -126,7 +126,7 @@ kubectl logs -n kttack-system deployment/kttack-controller-manager -f
 KTtack uses a ConfigMap to define tool specifications:
 
 ```bash
-kubectl apply -f config/default/tool-specs.yaml
+kubectl apply -f config/default/kttack-tool-specs.yaml
 ```
 
 ### Configure Logging to Loki (Optional)

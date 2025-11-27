@@ -1,0 +1,11 @@
+apiVersion: kttack.io/v1alpha1
+kind: Osint
+metadata:
+  name: sherlock-multi-asset
+  namespace: kttack-system
+spec:
+  tool: sherlock
+  assetPool: username-targets
+  category: username-enumeration
+  periodic: false
+  debug: true

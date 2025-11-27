@@ -1,0 +1,16 @@
+apiVersion: kttack.io/v1alpha1
+kind: AssetPool
+metadata:
+  name: username-targets
+  namespace: kttack-system
+spec:
+  description: "Pool of username targets for OSINT"
+  items:
+    - type: username
+      value: "patrickdifazio"
+    - type: email
+      value: "johndoe@email.com"
+    - type: phone
+      value: "+1234567890"
+    - type: year
+      value: "2014"

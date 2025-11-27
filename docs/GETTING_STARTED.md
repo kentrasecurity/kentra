@@ -235,11 +235,11 @@ kubectl logs -n security-testing <pod-name>
 ### Tool Not Found
 
 ```bash
-# Verify tool is defined in tool-specs ConfigMap
-kubectl get cm -n kttack-system tool-specs -o yaml
+# Verify tool is defined in kttack-tool-specs ConfigMap
+kubectl get cm -n kttack-system kttack-tool-specs -o yaml
 
 # Check available tools
-kubectl describe cm -n kttack-system tool-specs
+kubectl describe cm -n kttack-system kttack-tool-specs
 ```
 
 ### CronJob Not Executing
@@ -258,9 +258,9 @@ kubectl get jobs -n security-testing -l cronjob-name=<cronjob-name>
 
 ## Next Steps
 
-1. **Explore Available Tools**: Check `config/default/tool-specs.yaml` for available security tools
+1. **Explore Available Tools**: Check `config/default/kttack-tool-specs.yaml` for available security tools
 2. **Set Up Logging**: Configure Fluent Bit for centralized log aggregation (see [Fluent Bit Documentation](./FLUENT_BIT_SIDECAR.md))
-3. **Create Custom Tools**: Add new security tools to tool-specs ConfigMap
+3. **Create Custom Tools**: Add new security tools to kttack-tool-specs ConfigMap
 4. **Scale Testing**: Create multiple attacks targeting different systems
 5. **Integrate Monitoring**: Set up Prometheus metrics and alerting
 
@@ -306,7 +306,7 @@ Control pod resource consumption by adding to your tool spec:
 
 ```yaml
 tool: custom-scanner
-# In tool-specs ConfigMap:
+# In kttack-tool-specs ConfigMap:
 resource_limits:
   cpu: "1000m"
   memory: "512Mi"

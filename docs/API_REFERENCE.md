@@ -386,7 +386,7 @@ KTtack performs validation on all resource fields:
 
 - `attackType`: Must be one of `Enumeration`, `Vulnerability`, `Exploitation`
 - `target`: Valid IP, hostname, or CIDR notation
-- `tool`: Must exist in tool-specs ConfigMap
+- `tool`: Must exist in kttack-tool-specs ConfigMap
 - `state`: Must be `Pending`, `Running`, `Completed`, or `Failed`
 
 ### Format Validation
@@ -399,7 +399,7 @@ KTtack performs validation on all resource fields:
 ### Business Logic Validation
 
 - If `periodic: true`, `schedule` must be provided
-- Tool must be defined in `tool-specs` ConfigMap
+- Tool must be defined in `kttack-tool-specs` ConfigMap
 - Target must be reachable or valid hostname
 - Resource name must follow DNS-1123 subdomain rules
 
@@ -415,7 +415,7 @@ KTtack uses `v1alpha1` API version. This is an experimental version and may chan
 
 ## Tool Specifications
 
-Tools are referenced by name in SecurityAttack resources. Available tools are defined in the `tool-specs` ConfigMap.
+Tools are referenced by name in SecurityAttack resources. Available tools are defined in the `kttack-tool-specs` ConfigMap.
 
 ### Tool Definition Structure
 
@@ -423,7 +423,7 @@ Tools are referenced by name in SecurityAttack resources. Available tools are de
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tool-specs
+  name: kttack-tool-specs
   namespace: kttack-system
 data:
   tools.yaml: |
@@ -441,10 +441,10 @@ data:
 
 ### Adding Custom Tools
 
-To add a new tool, update the `tool-specs` ConfigMap:
+To add a new tool, update the `kttack-tool-specs` ConfigMap:
 
 ```bash
-kubectl patch configmap tool-specs -n kttack-system \
+kubectl patch configmap kttack-tool-specs -n kttack-system \
   --type merge -p '{"data":{"tools.yaml":"..."}}'
 ```
 

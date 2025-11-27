@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tool-specs
+  name: kttack-tool-specs
   namespace: kttack-system
 data:
   tools: |
@@ -188,7 +188,13 @@ data:
     sherlock:
       type: "osint"
       image: "sherlock/sherlock:0.16.0"
-      commandTemplate: "sherlock {{.Args}} {{.Item}}"
+      commandTemplate: "sherlock {{.Args}} {{.Item.username}}"
       capabilities:
         add: []
 
+    twint:
+      type: "osint"
+      image: "thetwintproject/twint:2.1.10-alpine"
+      commandTemplate: "twint {{.Args}} {{.Item.username}} --email --phone --year {{.Item.year}}"
+      capabilities:
+        add: []

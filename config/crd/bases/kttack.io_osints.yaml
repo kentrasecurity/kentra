@@ -117,13 +117,28 @@ spec:
                 description: LastExecuted timestamp of the last execution
                 type: string
               resolvedAsset:
-                description: ResolvedAsset is the actual asset value after AssetPool
-                  resolution
+                description: ResolvedAsset is the resolved asset value from AssetPool
                 type: string
               resolvedAssetType:
-                description: ResolvedAssetType is the type of asset after AssetPool
-                  resolution
+                description: ResolvedAssetType is the type of the resolved asset
                 type: string
+              resolvedAssets:
+                description: ResolvedAssets contains all resolved assets from AssetPool
+                items:
+                  description: AssetItem defines a single asset in the pool
+                  properties:
+                    type:
+                      description: Type specifies the type of asset (e.g., username,
+                        email, domain, ip)
+                      type: string
+                    value:
+                      description: Value is the actual value of the asset
+                      type: string
+                  required:
+                  - type
+                  - value
+                  type: object
+                type: array
               resolvedPort:
                 description: ResolvedPort is the actual port after TargetPool resolution
                 type: string
