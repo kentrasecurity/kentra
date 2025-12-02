@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "controller.fullname" . }}-fluent-bit-config
+  labels:
+  {{- include "controller.labels" . | nindent 4 }}
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush        1
+        Daemon       Off
+        Log_Level    info
+        Parsers_File parsers.conf
+
+    [INPUT]
+        Name              tail
+        Path              /logs/job.log
+        Read_from_Head    true
+        Refresh_Interval  5
+        Tag               kttack.job.*
+
+    [FILTER]
+        Name    grep
+        Match   *
+        Regex   log .+
+
+    [FILTER]
+        Name    modify
+        Match   *
+        Add     cluster ${CLUSTER_NAME}
+        Add     app kttack
+        Add     type ${RESOURCE_TYPE}
+        Add     task ${TASK_TYPE}
+        Add     name ${JOB_NAME}
+        Add     tool ${TOOL_TYPE}
+        Add     namespace ${NAMESPACE}
+        Add     pod_name ${POD_NAME}
+
+    [OUTPUT]
+        Name   loki
+        Match  *
+        host   ${LOKI_HOST}
+        port   ${LOKI_PORT}
+        tls    ${LOKI_TLS}
+        tls.verify ${LOKI_TLS_VERIFY}
+        tenant_id ${LOKI_TENANT_ID}
+        http_user ${LOKI_USER}
+        http_passwd ${LOKI_PASSWORD}
+        labels $name,$namespace,$tool,$cluster,$pod_name,$type,$task
+
+  parsers.conf: |
+    [PARSER]
+        Name   json
+        Format json
+        Time_Key timestamp
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z

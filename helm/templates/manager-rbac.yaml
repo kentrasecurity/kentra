@@ -1,0 +1,90 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "controller.fullname" . }}-manager-role
+  labels:
+  {{- include "controller.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - pods
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kttack.io
+  resources:
+  - assetpools
+  - enumerations
+  - livenesses
+  - osints
+  - securityattacks
+  - storagepools
+  - targetpools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kttack.io
+  resources:
+  - assetpools/finalizers
+  - enumerations/finalizers
+  - livenesses/finalizers
+  - osints/finalizers
+  - securityattacks/finalizers
+  - storagepools/finalizers
+  - targetpools/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kttack.io
+  resources:
+  - assetpools/status
+  - enumerations/status
+  - livenesses/status
+  - osints/status
+  - securityattacks/status
+  - storagepools/status
+  - targetpools/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "controller.fullname" . }}-manager-rolebinding
+  labels:
+    app.kubernetes.io/component: rbac
+  {{- include "controller.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: '{{ include "controller.fullname" . }}-manager-role'
+subjects:
+- kind: ServiceAccount
+  name: '{{ include "controller.fullname" . }}-controller-manager'
+  namespace: '{{ .Release.Namespace }}'

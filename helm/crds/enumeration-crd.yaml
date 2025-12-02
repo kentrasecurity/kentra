@@ -1,0 +1,179 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: enumerations.kttack.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+  {{- include "controller.labels" . | nindent 4 }}
+spec:
+  group: kttack.io
+  names:
+    kind: Enumeration
+    listKind: EnumerationList
+    plural: enumerations
+    shortNames:
+    - enum
+    singular: enumeration
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.tool
+      name: Tool
+      type: string
+    - jsonPath: .spec.targetPool
+      name: TargetPool
+      type: string
+    - jsonPath: .spec.storagePool
+      name: StoragePool
+      type: string
+    - jsonPath: .spec.category
+      name: Category
+      type: string
+    - jsonPath: .spec.periodic
+      name: Periodic
+      type: boolean
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Enumeration is the Schema for the enumerations API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: EnumerationSpec defines the desired state of Enumeration
+            properties:
+              additional_env:
+                description: AdditionalEnv contains additional environment variables
+                items:
+                  description: EnvVar represents an environment variable
+                  properties:
+                    name:
+                      description: Name of the environment variable
+                      type: string
+                    value:
+                      description: Value of the environment variable
+                      type: string
+                  required:
+                  - name
+                  - value
+                  type: object
+                type: array
+              args:
+                description: Args contains additional arguments for the tool
+                items:
+                  type: string
+                type: array
+              capabilities:
+                description: Capabilities are additional capabilities required by the
+                  tool
+                items:
+                  type: string
+                type: array
+              category:
+                description: Category is a label to categorize the enumeration (e.g.,
+                  'normal-scan', 'deep-scan')
+                type: string
+              debug:
+                description: Debug if true, logs are written to stdout instead of emptydir
+                  volume
+                type: boolean
+              fileName:
+                description: FileName contains the output file names
+                items:
+                  type: string
+                type: array
+              http_proxy:
+                description: HTTPProxy is the HTTP proxy URL to use
+                type: string
+              periodic:
+                description: Periodic indicates if this should run on a schedule
+                type: boolean
+              port:
+                description: Port is the port(s) to target (e.g., '22', '80,443', '8000-8100').
+                  Can be overridden per resource.
+                type: string
+              schedule:
+                description: Schedule is the cron schedule (only used if Periodic is
+                  true)
+                type: string
+              storagePool:
+                description: StoragePool is the name of a StoragePool resource to reference
+                  for files to download from S3
+                type: string
+              target:
+                description: |-
+                  Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetPool name.
+                  If TargetPool is specified, this field may be empty.
+                type: string
+              targetPool:
+                description: TargetPool is the name of a TargetPool resource to reference
+                  for target and port information
+                type: string
+              tool:
+                description: Tool is the enumeration tool to use (ex nmap)
+                type: string
+            required:
+            - tool
+            type: object
+          status:
+            description: EnumerationStatus defines the observed state of Enumeration
+            properties:
+              jobName:
+                description: JobName is the name of the created job or cronjob
+                type: string
+              lastExecuted:
+                description: LastExecuted is the timestamp of last execution
+                type: string
+              resolvedPort:
+                description: ResolvedPort is the resolved port after TargetPool reference
+                  is applied
+                type: string
+              resolvedTarget:
+                description: ResolvedTarget is the resolved target after TargetPool
+                  reference is applied
+                type: string
+              resultsLocation:
+                description: ResultsLocation is the path where results are stored
+                type: string
+              state:
+                description: State represents the current state
+                enum:
+                - Pending
+                - Running
+                - Completed
+                - Failed
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
