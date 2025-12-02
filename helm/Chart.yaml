@@ -1,5 +1,5 @@
 apiVersion: v2
-name: kttack
+name: kttack-controller
 description: |
   KTtack - Kubernetes Security Testing Framework
   A comprehensive Kubernetes Operator for orchestrating and managing security testing 
