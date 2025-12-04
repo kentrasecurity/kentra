@@ -200,5 +200,13 @@ data:
       type: "osint"
       image: "sherlock/sherlock:0.16.0"
       commandTemplate: "sherlock {{.Args}} {{.Item.username}}"
+      separator: " "
+      capabilities:
+        add: []
+
+    trufflehog:
+      type: "osint"
+      image: "trufflesecurity/trufflehog:3.91.2"
+      commandTemplate: "trufflehog {{.Item.subcommand}} {{.Args}} {{.Item.uri}}"
       capabilities:
         add: []
