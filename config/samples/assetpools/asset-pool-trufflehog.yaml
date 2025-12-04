@@ -1,0 +1,20 @@
+apiVersion: kttack.io/v1alpha1
+kind: AssetPool
+metadata:
+  name: trufflehog-targets
+  namespace: kttack-system
+spec:
+  description: Git repositories to scan
+  groups:
+    - assets:
+        - type: subcommand
+          value: git
+        - type: uri
+          value: https://github.com/rancher/docs
+      name: rancher
+    - assets:
+        - type: subcommand
+          value: git
+        - type: uri
+          value: https://github.com/kubernetes/kubernetes
+      name: kubernetes
