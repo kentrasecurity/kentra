@@ -1,11 +1,11 @@
-# KTtack Documentation Index
+# Kentra Documentation Index
 
-Welcome to the KTtack documentation. This directory contains comprehensive guides for installing, using, and understanding the KTtack Kubernetes Operator.
+Welcome to the Kentra documentation. This directory contains comprehensive guides for installing, using, and understanding the Kentra Kubernetes Operator.
 
 ## Quick Navigation
 
 ### For First-Time Users
-Start here if you're new to KTtack:
+Start here if you're new to Kentra:
 
 1. **[Getting Started](./GETTING_STARTED.md)** (5 minutes)
    - Create your first security test
@@ -18,7 +18,7 @@ Start here if you're new to KTtack:
    - Troubleshooting
 
 ### For Developers and Architects
-Understand how KTtack works:
+Understand how Kentra works:
 
 1. **[Architecture Guide](./ARCHITECTURE.md)**
    - System design overview
@@ -33,7 +33,7 @@ Understand how KTtack works:
    - Code examples
 
 ### For Operations Teams
-Configure and operate KTtack:
+Configure and operate Kentra:
 
 1. **[Fluent Bit Sidecar Documentation](./FLUENT_BIT_SIDECAR.md)**
    - Centralized logging setup
@@ -71,7 +71,7 @@ Configure and operate KTtack:
 
 ### Get Started
 1. Read [Installation Guide](./INSTALLATION_GUIDE.md)
-2. Deploy KTtack to your cluster
+2. Deploy Kentra to your cluster
 3. Follow [Getting Started](./GETTING_STARTED.md)
 4. Create your first SecurityAttack resource
 
@@ -88,7 +88,7 @@ Configure and operate KTtack:
 ### Troubleshoot Issues
 1. Check [Installation Guide](./INSTALLATION_GUIDE.md#troubleshooting-installation) troubleshooting section
 2. Review [Getting Started](./GETTING_STARTED.md#troubleshooting) troubleshooting section
-3. Check KTtack controller logs
+3. Check Kentra controller logs
 
 ## Key Concepts
 
@@ -98,12 +98,12 @@ A Kubernetes resource defining a one-time or periodic security testing operation
 **Learn more:** [API Reference](./API_REFERENCE.md#securityattack-api) | [Getting Started Examples](./GETTING_STARTED.md)
 
 ### Custom Resource Definitions (CRDs)
-KTtack extends Kubernetes with `SecurityAttack`, `Enumeration`, and `Liveness` resource types.
+Kentra extends Kubernetes with `SecurityAttack`, `Enumeration`, and `Liveness` resource types.
 
 **Learn more:** [Architecture - CRDs](./ARCHITECTURE.md#custom-resource-definitions-crds) | [API Reference](./API_REFERENCE.md)
 
 ### Controller Reconciliation
-KTtack uses Kubernetes operators pattern to watch resources and create corresponding Jobs.
+Kentra uses Kubernetes operators pattern to watch resources and create corresponding Jobs.
 
 **Learn more:** [Architecture - Reconciliation Flow](./ARCHITECTURE.md#controller-reconciliation-flow)
 
@@ -128,7 +128,7 @@ Learn more: [API Reference - Cron Schedules](./API_REFERENCE.md#scheduling)
 
 ## Prerequisites Checklist
 
-Before starting with KTtack, ensure you have:
+Before starting with Kentra, ensure you have:
 
 - [ ] Go 1.24.0+ installed
 - [ ] Docker 17.03+ installed
@@ -147,12 +147,12 @@ See [Installation Guide - Prerequisites](./INSTALLATION_GUIDE.md#prerequisites-v
 - Review [Installation Troubleshooting](./INSTALLATION_GUIDE.md#troubleshooting-installation)
 
 ### Community
-- Visit [GitHub Repository](https://github.com/kttack/kttack)
+- Visit [GitHub Repository](https://github.com/kentrasecurity/kentra)
 - Open an issue or discussion
 - Check existing issues for similar problems
 
 ### Debugging
-1. Check KTtack controller logs: `kubectl logs -n kttack-system deployment/kttack-controller-manager`
+1. Check Kentra controller logs: `kubectl logs -n kentra-system deployment/kentra-controller-manager`
 2. Check pod events: `kubectl describe pod -n <namespace> <pod-name>`
 3. Review resource status: `kubectl describe securityattack -n <namespace> <name>`
 
@@ -170,7 +170,7 @@ See the main [README](../README.md#contributing) for contribution guidelines.
 
 ## Documentation Versions
 
-This documentation is for KTtack `v1alpha1` API version.
+This documentation is for Kentra `v1alpha1` API version.
 
 ### Versioning Strategy
 - **v1alpha1**: Current experimental version (this documentation)
@@ -180,12 +180,12 @@ This documentation is for KTtack `v1alpha1` API version.
 ## Related Resources
 
 - [Main README](../README.md) - Project overview
-- [GitHub Repository](https://github.com/kttack/kttack) - Source code and issues
+- [GitHub Repository](https://github.com/kentrasecurity/kentra) - Source code and issues
 - [Kubebuilder Documentation](https://book.kubebuilder.io/) - Operator framework
 - [Kubernetes Documentation](https://kubernetes.io/docs/) - Kubernetes concepts
 
 ---
 
 **Last Updated**: January 2025
-**KTtack Version**: v1alpha1
+**Kentra Version**: v1alpha1
 **Documentation Status**: Complete

@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // AssetPoolReconciler reconciles an AssetPool object
@@ -35,9 +35,9 @@ type AssetPoolReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=kttack.io,resources=assetpools,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kttack.io,resources=assetpools/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kttack.io,resources=assetpools/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kentra.sh,resources=assetpools,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/finalizers,verbs=update
 
 // Reconcile implements reconciliation for AssetPool resources
 func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -59,8 +59,8 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ap.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if ap.Labels["kttack-resource-type"] != "asset" {
-		ap.Labels["kttack-resource-type"] = "asset"
+	if ap.Labels["kentra-resource-type"] != "asset" {
+		ap.Labels["kentra-resource-type"] = "asset"
 		needsUpdate = true
 	}
 

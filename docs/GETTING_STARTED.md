@@ -1,10 +1,10 @@
-# Getting Started with KTtack
+# Getting Started with Kentra
 
-This guide will help you create your first security test with KTtack in just a few minutes.
+This guide will help you create your first security test with Kentra in just a few minutes.
 
 ## Prerequisites
 
-- KTtack installed and running (see [Installation Guide](./INSTALLATION_GUIDE.md))
+- Kentra installed and running (see [Installation Guide](./INSTALLATION_GUIDE.md))
 - `kubectl` configured to access your cluster
 - A Kubernetes namespace for security testing (e.g., `security-testing`)
 
@@ -19,7 +19,7 @@ kubectl create namespace security-testing
 Create a file named `my-first-attack.yaml`:
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: first-nmap-scan
@@ -90,7 +90,7 @@ kubectl logs -n security-testing $POD > scan-results.txt
 To run the same scan automatically on a schedule, create `periodic-nmap.yaml`:
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: scheduled-nmap-scan
@@ -130,7 +130,7 @@ kubectl describe cronjob scheduled-nmap-scan-cronjob -n security-testing
 If your security tools need to connect through a proxy:
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: nmap-behind-proxy
@@ -155,7 +155,7 @@ spec:
 Pass custom environment variables to your tools:
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: custom-env-scan
@@ -235,11 +235,11 @@ kubectl logs -n security-testing <pod-name>
 ### Tool Not Found
 
 ```bash
-# Verify tool is defined in kttack-tool-specs ConfigMap
-kubectl get cm -n kttack-system kttack-tool-specs -o yaml
+# Verify tool is defined in kentra-tool-specs ConfigMap
+kubectl get cm -n kentra-system kentra-tool-specs -o yaml
 
 # Check available tools
-kubectl describe cm -n kttack-system kttack-tool-specs
+kubectl describe cm -n kentra-system kentra-tool-specs
 ```
 
 ### CronJob Not Executing
@@ -258,9 +258,9 @@ kubectl get jobs -n security-testing -l cronjob-name=<cronjob-name>
 
 ## Next Steps
 
-1. **Explore Available Tools**: Check `config/default/kttack-tool-specs.yaml` for available security tools
+1. **Explore Available Tools**: Check `config/default/kentra-tool-specs.yaml` for available security tools
 2. **Set Up Logging**: Configure Fluent Bit for centralized log aggregation (see [Fluent Bit Documentation](./FLUENT_BIT_SIDECAR.md))
-3. **Create Custom Tools**: Add new security tools to kttack-tool-specs ConfigMap
+3. **Create Custom Tools**: Add new security tools to kentra-tool-specs ConfigMap
 4. **Scale Testing**: Create multiple attacks targeting different systems
 5. **Integrate Monitoring**: Set up Prometheus metrics and alerting
 
@@ -306,7 +306,7 @@ Control pod resource consumption by adding to your tool spec:
 
 ```yaml
 tool: custom-scanner
-# In kttack-tool-specs ConfigMap:
+# In kentra-tool-specs ConfigMap:
 resource_limits:
   cpu: "1000m"
   memory: "512Mi"
@@ -341,7 +341,7 @@ For detailed information:
 - **Architecture**: See [Architecture Guide](./ARCHITECTURE.md)
 - **Installation**: See [Installation Guide](./INSTALLATION_GUIDE.md)
 - **Logging**: See [Fluent Bit Documentation](./FLUENT_BIT_SIDECAR.md)
-- **Repository**: [GitHub - KTtack](https://github.com/kttack/kttack)
+- **Repository**: [GitHub - Kentra](https://github.com/kentrasecurity/kentra)
 
 ## Tips & Best Practices
 

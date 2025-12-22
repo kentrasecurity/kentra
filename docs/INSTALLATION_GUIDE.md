@@ -1,4 +1,4 @@
-# KTtack Installation Guide
+# Kentra Installation Guide
 
 This document provides detailed installation instructions for various scenarios and deployment patterns.
 
@@ -8,7 +8,7 @@ This document provides detailed installation instructions for various scenarios 
 2. [Installation Methods](#installation-methods)
 3. [Post-Installation Configuration](#post-installation-configuration)
 4. [Troubleshooting Installation](#troubleshooting-installation)
-5. [Upgrading KTtack](#upgrading-kttack)
+5. [Upgrading Kentra](#upgrading-kentra)
 6. [Uninstallation](#uninstallation)
 
 ## Prerequisites Verification
@@ -49,7 +49,7 @@ For installation, see [Kubernetes Documentation](https://kubernetes.io/docs/task
 kubectl get nodes
 
 # Verify you have cluster-admin permissions
-kubectl auth can-i create clusterrolebinding --as=system:serviceaccount:kttack-system:kttack-controller-manager
+kubectl auth can-i create clusterrolebinding --as=system:serviceaccount:kentra-system:kentra-controller-manager
 ```
 
 ### Check Container Registry Access
@@ -75,8 +75,8 @@ This is the fastest way to get started with official releases.
 
 ```bash
 # Choose your registry and image version
-export IMG=ghcr.io/kttack/kttack:v1.0.0  # or docker.io/kttack/kttack:v1.0.0
-export KTTACK_NAMESPACE=kttack-system     # namespace for the controller
+export IMG=ghcr.io/kentra/kentra:v1.0.0  # or docker.io/kentra/kentra:v1.0.0
+export KTTACK_NAMESPACE=kentra-system     # namespace for the controller
 ```
 
 #### Step 2: Create Namespace
@@ -100,17 +100,17 @@ This installs:
 Verify CRDs are installed:
 
 ```bash
-kubectl get crds | grep kttack.io
+kubectl get crds | grep kentra.sh
 # Expected output:
-# enumerations.kttack.io                          2025-01-01T10:00:00Z
-# livenesses.kttack.io                            2025-01-01T10:00:00Z
-# securityattacks.kttack.io                       2025-01-01T10:00:00Z
+# enumerations.kentra.sh                          2025-01-01T10:00:00Z
+# livenesses.kentra.sh                            2025-01-01T10:00:00Z
+# securityattacks.kentra.sh                       2025-01-01T10:00:00Z
 ```
 
 #### Step 4: Deploy the Manager
 
 ```bash
-# Deploy KTtack controller
+# Deploy Kentra controller
 make deploy IMG=${IMG}
 
 # Verify manager pod is running
@@ -125,8 +125,8 @@ For development or custom builds.
 #### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/kttack/kttack.git
-cd kttack
+git clone https://github.com/kentrasecurity/kentra.git
+cd kentra
 ```
 
 #### Step 2: Set Up Build Environment
@@ -156,13 +156,13 @@ make build
 
 ```bash
 # Set your registry
-export IMG=your-registry/kttack:v1.0.0
+export IMG=your-registry/kentra:v1.0.0
 
 # Build Docker image
 make docker-build IMG=${IMG}
 
 # Verify image was created
-docker images | grep kttack
+docker images | grep kentra
 ```
 
 #### Step 5: Push to Registry
@@ -188,7 +188,7 @@ make install
 make deploy IMG=${IMG}
 
 # Monitor deployment
-kubectl rollout status deployment/kttack-controller-manager -n kttack-system
+kubectl rollout status deployment/kentra-controller-manager -n kentra-system
 ```
 
 ### Method 3: Using Kustomize (Bundle Distribution)
@@ -199,7 +199,7 @@ For simplified distribution and offline installation.
 
 ```bash
 # Set image
-export IMG=your-registry/kttack:v1.0.0
+export IMG=your-registry/kentra:v1.0.0
 
 # Build installer bundle
 make build-installer IMG=${IMG}
@@ -220,8 +220,8 @@ kubectl apply -f https://path-to-bundle/install.yaml
 kubectl apply -f dist/install.yaml
 
 # Verify installation
-kubectl get pods -n kttack-system
-kubectl get crds | grep kttack.io
+kubectl get pods -n kentra-system
+kubectl get crds | grep kentra.sh
 ```
 
 The bundle includes:
@@ -262,17 +262,17 @@ vi dist/chart/values.yaml
 
 ```bash
 # Add Helm repository (if using remote chart)
-helm repo add kttack https://charts.kttack.io
+helm repo add kentra https://charts.kentra.sh
 
 # Install
-helm install kttack kttack/kttack \
-  --namespace kttack-system \
+helm install kentra kentra/kentra \
+  --namespace kentra-system \
   --create-namespace \
   -f dist/chart/values.yaml
 
 # Verify installation
-helm list -n kttack-system
-kubectl get pods -n kttack-system
+helm list -n kentra-system
+kubectl get pods -n kentra-system
 ```
 
 #### Step 4: Upgrade with Helm
@@ -282,8 +282,8 @@ kubectl get pods -n kttack-system
 helm repo update
 
 # Upgrade
-helm upgrade kttack kttack/kttack \
-  --namespace kttack-system
+helm upgrade kentra kentra/kentra \
+  --namespace kentra-system
 ```
 
 ## Post-Installation Configuration
@@ -294,14 +294,14 @@ Tool specifications define which security tools are available and their configur
 
 #### Step 1: Create Tool Specs ConfigMap
 
-Create a file `kttack-tool-specs.yaml`:
+Create a file `kentra-tool-specs.yaml`:
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kttack-tool-specs
-  namespace: kttack-system
+  name: kentra-tool-specs
+  namespace: kentra-system
 data:
   tools.yaml: |
     tools:
@@ -337,11 +337,11 @@ data:
 #### Step 2: Apply ConfigMap
 
 ```bash
-kubectl apply -f kttack-tool-specs.yaml
+kubectl apply -f kentra-tool-specs.yaml
 
 # Verify ConfigMap
-kubectl get cm -n kttack-system kttack-tool-specs
-kubectl get cm -n kttack-system kttack-tool-specs -o yaml
+kubectl get cm -n kentra-system kentra-tool-specs
+kubectl get cm -n kentra-system kentra-tool-specs -o yaml
 ```
 
 ### Configure Fluent Bit Logging (Optional)
@@ -357,7 +357,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: loki-credentials
-  namespace: kttack-system
+  namespace: kentra-system
 type: Opaque
 stringData:
   loki-host: "loki.example.com"
@@ -378,7 +378,7 @@ kubectl apply -f loki-secret.yaml
 
 # Or create from command line
 kubectl create secret generic loki-credentials \
-  -n kttack-system \
+  -n kentra-system \
   --from-literal=loki-host=loki.example.com \
   --from-literal=loki-port=443 \
   --from-literal=loki-tls=true \
@@ -386,7 +386,7 @@ kubectl create secret generic loki-credentials \
   --from-literal=loki-password=password
 
 # Verify secret
-kubectl get secret -n kttack-system loki-credentials
+kubectl get secret -n kentra-system loki-credentials
 ```
 
 #### Step 3: Create Fluent Bit ConfigMap
@@ -398,7 +398,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluent-bit-config
-  namespace: kttack-system
+  namespace: kentra-system
 data:
   fluent-bit.conf: |
     [SERVICE]
@@ -412,14 +412,14 @@ data:
         Path              /logs/*.log
         Read_from_Head    true
         Refresh_Interval  5
-        Tag               kttack.job.*
+        Tag               kentra.job.*
 
     [FILTER]
         Name    modify
         Match   *
         Add     cluster ${CLUSTER_NAME}
         Add     component job
-        Add     app kttack
+        Add     app kentra
 
     [OUTPUT]
         Name   loki
@@ -439,7 +439,7 @@ data:
 kubectl apply -f fluent-bit-config.yaml
 
 # Verify ConfigMap
-kubectl get cm -n kttack-system fluent-bit-config
+kubectl get cm -n kentra-system fluent-bit-config
 ```
 
 ### Verify Post-Installation Setup
@@ -447,25 +447,25 @@ kubectl get cm -n kttack-system fluent-bit-config
 ```bash
 # Check all components
 echo "=== Namespace ==="
-kubectl get ns kttack-system
+kubectl get ns kentra-system
 
 echo "=== CRDs ==="
-kubectl get crds | grep kttack.io
+kubectl get crds | grep kentra.sh
 
 echo "=== Manager Pod ==="
-kubectl get pods -n kttack-system
+kubectl get pods -n kentra-system
 
 echo "=== ServiceAccount ==="
-kubectl get sa -n kttack-system
+kubectl get sa -n kentra-system
 
 echo "=== Roles ==="
-kubectl get roles -n kttack-system
+kubectl get roles -n kentra-system
 
 echo "=== ConfigMaps ==="
-kubectl get cm -n kttack-system
+kubectl get cm -n kentra-system
 
 echo "=== Secrets ==="
-kubectl get secrets -n kttack-system
+kubectl get secrets -n kentra-system
 ```
 
 ## Troubleshooting Installation
@@ -474,14 +474,14 @@ kubectl get secrets -n kttack-system
 
 ```bash
 # Check pod status
-kubectl get pods -n kttack-system
-kubectl describe pod -n kttack-system <pod-name>
+kubectl get pods -n kentra-system
+kubectl describe pod -n kentra-system <pod-name>
 
 # View logs
-kubectl logs -n kttack-system <pod-name>
+kubectl logs -n kentra-system <pod-name>
 
 # Common causes:
-# - Missing kttack-tool-specs ConfigMap
+# - Missing kentra-tool-specs ConfigMap
 # - Invalid RBAC permissions
 # - Image pull errors
 ```
@@ -490,13 +490,13 @@ kubectl logs -n kttack-system <pod-name>
 
 ```bash
 # Verify CRDs exist
-kubectl get crd | grep kttack.io
+kubectl get crd | grep kentra.sh
 
 # If missing, reinstall
 make install
 
 # Check for errors
-kubectl get crd -o yaml | grep -A 5 "kttack.io"
+kubectl get crd -o yaml | grep -A 5 "kentra.sh"
 ```
 
 ### Issue: Image Pull Errors
@@ -506,41 +506,41 @@ kubectl get crd -o yaml | grep -A 5 "kttack.io"
 docker pull ${IMG}
 
 # Check image pull secrets in cluster
-kubectl get secrets -n kttack-system
+kubectl get secrets -n kentra-system
 
 # Add secret if needed
 kubectl create secret docker-registry regcred \
   --docker-server=<registry> \
   --docker-username=<username> \
   --docker-password=<password> \
-  -n kttack-system
+  -n kentra-system
 ```
 
 ### Issue: RBAC Errors
 
 ```bash
 # Verify ServiceAccount exists
-kubectl get sa -n kttack-system
+kubectl get sa -n kentra-system
 
 # Check role bindings
-kubectl get rolebinding -n kttack-system
-kubectl get clusterrolebinding | grep kttack
+kubectl get rolebinding -n kentra-system
+kubectl get clusterrolebinding | grep kentra
 
 # Verify permissions
 kubectl auth can-i create securityattacks \
-  --as=system:serviceaccount:kttack-system:kttack-controller-manager
+  --as=system:serviceaccount:kentra-system:kentra-controller-manager
 ```
 
-## Upgrading KTtack
+## Upgrading Kentra
 
 ### Upgrade Procedure
 
 ```bash
 # 1. Check current version
-kubectl get deployment -n kttack-system kttack-controller-manager -o yaml | grep image
+kubectl get deployment -n kentra-system kentra-controller-manager -o yaml | grep image
 
 # 2. Set new image version
-export IMG=your-registry/kttack:v1.1.0
+export IMG=your-registry/kentra:v1.1.0
 
 # 3. Pull new image
 docker pull ${IMG}
@@ -549,21 +549,21 @@ docker pull ${IMG}
 make deploy IMG=${IMG}
 
 # 5. Monitor rollout
-kubectl rollout status deployment/kttack-controller-manager -n kttack-system
+kubectl rollout status deployment/kentra-controller-manager -n kentra-system
 
 # 6. Verify new version
-kubectl get pods -n kttack-system
-kubectl logs -n kttack-system -l control-plane=controller-manager | tail -20
+kubectl get pods -n kentra-system
+kubectl logs -n kentra-system -l control-plane=controller-manager | tail -20
 ```
 
 ### Rollback Procedure
 
 ```bash
 # If upgrade fails, rollback to previous version
-kubectl rollout undo deployment/kttack-controller-manager -n kttack-system
+kubectl rollout undo deployment/kentra-controller-manager -n kentra-system
 
 # Verify rollback
-kubectl rollout status deployment/kttack-controller-manager -n kttack-system
+kubectl rollout status deployment/kentra-controller-manager -n kentra-system
 ```
 
 ## Uninstallation
@@ -577,8 +577,8 @@ kubectl delete enumerations --all --all-namespaces
 kubectl delete livenesses --all --all-namespaces
 
 # 2. Wait for related Jobs/CronJobs to complete or be deleted
-kubectl delete jobs --all --all-namespaces -l managed-by=kttack
-kubectl delete cronjobs --all --all-namespaces -l managed-by=kttack
+kubectl delete jobs --all --all-namespaces -l managed-by=kentra
+kubectl delete cronjobs --all --all-namespaces -l managed-by=kentra
 
 # 3. Undeploy the manager
 make undeploy
@@ -587,11 +587,11 @@ make undeploy
 make uninstall
 
 # 5. Delete namespace
-kubectl delete namespace kttack-system
+kubectl delete namespace kentra-system
 
 # 6. Verify complete removal
-kubectl get crds | grep kttack.io  # Should return empty
-kubectl get ns | grep kttack       # Should return empty
+kubectl get crds | grep kentra.sh  # Should return empty
+kubectl get ns | grep kentra       # Should return empty
 ```
 
 ### Partial Uninstallation
@@ -609,14 +609,14 @@ make undeploy
 
 After installation, verify:
 
-- [ ] CRDs installed: `kubectl get crds | grep kttack.io`
-- [ ] Manager pod running: `kubectl get pods -n kttack-system`
-- [ ] ServiceAccount exists: `kubectl get sa -n kttack-system`
-- [ ] RBAC configured: `kubectl get rolebinding -n kttack-system`
+- [ ] CRDs installed: `kubectl get crds | grep kentra.sh`
+- [ ] Manager pod running: `kubectl get pods -n kentra-system`
+- [ ] ServiceAccount exists: `kubectl get sa -n kentra-system`
+- [ ] RBAC configured: `kubectl get rolebinding -n kentra-system`
 - [ ] Webhook ready: `kubectl get validatingwebhookconfigurations`
-- [ ] Metrics accessible: `kubectl port-forward -n kttack-system svc/kttack-controller-manager-metrics-service 8080:8080`
-- [ ] Tool specs configured: `kubectl get cm -n kttack-system kttack-tool-specs`
-- [ ] (Optional) Loki credentials: `kubectl get secret -n kttack-system loki-credentials`
+- [ ] Metrics accessible: `kubectl port-forward -n kentra-system svc/kentra-controller-manager-metrics-service 8080:8080`
+- [ ] Tool specs configured: `kubectl get cm -n kentra-system kentra-tool-specs`
+- [ ] (Optional) Loki credentials: `kubectl get secret -n kentra-system loki-credentials`
 
 ## Next Steps
 
@@ -625,5 +625,5 @@ After successful installation:
 1. Read [Architecture Guide](./ARCHITECTURE.md) to understand system design
 2. Review [Fluent Bit Documentation](./FLUENT_BIT_SIDECAR.md) for logging setup
 3. Create your first SecurityAttack: see examples in `config/samples/`
-4. Configure tool specifications in `config/default/kttack-tool-specs.yaml`
+4. Configure tool specifications in `config/default/kentra-tool-specs.yaml`
 5. Set up monitoring and alerting for your security operations

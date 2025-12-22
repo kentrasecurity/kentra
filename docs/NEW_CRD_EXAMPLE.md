@@ -99,7 +99,7 @@ In the file `cmd/main.go` you have to add to the main function after other contr
 
 ```go
 // Create ToolsConfigurator for <Resource> controller
-<resource>Configurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+<resource>Configurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-tool-specs", "kentra-system")
 
 if err := (&controller.<Resource>Reconciler{
     Client:       mgr.GetClient(),
@@ -117,14 +117,14 @@ Position yourself in the root folder of the project and run
 ```go
 make manifest
 ```
-This runs the controller-gen tool to generate CustomResourceDefinition YAML files `kttack.io_<resource>s.yaml` in `config/crd/bases/`, RBAC manifests for the controller and WebhookConfiguration files (if applicable).
+This runs the controller-gen tool to generate CustomResourceDefinition YAML files `kentra.sh_<resource>s.yaml` in `config/crd/bases/`, RBAC manifests for the controller and WebhookConfiguration files (if applicable).
 
 ```go
 make generate 
 ```
 This ...
 
-In the file `config/crd/kustomization.yaml` add `- bases/kttack.io_<resource>.yaml` under resources.
+In the file `config/crd/kustomization.yaml` add `- bases/kentra.sh_<resource>.yaml` under resources.
 ```go
 make install
 ```
@@ -144,8 +144,8 @@ make all-crd-run #with make run
 ## 5. Test the new CRD
 - if needed, create the targetpool under `config/samples/targetpools`
 - create the new attack under `config/samples/attacks`
-- create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kttack_v1alpha1_targetpool_<resource>.yaml` , `kubectl apply -f config/samples/attacks/kttack_v1alpha1_<resource>.yaml`  
-- add in the configmap `config/default/kttack-tool-specs.yaml` the new tool in `data.tools` like:
+- create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kentra_v1alpha1_targetpool_<resource>.yaml` , `kubectl apply -f config/samples/attacks/kentra_v1alpha1_<resource>.yaml`  
+- add in the configmap `config/default/kentra-tool-specs.yaml` the new tool in `data.tools` like:
   ```yaml
     <tool>:
       type: "<resource>"
@@ -179,7 +179,7 @@ The OsintReconciler follows the standard reconciliation pattern: loads tool conf
 Registration in `cmd/main.go`:
 
 ```go
-osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-tool-specs", "kentra-system")
 
 if err := (&controller.OsintReconciler{
     Client:       mgr.GetClient(),
@@ -194,7 +194,7 @@ if err := (&controller.OsintReconciler{
 Usage example:
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Osint
 metadata:
   name: sherlock-scan
@@ -215,11 +215,11 @@ Test it:
 
 ```yaml
 ---
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: TargetPool
 metadata:
   name: osint-targets
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   target: "patrickdifazio"
   description: "Target group for osint Patrick Di Fazio"
@@ -228,11 +228,11 @@ spec:
 - create the new attack under `config/samples/attacks`
 ```yaml
 ---
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Osint
 metadata:
   name: osint
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   tool: sherlock
   targetPool: osint-targets
@@ -240,9 +240,9 @@ spec:
   periodic: false
 ```
 
-- create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kttack_v1alpha1_targetpool_osint.yaml` , `kubectl apply -f config/samples/attacks/kttack_v1alpha1_osint.yaml`  
+- create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kentra_v1alpha1_targetpool_osint.yaml` , `kubectl apply -f config/samples/attacks/kentra_v1alpha1_osint.yaml`  
 - 
-- add in the configmap `config/default/kttack-tool-specs.yaml` the new tool in `data.tools` like:
+- add in the configmap `config/default/kentra-tool-specs.yaml` the new tool in `data.tools` like:
   ```yaml
     sherlock:
       type: "osint"

@@ -22,7 +22,7 @@ Quando viene creata una risorsa `Enumeration`:
 
 ## Configurazione richiesta
 
-### Secret: `loki-credentials` in `kttack-system`
+### Secret: `loki-credentials` in `kentra-system`
 
 Contiene le credenziali e configurazioni per Loki:
 
@@ -31,7 +31,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: loki-credentials
-  namespace: kttack-system
+  namespace: kentra-system
 type: Opaque
 stringData:
   loki-host: "loki.k3s.chungo.home"
@@ -44,7 +44,7 @@ stringData:
   cluster-name: "k3s"
 ```
 
-### ConfigMap: `fluent-bit-config` in `kttack-system`
+### ConfigMap: `fluent-bit-config` in `kentra-system`
 
 Contiene la configurazione di Fluent Bit:
 
@@ -53,7 +53,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluent-bit-config
-  namespace: kttack-system
+  namespace: kentra-system
 data:
   fluent-bit.conf: |
     [SERVICE]
@@ -67,14 +67,14 @@ data:
         Path              /logs/*.log
         Read_from_Head    true
         Refresh_Interval  5
-        Tag               kttack.job.*
+        Tag               kentra.job.*
 
     [FILTER]
         Name    modify
         Match   *
         Add     cluster ${CLUSTER_NAME}
         Add     component job
-        Add     app kttack
+        Add     app kentra
 
     [OUTPUT]
         Name   loki
@@ -102,7 +102,7 @@ kubectl apply -f config/default/fluent-bit-config.yaml
 ## Esempio di utilizzo
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: nmap-example
@@ -125,7 +125,7 @@ Dopo l'esecuzione, puoi cercare i log con query come:
 O filtrare per errori:
 
 ```logql
-{cluster="k3s", app="kttack"} |= "error"
+{cluster="k3s", app="kentra"} |= "error"
 ```
 
 ## Troubleshooting
@@ -134,12 +134,12 @@ O filtrare per errori:
 
 1. Verifica che il Secret `loki-credentials` esista e abbia i valori corretti:
    ```bash
-   kubectl describe secret loki-credentials -n kttack-system
+   kubectl describe secret loki-credentials -n kentra-system
    ```
 
 2. Verifica che il ConfigMap `fluent-bit-config` esista:
    ```bash
-   kubectl describe configmap fluent-bit-config -n kttack-system
+   kubectl describe configmap fluent-bit-config -n kentra-system
    ```
 
 3. Controlla i log del sidecar Fluent Bit:
