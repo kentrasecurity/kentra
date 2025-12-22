@@ -179,11 +179,11 @@ func main() {
 	}
 
 	// Create ToolsConfigurator for Enumeration controller
-	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-tool-specs", "kentra-system")
+	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
 	setupLog.Info("ToolsConfigurator created for Enumeration controller")
 
 	// Create ToolsConfigurator for Osint controller
-	osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-tool-specs", "kentra-system")
+	osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
 	setupLog.Info("ToolsConfigurator created for Osint controller")
 
 	// Setup OsintReconciler
@@ -207,7 +207,7 @@ func main() {
 	}
 
 	// Create ToolsConfigurator for Liveness controller
-	livenessConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-tool-specs", "kentra-system")
+	livenessConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
 	setupLog.Info("ToolsConfigurator created for Liveness controller")
 
 	// Setup LivenessReconciler
@@ -221,7 +221,7 @@ func main() {
 	}
 
 	// Create ToolsConfigurator for SecurityAttack controller
-	securityAttackConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-tool-specs", "kentra-system")
+	securityAttackConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
 	setupLog.Info("ToolsConfigurator created for SecurityAttack controller")
 
 	if err := (&controller.SecurityAttackReconciler{
