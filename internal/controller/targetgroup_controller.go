@@ -59,8 +59,8 @@ func (r *TargetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		tg.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if tg.Labels["kentra-resource-type"] != "target" {
-		tg.Labels["kentra-resource-type"] = "target"
+	if tg.Labels["kentra.sh/resource-type"] != "target" {
+		tg.Labels["kentra.sh/resource-type"] = "target"
 		needsUpdate = true
 	}
 

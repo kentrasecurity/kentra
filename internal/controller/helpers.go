@@ -65,7 +65,7 @@ type ResourceStatus struct {
 	LastExecuted string
 }
 
-// getResourceType returns the kentra-resource-type label value based on appType
+// getResourceType returns the kentra.sh/resource-type label value based on appType
 func getResourceType(appType string) string {
 	switch appType {
 	case "enumeration", "osint", "liveness", "securityattack":
@@ -86,10 +86,10 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 	spec := res.GetSpec()
 
 	labels := map[string]string{
-		"app":                  appType,
-		"tool":                 spec.Tool,
-		"task":                 "job",
-		"kentra-resource-type": getResourceType(appType),
+		"app":                     appType,
+		"tool":                    spec.Tool,
+		"task":                    "job",
+		"kentra.sh/resource-type": getResourceType(appType),
 	}
 
 	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "job", appType)
@@ -97,15 +97,19 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 		return nil, err
 	}
 
+	// Get the generation from the parent resource
+	generation := res.GetKubeObject().GetGeneration()
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
 			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"kentra.sh/target":   spec.Target,
-				"kentra.sh/tool":     spec.Tool,
-				"kentra.sh/category": spec.Category,
+				"kentra.sh/target":            spec.Target,
+				"kentra.sh/tool":              spec.Tool,
+				"kentra.sh/category":          spec.Category,
+				"kentra.sh/parent-generation": fmt.Sprintf("%d", generation),
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -126,10 +130,10 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 	spec := res.GetSpec()
 
 	labels := map[string]string{
-		"app":                  appType,
-		"tool":                 spec.Tool,
-		"task":                 "cronjob",
-		"kentra-resource-type": getResourceType(appType),
+		"app":                     appType,
+		"tool":                    spec.Tool,
+		"task":                    "cronjob",
+		"kentra.sh/resource-type": getResourceType(appType),
 	}
 
 	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "cronjob", appType)
@@ -137,15 +141,19 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 		return nil, err
 	}
 
+	// Get the generation from the parent resource
+	generation := res.GetKubeObject().GetGeneration()
+
 	cronJob := &batchv1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cronJobName,
 			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"kentra.sh/target":   spec.Target,
-				"kentra.sh/tool":     spec.Tool,
-				"kentra.sh/category": spec.Category,
+				"kentra.sh/target":            spec.Target,
+				"kentra.sh/tool":              spec.Tool,
+				"kentra.sh/category":          spec.Category,
+				"kentra.sh/parent-generation": fmt.Sprintf("%d", generation),
 			},
 		},
 		Spec: batchv1.CronJobSpec{

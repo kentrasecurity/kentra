@@ -59,8 +59,8 @@ func (r *StoragePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		sg.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if sg.Labels["kentra-resource-type"] != "storage" {
-		sg.Labels["kentra-resource-type"] = "storage"
+	if sg.Labels["kentra.sh/resource-type"] != "storage" {
+		sg.Labels["kentra.sh/resource-type"] = "storage"
 		needsUpdate = true
 	}
 

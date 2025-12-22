@@ -59,8 +59,8 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ap.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if ap.Labels["kentra-resource-type"] != "asset" {
-		ap.Labels["kentra-resource-type"] = "asset"
+	if ap.Labels["kentra.sh/resource-type"] != "asset" {
+		ap.Labels["kentra.sh/resource-type"] = "asset"
 		needsUpdate = true
 	}
 
