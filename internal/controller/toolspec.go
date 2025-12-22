@@ -62,8 +62,8 @@ func (m *ToolSpecManager) LoadToolSpecs(ctx context.Context) error {
 	}
 
 	var cm corev1.ConfigMap
-	if err := m.client.Get(ctx, client.ObjectKey{Name: "kttack-tool-specs", Namespace: m.namespace}, &cm); err != nil {
-		return fmt.Errorf("failed to get kttack-tool-specs ConfigMap: %w", err)
+	if err := m.client.Get(ctx, client.ObjectKey{Name: "kentra-tool-specs", Namespace: m.namespace}, &cm); err != nil {
+		return fmt.Errorf("failed to get kentra-tool-specs ConfigMap: %w", err)
 	}
 
 	raw, ok := cm.Data["tools"]

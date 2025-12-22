@@ -1,9 +1,9 @@
 ---
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: TargetPool
 metadata:
   name: nmap-scan-targets
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   target: "192.168.1.0/24"
   port: "22,80"

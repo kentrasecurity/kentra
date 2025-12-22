@@ -1,8 +1,8 @@
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: feroxbuster-test
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   args:
     - '--no-recursion'

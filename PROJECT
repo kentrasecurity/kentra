@@ -3,19 +3,19 @@
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
 cliVersion: 4.9.0
-domain: kttack.io
+domain: kentra.sh
 layout:
 - go.kubebuilder.io/v4
-projectName: project
-repo: https://github.com/kttack/kttack
+projectName: kentra
+repo: https://github.com/kentrasecurity/kentra
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: kttack.io
+  domain: kentra.sh
   group: security
   kind: SecurityAttack
-  path: github.com/kttack/kttack/api/v1alpha1
+  path: github.com/kentrasecurity/kentra/api/v1alpha1
   version: v1alpha1
 version: "3"

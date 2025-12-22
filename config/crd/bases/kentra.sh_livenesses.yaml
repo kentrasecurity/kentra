@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: livenesses.kttack.io
+  name: livenesses.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
     kind: Liveness
     listKind: LivenessList

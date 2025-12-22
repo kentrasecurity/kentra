@@ -1,10 +1,10 @@
-# KTtack - Kubernetes Security Testing Framework
+# Kentra - Kubernetes Security Testing Framework
 
-A comprehensive Kubernetes Operator for orchestrating and managing security testing operations within Kubernetes clusters. KTtack enables automated security scanning, enumeration, vulnerability testing, and security attack simulations through Kubernetes Custom Resource Definitions (CRDs).
+A comprehensive Kubernetes Operator for orchestrating and managing security testing operations within Kubernetes clusters. Kentra enables automated security scanning, enumeration, vulnerability testing, and security attack simulations through Kubernetes Custom Resource Definitions (CRDs).
 
 ## Overview
 
-KTtack provides a declarative way to define and execute security operations as native Kubernetes resources. Instead of manually managing security testing tools and scripts, you define your security tests as YAML manifests and let KTtack's Kubernetes Operator handle orchestration, scheduling, logging, and resource management.
+Kentra provides a declarative way to define and execute security operations as native Kubernetes resources. Instead of manually managing security testing tools and scripts, you define your security tests as YAML manifests and let Kentra's Kubernetes Operator handle orchestration, scheduling, logging, and resource management.
 
 ### Key Features
 
@@ -53,7 +53,7 @@ If you have a pre-built Docker image available in a registry:
 
 ```bash
 # Set your image registry and tag
-export IMG=your-registry/kttack:v1.0.0
+export IMG=your-registry/kentra:v1.0.0
 
 # Install CRDs
 make install
@@ -68,20 +68,20 @@ Build the controller from source code:
 
 ```bash
 # Clone the repository
-git clone https://github.com/kttack/kttack.git
-cd kttack
+git clone https://github.com/kentrasecurity/kentra.git
+cd kentra
 
 # Build the Docker image
-make docker-build IMG=your-registry/kttack:v1.0.0
+make docker-build IMG=your-registry/kentra:v1.0.0
 
 # Push to your registry (ensure you have push permissions)
-make docker-push IMG=your-registry/kttack:v1.0.0
+make docker-push IMG=your-registry/kentra:v1.0.0
 
 # Install CRDs into the cluster
 make install
 
 # Deploy the manager
-make deploy IMG=your-registry/kttack:v1.0.0
+make deploy IMG=your-registry/kentra:v1.0.0
 ```
 
 **Note**: Replace `your-registry` with your actual Docker registry URL (e.g., `docker.io/myorg`, `ghcr.io/myorg`, `gcr.io/myproject`).
@@ -92,7 +92,7 @@ Create a bundled installation file:
 
 ```bash
 # Build the installer bundle
-make build-installer IMG=your-registry/kttack:v1.0.0
+make build-installer IMG=your-registry/kentra:v1.0.0
 ```
 
 This generates an `install.yaml` file in the `dist/` directory containing all resources. Users can then deploy with:
@@ -112,21 +112,21 @@ Verify the deployment was successful:
 
 ```bash
 # Check if the manager pod is running
-kubectl get pods -n kttack-system
+kubectl get pods -n kentra-system
 
 # Check CRDs are installed
-kubectl get crds | grep kttack.io
+kubectl get crds | grep kentra.sh
 
 # View controller logs
-kubectl logs -n kttack-system deployment/kttack-controller-manager -f
+kubectl logs -n kentra-system deployment/kentra-controller-manager -f
 ```
 
 ### Configure Tool Specifications (Optional)
 
-KTtack uses a ConfigMap to define tool specifications:
+Kentra uses a ConfigMap to define tool specifications:
 
 ```bash
-kubectl apply -f config/default/kttack-tool-specs.yaml
+kubectl apply -f config/default/kentra-tool-specs.yaml
 ```
 
 ### Configure Logging to Loki (Optional)
@@ -148,13 +148,13 @@ See [Fluent Bit Sidecar Documentation](./docs/FLUENT_BIT_SIDECAR.md) for detaile
 ### Create a One-Time Security Test
 
 ```bash
-kubectl apply -f config/samples/kttack_v1alpha1_securityattack.yaml
+kubectl apply -f config/samples/kentra_v1alpha1_securityattack.yaml
 ```
 
 ### Create a Periodic Enumeration
 
 ```bash
-kubectl apply -f config/samples/kttack_v1alpha1_enumeration.yaml
+kubectl apply -f config/samples/kentra_v1alpha1_enumeration.yaml
 ```
 
 ### Monitor Running Tests
@@ -177,7 +177,7 @@ To create your first security test, follow the [Getting Started Guide](./docs/GE
 Quick example:
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: my-first-scan
@@ -259,7 +259,7 @@ make vet
 Ensure your image is published to a registry accessible from your Kubernetes cluster:
 
 ```bash
-make docker-build docker-push IMG=<registry>/kttack:tag
+make docker-build docker-push IMG=<registry>/kentra:tag
 ```
 
 ### Creating Release Bundles
@@ -267,7 +267,7 @@ make docker-build docker-push IMG=<registry>/kttack:tag
 Generate a complete installation bundle:
 
 ```bash
-make build-installer IMG=<registry>/kttack:tag
+make build-installer IMG=<registry>/kentra:tag
 ```
 
 Users can then deploy using:
@@ -297,7 +297,7 @@ Contributions are welcome! Please ensure that any changes:
 
 ## Support
 
-For issues, questions, or contributions, please visit the [GitHub Repository](https://github.com/kttack/kttack).
+For issues, questions, or contributions, please visit the [GitHub Repository](https://github.com/kentrasecurity/kentra).
 
 ## License
 

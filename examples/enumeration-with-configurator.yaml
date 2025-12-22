@@ -2,20 +2,20 @@
 # Example: Complete setup for Enumeration with ToolsConfigurator
 #
 # This example shows how to:
-# 1. Create the kttack-tool-specs ConfigMap in kttack-system namespace
+# 1. Create the kentra-tool-specs ConfigMap in kentra-system namespace
 # 2. Create an Enumeration resource that uses the configured tools
 #
 
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: kttack-system
+  name: kentra-system
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kttack-tool-specs
-  namespace: kttack-system
+  name: kentra-tool-specs
+  namespace: kentra-system
 data:
   tools: |
     nmap:
@@ -79,7 +79,7 @@ data:
 ---
 # Example Enumeration resources using the configured tools
 
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: nmap-scan-example
@@ -95,7 +95,7 @@ spec:
   fileName:
     - "nmap-results.xml"
 ---
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: masscan-continuous
@@ -124,6 +124,6 @@ spec:
 # Notes:
 # 1. Replace default namespace with your target namespace
 # 2. The controller must have Configurator injected from main.go
-# 3. ConfigMap must be in kttack-system namespace
+# 3. ConfigMap must be in kentra-system namespace
 # 4. Tool names in Enumeration.spec.tool must match ConfigMap keys
 # 5. Command templates use Go text/template syntax

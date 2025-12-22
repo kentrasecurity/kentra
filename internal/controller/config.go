@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // ToolConfig represents the configuration for a single tool
@@ -70,7 +70,7 @@ func (tc *ToolsConfigurator) LoadConfig(ctx context.Context) error {
 		Name:      tc.configMapName,
 		Namespace: tc.configMapNS,
 	}, cm); err != nil {
-		log.Error(err, "Failed to get kttack-tool-specs ConfigMap", "ConfigMap", fmt.Sprintf("%s/%s", tc.configMapNS, tc.configMapName))
+		log.Error(err, "Failed to get kentra-tool-specs ConfigMap", "ConfigMap", fmt.Sprintf("%s/%s", tc.configMapNS, tc.configMapName))
 		return err
 	}
 

@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // SecurityAttackReconciler reconciles a SecurityAttack object
@@ -25,10 +25,10 @@ type SecurityAttackReconciler struct {
 	Configurator    *ToolsConfigurator
 }
 
-//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kttack.io,resources=securityattacks/finalizers,verbs=update
-//+kubebuilder:rbac:groups=kttack.io,resources=targetpools,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kentra.sh,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kentra.sh,resources=securityattacks/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kentra.sh,resources=securityattacks/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kentra.sh,resources=targetpools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
 
@@ -37,7 +37,7 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Load tool configurations from ConfigMap if not already loaded
 	if err := r.Configurator.LoadConfig(ctx); err != nil {
-		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "kttack-tool-specs")
+		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "kentra-tool-specs")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 	}
 
@@ -56,8 +56,8 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		sa.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if sa.Labels["kttack-resource-type"] != "attack" {
-		sa.Labels["kttack-resource-type"] = "attack"
+	if sa.Labels["kentra-resource-type"] != "attack" {
+		sa.Labels["kentra-resource-type"] = "attack"
 		needsUpdate = true
 	}
 

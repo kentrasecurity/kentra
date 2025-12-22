@@ -1,6 +1,6 @@
-# KTtack API Reference
+# Kentra API Reference
 
-Complete API reference for KTtack Custom Resource Definitions (CRDs).
+Complete API reference for Kentra Custom Resource Definitions (CRDs).
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ The `SecurityAttack` resource defines a security testing operation.
 ### API Version and Kind
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 ```
 
@@ -102,7 +102,7 @@ status:
 ### Complete SecurityAttack Example
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: network-enumeration
@@ -147,7 +147,7 @@ The `Enumeration` resource is specialized for network and service enumeration ta
 ### API Version and Kind
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 ```
 
@@ -192,7 +192,7 @@ spec:
 ### Enumeration Example
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: dns-enumeration
@@ -219,7 +219,7 @@ The `Liveness` resource defines health checks and availability probes.
 ### API Version and Kind
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Liveness
 ```
 
@@ -272,7 +272,7 @@ spec:
 ### Liveness Example
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Liveness
 metadata:
   name: website-health
@@ -296,7 +296,7 @@ spec:
 
 ## Common Fields
 
-All KTtack resources share common Kubernetes metadata fields:
+All Kentra resources share common Kubernetes metadata fields:
 
 ### Metadata
 
@@ -310,7 +310,7 @@ metadata:
   
   # (Optional) Labels for organization and selection
   labels:
-    app: kttack
+    app: kentra
     team: security
     environment: production
   
@@ -347,7 +347,7 @@ spec:
 
 ## Status Conditions
 
-All KTtack resources report status conditions.
+All Kentra resources report status conditions.
 
 ### State Values
 
@@ -380,13 +380,13 @@ status:
 
 ## Field Validation
 
-KTtack performs validation on all resource fields:
+Kentra performs validation on all resource fields:
 
 ### Type Validation
 
 - `attackType`: Must be one of `Enumeration`, `Vulnerability`, `Exploitation`
 - `target`: Valid IP, hostname, or CIDR notation
-- `tool`: Must exist in kttack-tool-specs ConfigMap
+- `tool`: Must exist in kentra-tool-specs ConfigMap
 - `state`: Must be `Pending`, `Running`, `Completed`, or `Failed`
 
 ### Format Validation
@@ -399,13 +399,13 @@ KTtack performs validation on all resource fields:
 ### Business Logic Validation
 
 - If `periodic: true`, `schedule` must be provided
-- Tool must be defined in `kttack-tool-specs` ConfigMap
+- Tool must be defined in `kentra-tool-specs` ConfigMap
 - Target must be reachable or valid hostname
 - Resource name must follow DNS-1123 subdomain rules
 
 ## API Versioning
 
-KTtack uses `v1alpha1` API version. This is an experimental version and may change in future releases.
+Kentra uses `v1alpha1` API version. This is an experimental version and may change in future releases.
 
 ### Future Compatibility
 
@@ -415,7 +415,7 @@ KTtack uses `v1alpha1` API version. This is an experimental version and may chan
 
 ## Tool Specifications
 
-Tools are referenced by name in SecurityAttack resources. Available tools are defined in the `kttack-tool-specs` ConfigMap.
+Tools are referenced by name in SecurityAttack resources. Available tools are defined in the `kentra-tool-specs` ConfigMap.
 
 ### Tool Definition Structure
 
@@ -423,8 +423,8 @@ Tools are referenced by name in SecurityAttack resources. Available tools are de
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kttack-tool-specs
-  namespace: kttack-system
+  name: kentra-tool-specs
+  namespace: kentra-system
 data:
   tools.yaml: |
     tools:
@@ -441,10 +441,10 @@ data:
 
 ### Adding Custom Tools
 
-To add a new tool, update the `kttack-tool-specs` ConfigMap:
+To add a new tool, update the `kentra-tool-specs` ConfigMap:
 
 ```bash
-kubectl patch configmap kttack-tool-specs -n kttack-system \
+kubectl patch configmap kentra-tool-specs -n kentra-system \
   --type merge -p '{"data":{"tools.yaml":"..."}}'
 ```
 
@@ -453,7 +453,7 @@ kubectl patch configmap kttack-tool-specs -n kttack-system \
 ### Example 1: Web Application Vulnerability Scan
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: web-app-vuln-scan
@@ -474,7 +474,7 @@ spec:
 ### Example 2: Daily Network Scan
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: daily-network-scan
@@ -494,7 +494,7 @@ spec:
 ### Example 3: Health Check Probe
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Liveness
 metadata:
   name: api-health-check

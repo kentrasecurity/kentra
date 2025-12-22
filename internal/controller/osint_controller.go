@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // OsintReconciler reconciles a Osint object
@@ -24,9 +24,9 @@ type OsintReconciler struct {
 	Configurator *ToolsConfigurator
 }
 
-// +kubebuilder:rbac:groups=kttack.io,resources=osints,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kttack.io,resources=osints/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=kttack.io,resources=osints/finalizers,verbs=update
+// +kubebuilder:rbac:groups=kentra.sh,resources=osints,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kentra.sh,resources=osints/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kentra.sh,resources=osints/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 
@@ -56,8 +56,8 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		osint.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if osint.Labels["kttack-resource-type"] != "attack" {
-		osint.Labels["kttack-resource-type"] = "attack"
+	if osint.Labels["kentra-resource-type"] != "attack" {
+		osint.Labels["kentra-resource-type"] = "attack"
 		needsUpdate = true
 	}
 

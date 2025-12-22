@@ -1,8 +1,8 @@
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Osint
 metadata:
   name: osint
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   tool: sherlock
   targetPool: osint-targets

@@ -30,7 +30,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/kttack/kttack/test/utils"
+	"github.com/kentrasecurity/kentra/test/utils"
 )
 
 // namespace where the project is deployed in

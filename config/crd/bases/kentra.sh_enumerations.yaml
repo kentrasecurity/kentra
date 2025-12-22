@@ -4,30 +4,27 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: securityattacks.kttack.io
+  name: enumerations.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
-    kind: SecurityAttack
-    listKind: SecurityAttackList
-    plural: securityattacks
+    kind: Enumeration
+    listKind: EnumerationList
+    plural: enumerations
     shortNames:
-    - sa
-    singular: securityattack
+    - enum
+    singular: enumeration
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.attackType
-      name: Type
+    - jsonPath: .spec.tool
+      name: Tool
       type: string
     - jsonPath: .spec.targetPool
       name: TargetPool
       type: string
-    - jsonPath: .status.resolvedTarget
-      name: Target
-      type: string
-    - jsonPath: .spec.tool
-      name: Tool
+    - jsonPath: .spec.storagePool
+      name: StoragePool
       type: string
     - jsonPath: .spec.category
       name: Category
@@ -44,7 +41,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: SecurityAttack is the Schema for the securityattacks API
+        description: Enumeration is the Schema for the enumerations API
         properties:
           apiVersion:
             description: |-
@@ -64,7 +61,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: SecurityAttackSpec defines the desired state of SecurityAttack
+            description: EnumerationSpec defines the desired state of Enumeration
             properties:
               additional_env:
                 description: AdditionalEnv contains additional environment variables
@@ -87,48 +84,60 @@ spec:
                 items:
                   type: string
                 type: array
-              attackType:
-                description: AttackType specifies the type of security test
-                enum:
-                - Enumeration
-                - Vulnerability
-                - Exploitation
-                type: string
+              capabilities:
+                description: Capabilities are additional capabilities required by
+                  the tool
+                items:
+                  type: string
+                type: array
               category:
-                description: Category is a label to categorize the security attack
-                  (e.g., 'vulnerability-scan')
+                description: Category is a label to categorize the enumeration (e.g.,
+                  'normal-scan', 'deep-scan')
                 type: string
               debug:
-                description: Debug enables debug mode (output to stdout instead of
-                  log file)
+                description: Debug if true, logs are written to stdout instead of
+                  emptydir volume
                 type: boolean
+              fileName:
+                description: FileName contains the output file names
+                items:
+                  type: string
+                type: array
               http_proxy:
                 description: HTTPProxy is the HTTP proxy URL to use
                 type: string
               periodic:
                 description: Periodic indicates if this should run on a schedule
                 type: boolean
+              port:
+                description: Port is the port(s) to target (e.g., '22', '80,443',
+                  '8000-8100'). Can be overridden per resource.
+                type: string
               schedule:
                 description: Schedule is the cron schedule (only used if Periodic
                   is true)
                 type: string
+              storagePool:
+                description: StoragePool is the name of a StoragePool resource to
+                  reference for files to download from S3
+                type: string
               target:
-                description: Target is the IP, CIDR, or hostname to attack. Can be
-                  either a direct target or a reference to a TargetPool name.
+                description: |-
+                  Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetPool name.
+                  If TargetPool is specified, this field may be empty.
                 type: string
               targetPool:
                 description: TargetPool is the name of a TargetPool resource to reference
                   for target and port information
                 type: string
               tool:
-                description: Tool is the security tool to use
+                description: Tool is the enumeration tool to use (ex nmap)
                 type: string
             required:
-            - attackType
             - tool
             type: object
           status:
-            description: SecurityAttackStatus defines the observed state of SecurityAttack
+            description: EnumerationStatus defines the observed state of Enumeration
             properties:
               jobName:
                 description: JobName is the name of the created job or cronjob
@@ -136,9 +145,16 @@ spec:
               lastExecuted:
                 description: LastExecuted is the timestamp of last execution
                 type: string
+              resolvedPort:
+                description: ResolvedPort is the resolved port after TargetPool reference
+                  is applied
+                type: string
               resolvedTarget:
                 description: ResolvedTarget is the resolved target after TargetPool
                   reference is applied
+                type: string
+              resultsLocation:
+                description: ResultsLocation is the path where results are stored
                 type: string
               state:
                 description: State represents the current state

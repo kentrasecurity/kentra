@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // StoragePoolReconciler reconciles a StoragePool object
@@ -35,9 +35,9 @@ type StoragePoolReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=kttack.io,resources=storagepools,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kttack.io,resources=storagepools/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kttack.io,resources=storagepools/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kentra.sh,resources=storagepools,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kentra.sh,resources=storagepools/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kentra.sh,resources=storagepools/finalizers,verbs=update
 
 // Reconcile implements reconciliation for StoragePool resources
 func (r *StoragePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -59,8 +59,8 @@ func (r *StoragePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		sg.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if sg.Labels["kttack-resource-type"] != "storage" {
-		sg.Labels["kttack-resource-type"] = "storage"
+	if sg.Labels["kentra-resource-type"] != "storage" {
+		sg.Labels["kentra-resource-type"] = "storage"
 		needsUpdate = true
 	}
 
