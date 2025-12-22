@@ -1,9 +1,9 @@
 ---
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: nmap-scan-ports
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   tool: nmap
   targetPool: nmap-scan-targets

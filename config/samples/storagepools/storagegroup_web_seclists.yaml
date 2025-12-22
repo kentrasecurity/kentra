@@ -1,8 +1,8 @@
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: StoragePool
 metadata:
   name: web-wordlists
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   files:
   - raft-medium-directories.txt

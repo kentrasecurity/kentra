@@ -4,22 +4,25 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: assetpools.kttack.io
+  name: targetpools.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
-    kind: AssetPool
-    listKind: AssetPoolList
-    plural: assetpools
+    kind: TargetPool
+    listKind: TargetPoolList
+    plural: targetpools
     shortNames:
-    - ap
-    singular: assetpool
+    - tp
+    singular: targetpool
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.itemCount
-      name: Items
-      type: integer
+    - jsonPath: .spec.target
+      name: Target
+      type: string
+    - jsonPath: .spec.port
+      name: Port
+      type: string
     - jsonPath: .spec.description
       name: Description
       type: string
@@ -29,7 +32,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: AssetPool is the Schema for the assetpools API
+        description: TargetPool is the Schema for the targetpools API
         properties:
           apiVersion:
             description: |-
@@ -49,37 +52,25 @@ spec:
           metadata:
             type: object
           spec:
-            description: AssetPoolSpec defines the desired state of AssetPool
+            description: TargetPoolSpec defines the desired state of TargetPool
             properties:
               description:
-                description: Description is an optional description of the asset pool
+                description: Description is an optional description of the target
+                  group
                 type: string
-              items:
-                description: Items is the list of assets in this pool
-                items:
-                  description: AssetItem defines a single asset in the pool
-                  properties:
-                    type:
-                      description: Type specifies the type of asset (e.g., username,
-                        email, domain, ip)
-                      type: string
-                    value:
-                      description: Value is the actual value of the asset
-                      type: string
-                  required:
-                  - type
-                  - value
-                  type: object
-                type: array
+              port:
+                description: Port is the port or port range to target (e.g., '22',
+                  '80,443', '8000-8100')
+                type: string
+              target:
+                description: Target is the IP address, CIDR, or hostname to target
+                type: string
             required:
-            - items
+            - target
             type: object
           status:
-            description: AssetPoolStatus defines the observed state of AssetPool
+            description: TargetPoolStatus defines the observed state of TargetPool
             properties:
-              itemCount:
-                description: ItemCount is the number of items in this asset pool
-                type: integer
               lastUpdated:
                 description: LastUpdated is the timestamp of last update
                 type: string

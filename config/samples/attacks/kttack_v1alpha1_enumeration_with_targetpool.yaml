@@ -1,9 +1,9 @@
 ---
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: netcat-banner-grab
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   args:
     - '-v'

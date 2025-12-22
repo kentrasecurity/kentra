@@ -1,8 +1,8 @@
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: AssetPool
 metadata:
   name: username-targets
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   description: "Pool of username targets for OSINT"
   items:

@@ -1,8 +1,8 @@
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: feroxbuster-web-scan
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   args:
     - '-d'

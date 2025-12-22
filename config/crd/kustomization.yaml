@@ -2,13 +2,13 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/kttack.io_enumerations.yaml
-- bases/kttack.io_livenesses.yaml
-- bases/kttack.io_securityattacks.yaml
-- bases/kttack.io_targetpools.yaml
-- bases/kttack.io_storagepools.yaml
-- bases/kttack.io_osints.yaml
-- bases/kttack.io_assetpools.yaml
+- bases/kentra.sh_enumerations.yaml
+- bases/kentra.sh_livenesses.yaml
+- bases/kentra.sh_securityattacks.yaml
+- bases/kentra.sh_targetpools.yaml
+- bases/kentra.sh_storagepools.yaml
+- bases/kentra.sh_osints.yaml
+- bases/kentra.sh_assetpools.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

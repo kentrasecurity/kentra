@@ -1,18 +1,18 @@
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Osint
 metadata:
   name: osint-usernames-sherlock
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   assetPool: username-targets
   debug: true
   tool: sherlock
 ---
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Osint
 metadata:
   name: osint-usernames-maigret
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   assetPool: username-targets
   debug: true
