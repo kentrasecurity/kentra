@@ -10,7 +10,7 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: kentra-controller-manager
   namespace: system
   labels:
     control-plane: controller-manager
@@ -63,8 +63,8 @@ spec:
         args:
           - --leader-elect
           - --health-probe-bind-address=:8081
-        image: controller:latest
-        name: manager
+        image: ghcr.io/kentrasecurity/controller:latest
+        name: kentra-controller
         ports: []
         securityContext:
           readOnlyRootFilesystem: true
