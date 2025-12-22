@@ -1,4 +1,4 @@
-name: Build and Push kttack controller
+name: Build and Push kentra controller
 
 on:
   push:
