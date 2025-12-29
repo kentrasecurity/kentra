@@ -32,9 +32,8 @@ jobs:
 
       - name: Log in to Container Registry
         run: |
-          REGISTRY_HOST=$(echo "${{ env.REGISTRY }}" | cut -d'/' -f1)
-          echo "${{ secrets.DOCKER_TOKEN }}" | helm registry login ${REGISTRY_HOST} --username ${{ vars.DOCKER_USERNAME }} --password-stdin
-
+          echo "${{ secrets.DOCKER_TOKEN }}" | helm registry login ghcr.io --username ${{ vars.DOCKER_USERNAME }} --password-stdin
+          
       - name: Package Helm chart
         run: |
           helm package ./helm
