@@ -38,9 +38,8 @@ helm install kentra kentra/kentra \
 helm install kentra ./helm \
   --namespace kentra-system \
   --create-namespace \
-  --set loki.host="loki.loki-system.svc.cluster.local" \
-  --set loki.port="3100" \
-  --set loki.clusterName="my-cluster"
+  --set loki.url="http://loki.loki-system.svc.cluster.local:3100" \
+  --set loki.orgId="1"
 ```
 
 ## Configuration
@@ -53,14 +52,10 @@ Configuration for centralized logging using Loki. These credentials are used by 
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `loki.clusterName` | Kubernetes cluster name for log labeling | `""` (required) |
-| `loki.host` | Loki server hostname (e.g., `loki.loki-system.svc.cluster.local`) | `""` (required) |
-| `loki.port` | Loki server port | `""` (required, typically `3100`) |
-| `loki.user` | Loki authentication username | `""` (required) |
-| `loki.password` | Loki authentication password | `""` (required) |
-| `loki.tenantId` | Loki tenant ID for multi-tenant setups | `""` (required) |
-| `loki.tls` | Enable TLS connection to Loki (`true`/`false`) | `""` (required) |
-| `loki.tlsVerify` | Verify Loki TLS certificate (`true`/`false`) | `""` (required) |
+| `loki.url` | Loki server URL (e.g., `http://loki.loki-system.svc.cluster.local:3100`) | `http://loki.loki-system.svc.cluster.local:3100` (required) |
+| `loki.orgId` | Loki organization/tenant ID for multi-tenant setups | `""` |
+| `loki.auth.username` | Loki authentication username | `""` |
+| `loki.auth.password` | Loki authentication password | `""` |
 
 ### Controller Configuration
 
@@ -100,14 +95,11 @@ Configuration for the metrics service.
 
 ```yaml
 loki:
-  clusterName: "production-cluster"
-  host: "loki.monitoring.svc.cluster.local"
-  port: "3100"
-  user: "kentra"
-  password: "supersecret"
-  tenantId: "1"
-  tls: "false"
-  tlsVerify: "false"
+  url: "http://loki.monitoring.svc.cluster.local:3100"
+  orgId: "1"
+  auth:
+    username: "kentra"
+    password: "supersecret"
 
 controller:
   image:
@@ -118,14 +110,11 @@ controller:
 
 ```yaml
 loki:
-  clusterName: "prod-k8s"
-  host: "loki.monitoring.svc.cluster.local"
-  port: "3100"
-  user: "kentra-prod"
-  password: "changeme"
-  tenantId: "production"
-  tls: "true"
-  tlsVerify: "true"
+  url: "https://loki.monitoring.svc.cluster.local:3100"
+  orgId: "production"
+  auth:
+    username: "kentra-prod"
+    password: "changeme"
 
 controller:
   replicas: 2
@@ -157,14 +146,11 @@ service:
 
 ```yaml
 loki:
-  clusterName: "dev-cluster"
-  host: "loki.loki-system.svc.cluster.local"
-  port: "3100"
-  user: "admin"
-  password: "admin"
-  tenantId: "1"
-  tls: "false"
-  tlsVerify: "false"
+  url: "http://loki.loki-system.svc.cluster.local:3100"
+  orgId: "1"
+  auth:
+    username: "admin"
+    password: "admin"
 
 controller:
   replicas: 1
@@ -172,7 +158,7 @@ controller:
   image:
     repository: "kentrasecurity/docker/controller"
     tag: "latest"
-  
+
   resources:
     limits:
       cpu: 500m
@@ -190,14 +176,11 @@ Create a `values.yaml` file with your configuration:
 # Create your custom values file
 cat > my-values.yaml <<EOF
 loki:
-  clusterName: "my-cluster"
-  host: "loki.monitoring.svc.cluster.local"
-  port: "3100"
-  user: "kentra"
-  password: "mysecretpassword"
-  tenantId: "1"
-  tls: "false"
-  tlsVerify: "false"
+  url: "http://loki.monitoring.svc.cluster.local:3100"
+  orgId: "1"
+  auth:
+    username: "kentra"
+    password: "mysecretpassword"
 
 controller:
   image:

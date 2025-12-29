@@ -1,13 +1,15 @@
 # Loki configuration for log aggregation
 loki:
-  clusterName: ""
-  host: ""
-  port: ""
-  user: ""
-  password: ""
-  tenantId: ""
-  tls: ""
-  tlsVerify: ""
+  # Loki URL for log queries
+  url: "http://loki.loki-system.svc.cluster.local:3100"
+
+  # Org ID for Loki (if configured with multi-tenancy)
+  orgId: ""
+
+  # Authentication credentials (optional)
+  auth:
+    username: ""
+    password: ""
 
 # Controller configuration
 controller:
