@@ -35,8 +35,8 @@ jobs:
 
       - name: Log in to Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
-          
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+        
       - name: Package Helm chart
         run: |
           helm package ./helm
