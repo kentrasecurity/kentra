@@ -4,8 +4,7 @@ kind: ServiceMonitor
 metadata:
   labels:
     control-plane: controller-manager
-    app.kubernetes.io/name: kttack
-    app.kubernetes.io/component: metrics
+    app.kubernetes.io/name: kentra
     app.kubernetes.io/managed-by: kustomize
   name: controller-manager-metrics-monitor
   namespace: system
@@ -25,4 +24,4 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
-      app.kubernetes.io/name: kttack
+      app.kubernetes.io/name: kentra

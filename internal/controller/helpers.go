@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // SecurityResource is an interface that defines the common structure for security-related resources
@@ -65,7 +65,7 @@ type ResourceStatus struct {
 	LastExecuted string
 }
 
-// getResourceType returns the kttack-resource-type label value based on appType
+// getResourceType returns the kentra.sh/resource-type label value based on appType
 func getResourceType(appType string) string {
 	switch appType {
 	case "enumeration", "osint", "liveness", "securityattack":
@@ -86,10 +86,10 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 	spec := res.GetSpec()
 
 	labels := map[string]string{
-		"app":                  appType,
-		"tool":                 spec.Tool,
-		"task":                 "job",
-		"kttack-resource-type": getResourceType(appType),
+		"app":                     appType,
+		"tool":                    spec.Tool,
+		"task":                    "job",
+		"kentra.sh/resource-type": getResourceType(appType),
 	}
 
 	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "job", appType)
@@ -97,15 +97,19 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 		return nil, err
 	}
 
+	// Get the generation from the parent resource
+	generation := res.GetKubeObject().GetGeneration()
+
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobName,
 			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"kttack.io/target":   spec.Target,
-				"kttack.io/tool":     spec.Tool,
-				"kttack.io/category": spec.Category,
+				"kentra.sh/target":            spec.Target,
+				"kentra.sh/tool":              spec.Tool,
+				"kentra.sh/category":          spec.Category,
+				"kentra.sh/parent-generation": fmt.Sprintf("%d", generation),
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -126,10 +130,10 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 	spec := res.GetSpec()
 
 	labels := map[string]string{
-		"app":                  appType,
-		"tool":                 spec.Tool,
-		"task":                 "cronjob",
-		"kttack-resource-type": getResourceType(appType),
+		"app":                     appType,
+		"tool":                    spec.Tool,
+		"task":                    "cronjob",
+		"kentra.sh/resource-type": getResourceType(appType),
 	}
 
 	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "cronjob", appType)
@@ -137,15 +141,19 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 		return nil, err
 	}
 
+	// Get the generation from the parent resource
+	generation := res.GetKubeObject().GetGeneration()
+
 	cronJob := &batchv1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cronJobName,
 			Namespace: namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"kttack.io/target":   spec.Target,
-				"kttack.io/tool":     spec.Tool,
-				"kttack.io/category": spec.Category,
+				"kentra.sh/target":            spec.Target,
+				"kentra.sh/tool":              spec.Tool,
+				"kentra.sh/category":          spec.Category,
+				"kentra.sh/parent-generation": fmt.Sprintf("%d", generation),
 			},
 		},
 		Spec: batchv1.CronJobSpec{
@@ -265,7 +273,7 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "kttack-fluent-bit-config",
+						Name: "kentra-fluent-bit-config",
 					},
 				},
 			},
@@ -319,7 +327,7 @@ func buildS3FileDownloaderInitContainer(files []string) corev1.Container {
 	downloadScript.WriteString("set -e\n")
 	downloadScript.WriteString("echo 'Starting S3 file download...'\n")
 	downloadScript.WriteString("# Configure minio/mc with credentials\n")
-	downloadScript.WriteString("mc alias set s3 http://loki-minio-svc.kttack-system.svc.cluster.local:9000 \"${MINIO_ROOT_USER}\" \"${MINIO_ROOT_PASSWORD}\" --api S3v4\n")
+	downloadScript.WriteString("mc alias set s3 http://loki-minio-svc.kentra-system.svc.cluster.local:9000 \"${MINIO_ROOT_USER}\" \"${MINIO_ROOT_PASSWORD}\" --api S3v4\n")
 
 	for _, file := range files {
 		downloadScript.WriteString(fmt.Sprintf("echo 'Downloading %s...'\n", file))
@@ -392,7 +400,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-loki-credentials",
+							Name: "kentra-loki-credentials",
 						},
 						Key: "loki-host",
 					},
@@ -403,7 +411,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-loki-credentials",
+							Name: "kentra-loki-credentials",
 						},
 						Key: "loki-port",
 					},
@@ -414,7 +422,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-loki-credentials",
+							Name: "kentra-loki-credentials",
 						},
 						Key: "loki-tls",
 					},
@@ -425,7 +433,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-loki-credentials",
+							Name: "kentra-loki-credentials",
 						},
 						Key: "loki-tls-verify",
 					},
@@ -436,7 +444,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-loki-credentials",
+							Name: "kentra-loki-credentials",
 						},
 						Key: "loki-tenant-id",
 					},
@@ -447,7 +455,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-loki-credentials",
+							Name: "kentra-loki-credentials",
 						},
 						Key: "loki-user",
 					},
@@ -458,7 +466,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-loki-credentials",
+							Name: "kentra-loki-credentials",
 						},
 						Key: "loki-password",
 					},
@@ -469,7 +477,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kttack-loki-credentials",
+							Name: "kentra-loki-credentials",
 						},
 						Key: "cluster-name",
 					},

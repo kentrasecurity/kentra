@@ -1,6 +1,6 @@
-# KTtack Architecture
+# Kentra Architecture
 
-This document provides a comprehensive overview of the KTtack Kubernetes Operator architecture, including its components, design patterns, and interactions.
+This document provides a comprehensive overview of the Kentra Kubernetes Operator architecture, including its components, design patterns, and interactions.
 
 ## Table of Contents
 
@@ -21,8 +21,8 @@ This document provides a comprehensive overview of the KTtack Kubernetes Operato
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │         KTtack System Namespace                    │    │
-│  │  (kttack-system)                                   │    │
+│  │         Kentra System Namespace                    │    │
+│  │  (kentra-system)                                   │    │
 │  │                                                    │    │
 │  │  ┌──────────────────────────────────────────┐    │    │
 │  │  │  Manager Pod (Controller Runtime)        │    │    │
@@ -35,7 +35,7 @@ This document provides a comprehensive overview of the KTtack Kubernetes Operato
 │  │                                                    │    │
 │  │  ┌──────────────────────────────────────────┐    │    │
 │  │  │  ConfigMaps & Secrets                    │    │    │
-│  │  │  - kttack-tool-specs (tool definitions)         │    │    │
+│  │  │  - kentra-tool-specs (tool definitions)         │    │    │
 │  │  │  - fluent-bit-config (logging)           │    │    │
 │  │  │  - loki-credentials (log destination)    │    │    │
 │  │  └──────────────────────────────────────────┘    │    │
@@ -73,7 +73,7 @@ This document provides a comprehensive overview of the KTtack Kubernetes Operato
 
 ### 1. Manager (Controller Runtime)
 
-The Manager is the main entry point of KTtack, implemented in `cmd/main.go`. It:
+The Manager is the main entry point of Kentra, implemented in `cmd/main.go`. It:
 
 - Initializes the Kubernetes Scheme and client
 - Sets up webhook servers for CRD validation
@@ -153,7 +153,7 @@ Responsible for constructing Kubernetes Job and CronJob objects:
 ### SecurityAttack CRD
 
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: example-attack
@@ -221,7 +221,7 @@ Event Triggered
     ↓
 ┌─────────────────────────────────────────┐
 │ Load Tool Configurations                │
-│ (from ConfigMap - kttack-tool-specs)           │
+│ (from ConfigMap - kentra-tool-specs)           │
 └─────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────┐
@@ -262,7 +262,7 @@ Return Result (Requeue if needed)
 
 ### One-Time Job Execution
 
-When `Periodic: false`, KTtack creates a Kubernetes `Job`:
+When `Periodic: false`, Kentra creates a Kubernetes `Job`:
 
 1. **Job Name**: `{securityattack-name}`
 2. **Restart Policy**: `Never` (fail on error)
@@ -274,7 +274,7 @@ When `Periodic: false`, KTtack creates a Kubernetes `Job`:
 
 ### Periodic Execution (CronJob)
 
-When `Periodic: true`, KTtack creates a Kubernetes `CronJob`:
+When `Periodic: true`, Kentra creates a Kubernetes `CronJob`:
 
 1. **CronJob Name**: `{securityattack-name}-cronjob`
 2. **Schedule**: Standard cron format (e.g., `0 2 * * *`)
@@ -304,14 +304,14 @@ Pod
 
 ### Tool Specification Format
 
-Tools are defined in the `kttack-tool-specs` ConfigMap:
+Tools are defined in the `kentra-tool-specs` ConfigMap:
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kttack-tool-specs
-  namespace: kttack-system
+  name: kentra-tool-specs
+  namespace: kentra-system
 data:
   tools.yaml: |
     tools:
@@ -385,11 +385,11 @@ See [Fluent Bit Sidecar Documentation](./FLUENT_BIT_SIDECAR.md) for complete det
 
 ### Metrics
 
-KTtack exposes Prometheus metrics:
+Kentra exposes Prometheus metrics:
 
-- `kttack_securityattack_total`: Total SecurityAttacks created
-- `kttack_job_duration_seconds`: Job execution duration
-- `kttack_tool_invocations`: Tool execution count by type
+- `kentra_securityattack_total`: Total SecurityAttacks created
+- `kentra_job_duration_seconds`: Job execution duration
+- `kentra_tool_invocations`: Tool execution count by type
 
 Metrics are exposed on `http://:8080/metrics`.
 
@@ -397,7 +397,7 @@ Metrics are exposed on `http://:8080/metrics`.
 
 ### ServiceAccount and Roles
 
-KTtack requires specific Kubernetes permissions:
+Kentra requires specific Kubernetes permissions:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -406,7 +406,7 @@ metadata:
   name: manager-role
 rules:
 # SecurityAttack CRD
-- apiGroups: ["kttack.io"]
+- apiGroups: ["kentra.sh"]
   resources: ["securityattacks", "securityattacks/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
@@ -429,7 +429,7 @@ rules:
 
 ### Secret Management
 
-- **Loki Credentials**: Stored in `kttack-system` namespace Secret
+- **Loki Credentials**: Stored in `kentra-system` namespace Secret
 - **Tool Secrets**: Can be injected via environment variables
 - **TLS Certificates**: Managed by cert-manager for webhook TLS
 
@@ -444,7 +444,7 @@ Kubernetes API Server
   ↓ (CRD stored in etcd)
 SecurityAttackReconciler
   ↓ (watch event triggered)
-Load kttack-tool-specs ConfigMap
+Load kentra-tool-specs ConfigMap
   ↓ (resolve nmap configuration)
 Validate target and tool
   ↓
@@ -489,7 +489,7 @@ For more info on this topic, refer to this [example](./NEW_CRD_EXAMPLE.md).
 To support a new security tool:
 
 1. **Create Tool Image**: Build or use existing Docker image
-2. **Define ToolSpec**: Add entry to `kttack-tool-specs` ConfigMap
+2. **Define ToolSpec**: Add entry to `kentra-tool-specs` ConfigMap
 3. **Test**: Create SecurityAttack with new tool
 4. **Document**: Update tool configuration examples
 
@@ -507,7 +507,7 @@ To support a new security tool:
 
 **Issue**: SecurityAttack stuck in "Pending"
 
-- Check if kttack-tool-specs ConfigMap exists
+- Check if kentra-tool-specs ConfigMap exists
 - Verify tool image is accessible
 - Check node capacity (CPU/memory limits)
 

@@ -24,13 +24,14 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // EnumerationReconciler reconciles a Enumeration object
@@ -40,11 +41,11 @@ type EnumerationReconciler struct {
 	Configurator *ToolsConfigurator
 }
 
-//+kubebuilder:rbac:groups=kttack.io,resources=enumerations,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kttack.io,resources=enumerations/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kttack.io,resources=enumerations/finalizers,verbs=update
-//+kubebuilder:rbac:groups=kttack.io,resources=targetpools,verbs=get;list;watch
-//+kubebuilder:rbac:groups=kttack.io,resources=storagepools,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kentra.sh,resources=enumerations,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kentra.sh,resources=enumerations/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kentra.sh,resources=enumerations/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kentra.sh,resources=targetpools,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kentra.sh,resources=storagepools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch
@@ -58,7 +59,7 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Load tool configurations from ConfigMap if not already loaded
 	if err := r.Configurator.LoadConfig(ctx); err != nil {
-		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "kttack-tool-specs")
+		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "kentra-tool-specs")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 	}
 
@@ -78,8 +79,8 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		enum.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if enum.Labels["kttack-resource-type"] != "attack" {
-		enum.Labels["kttack-resource-type"] = "attack"
+	if enum.Labels["kentra.sh/resource-type"] != "attack" {
+		enum.Labels["kentra.sh/resource-type"] = "attack"
 		needsUpdate = true
 	}
 
@@ -171,6 +172,37 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		} else if err != nil {
 			log.Error(err, "Failed to get CronJob")
 			return ctrl.Result{}, err
+		} else {
+			// CronJob exists - check if it needs to be recreated due to spec change
+			currentGeneration := fmt.Sprintf("%d", enum.Generation)
+			existingGeneration := cronJob.Annotations["kentra.sh/parent-generation"]
+
+			if existingGeneration != currentGeneration {
+				log.Info("Enumeration spec changed, deleting and recreating CronJob",
+					"CronJob", cronJobName,
+					"oldGeneration", existingGeneration,
+					"newGeneration", currentGeneration)
+
+				// Delete the existing CronJob
+				if err := r.Delete(ctx, cronJob); err != nil {
+					log.Error(err, "Failed to delete outdated CronJob")
+					return ctrl.Result{}, err
+				}
+
+				// Create new CronJob with updated spec
+				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, cronJobName, targetNamespace, "enumeration")
+				if err != nil {
+					log.Error(err, "Failed to build new CronJob")
+					return ctrl.Result{}, err
+				}
+				if err := r.Create(ctx, newCronJob); err != nil {
+					log.Error(err, "Failed to create new CronJob")
+					return ctrl.Result{}, err
+				}
+				log.Info("Recreated CronJob with updated spec", "CronJob", cronJobName)
+				enum.Status.State = "Running"
+				enum.Status.LastExecuted = time.Now().Format(time.RFC3339)
+			}
 		}
 	} else {
 		// Create one-time Job
@@ -195,6 +227,30 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		} else if err != nil {
 			log.Error(err, "Failed to get Job")
 			return ctrl.Result{}, err
+		} else {
+			// Job exists - check if it needs to be recreated due to spec change
+			// Note: Jobs are immutable, so we need to delete and recreate
+			currentGeneration := fmt.Sprintf("%d", enum.Generation)
+			existingGeneration := job.Annotations["kentra.sh/parent-generation"]
+
+			if existingGeneration != currentGeneration {
+				log.Info("Enumeration spec changed, deleting and recreating Job",
+					"Job", jobName,
+					"oldGeneration", existingGeneration,
+					"newGeneration", currentGeneration)
+
+				// Delete the existing Job
+				propagationPolicy := metav1.DeletePropagationBackground
+				if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagationPolicy}); err != nil {
+					log.Error(err, "Failed to delete outdated Job")
+					return ctrl.Result{}, err
+				}
+
+				// Note: We don't immediately recreate the Job here because it will be
+				// recreated on the next reconciliation after the deletion completes
+				log.Info("Deleted outdated Job, will recreate on next reconcile", "Job", jobName)
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+			}
 		}
 	}
 

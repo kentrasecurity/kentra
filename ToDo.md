@@ -8,7 +8,7 @@
 - Dare un ordine ai pod (pod eseguiti per priorità) così da avere comandi basati su altri
 - Mettere nella CR StoragePools anche il prefisso s3:// o l'url
 - Mettere nella CR le credenziali (così è possibile cambiare tipo di storage)
-- configurare namespace per usare configmap dal namespace kttacks-system
-- attualmente i targetpool e storagepool funzionano solo sul namespace kttack-system
+- configurare namespace per usare configmap dal namespace kentras-system
+- attualmente i targetpool e storagepool funzionano solo sul namespace kentra-system
 - initcontainer per spawnare un listener dopo che l'exploit è runnato (solo per la CR exploit)
 

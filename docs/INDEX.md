@@ -1,6 +1,6 @@
-# KTtack Documentation Index
+# Kentra Documentation Index
 
-Welcome to the KTtack documentation! This directory contains comprehensive guides for installing, using, and understanding the KTtack Kubernetes Security Testing Framework.
+Welcome to the Kentra documentation! This directory contains comprehensive guides for installing, using, and understanding the Kentra Kubernetes Security Testing Framework.
 
 ## Documentation Overview
 
@@ -19,9 +19,9 @@ Welcome to the KTtack documentation! This directory contains comprehensive guide
 ## Quick Navigation
 
 ### 👤 New Users
-Start here if you're new to KTtack:
+Start here if you're new to Kentra:
 1. [Getting Started](./GETTING_STARTED.md) - 5 minute introduction
-2. [Installation Guide](./INSTALLATION_GUIDE.md) - Install KTtack on your cluster
+2. [Installation Guide](./INSTALLATION_GUIDE.md) - Install Kentra on your cluster
 3. Return to [Main README](../README.md) for overview
 
 ### 🏗️ Architects & DevOps
@@ -43,7 +43,7 @@ Creating security tests:
 3. [Fluent Bit Sidecar](./FLUENT_BIT_SIDECAR.md) - Log aggregation
 
 ### 👨‍💻 Developers
-Contributing to KTtack:
+Contributing to Kentra:
 1. [Architecture Guide](./ARCHITECTURE.md) - System design
 2. [API Reference](./API_REFERENCE.md) - CRD types and schemas
 3. [Main README](../README.md) - Development section
@@ -80,7 +80,7 @@ Contributing to KTtack:
 - Upgrade and rollback procedures
 - Complete uninstallation steps
 
-**Best for**: Setting up KTtack in your environment
+**Best for**: Setting up Kentra in your environment
 
 ---
 
@@ -101,7 +101,7 @@ Contributing to KTtack:
 - Performance considerations
 - Troubleshooting guide
 
-**Best for**: Understanding how KTtack works internally
+**Best for**: Understanding how Kentra works internally
 
 ---
 
@@ -136,7 +136,7 @@ Contributing to KTtack:
 
 ## Common Tasks
 
-### "I want to install KTtack"
+### "I want to install Kentra"
 → Read [Installation Guide](./INSTALLATION_GUIDE.md)
 
 ### "I want to create a security test"
@@ -157,7 +157,7 @@ Contributing to KTtack:
 ### "I'm having execution issues"
 → Read [Getting Started - Troubleshooting](./GETTING_STARTED.md#troubleshooting)
 
-### "I want to extend KTtack with custom tools"
+### "I want to extend Kentra with custom tools"
 → Read [Architecture Guide - Extensibility](./ARCHITECTURE.md#extensibility)
 
 ---
@@ -165,7 +165,7 @@ Contributing to KTtack:
 ## Key Concepts
 
 ### Custom Resource Definitions (CRDs)
-KTtack uses three main CRD types:
+Kentra uses three main CRD types:
 - **SecurityAttack**: One-time or periodic security tests
 - **Enumeration**: Network and service enumeration operations
 - **Liveness**: System health and availability checks
@@ -173,7 +173,7 @@ KTtack uses three main CRD types:
 See [API Reference](./API_REFERENCE.md) for complete specifications.
 
 ### Reconciliation
-KTtack controllers watch CRs and automatically create Kubernetes Jobs/CronJobs to execute security tests.
+Kentra controllers watch CRs and automatically create Kubernetes Jobs/CronJobs to execute security tests.
 
 See [Architecture Guide - Controller Reconciliation Flow](./ARCHITECTURE.md#controller-reconciliation-flow) for details.
 
@@ -206,7 +206,7 @@ See [Installation Guide - Installation Methods](./INSTALLATION_GUIDE.md#installa
 
 ### SecurityAttack
 ```yaml
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: example
@@ -246,7 +246,7 @@ See [API Reference](./API_REFERENCE.md) for complete specifications.
 ## Additional Resources
 
 ### External Links
-- **GitHub Repository**: https://github.com/kttack/kttack
+- **GitHub Repository**: https://github.com/kentrasecurity/kentra
 - **Kubernetes Documentation**: https://kubernetes.io/docs/
 - **Kubebuilder Book**: https://book.kubebuilder.io/
 - **Fluent Bit Documentation**: https://docs.fluentbit.io/
@@ -283,7 +283,7 @@ See [API Reference](./API_REFERENCE.md) for complete specifications.
 
 If you find issues or have suggestions for improving the documentation:
 
-1. Check the [GitHub Repository](https://github.com/kttack/kttack)
+1. Check the [GitHub Repository](https://github.com/kentrasecurity/kentra)
 2. Open an issue with documentation feedback
 3. Submit a pull request with improvements
 
@@ -291,4 +291,4 @@ If you find issues or have suggestions for improving the documentation:
 
 **Last Updated**: November 2025  
 **Documentation Version**: 1.0  
-**KTtack Version Compatibility**: v1.0+
+**Kentra Version Compatibility**: v1.0+

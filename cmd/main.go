@@ -35,8 +35,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
-	"github.com/kttack/kttack/internal/controller"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
+	"github.com/kentrasecurity/kentra/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -179,11 +179,11 @@ func main() {
 	}
 
 	// Create ToolsConfigurator for Enumeration controller
-	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
 	setupLog.Info("ToolsConfigurator created for Enumeration controller")
 
 	// Create ToolsConfigurator for Osint controller
-	osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+	osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
 	setupLog.Info("ToolsConfigurator created for Osint controller")
 
 	// Setup OsintReconciler
@@ -207,7 +207,7 @@ func main() {
 	}
 
 	// Create ToolsConfigurator for Liveness controller
-	livenessConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+	livenessConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
 	setupLog.Info("ToolsConfigurator created for Liveness controller")
 
 	// Setup LivenessReconciler
@@ -221,7 +221,7 @@ func main() {
 	}
 
 	// Create ToolsConfigurator for SecurityAttack controller
-	securityAttackConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kttack-tool-specs", "kttack-system")
+	securityAttackConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
 	setupLog.Info("ToolsConfigurator created for SecurityAttack controller")
 
 	if err := (&controller.SecurityAttackReconciler{

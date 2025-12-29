@@ -5,8 +5,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   labels:
-    app.kubernetes.io/name: kttack
-    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/name: kentra
     app.kubernetes.io/managed-by: kustomize
   name: allow-metrics-traffic
   namespace: system
@@ -14,7 +13,7 @@ spec:
   podSelector:
     matchLabels:
       control-plane: controller-manager
-      app.kubernetes.io/name: kttack
+      app.kubernetes.io/name: kentra
   policyTypes:
     - Ingress
   ingress:

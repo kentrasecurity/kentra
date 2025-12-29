@@ -1,9 +1,9 @@
-# Examples of kttack Custom Resources
+# Examples of Kentra Custom Resources
 # These examples show how to use Enumeration, Liveness, and SecurityAttack resources
 
 ---
 # Example 1: Simple one-time Enumeration with nmap
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: nmap-quick-scan
@@ -20,7 +20,7 @@ spec:
 
 ---
 # Example 2: Periodic Enumeration with masscan (runs daily at 2 AM)
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: masscan-daily
@@ -37,7 +37,7 @@ spec:
 
 ---
 # Example 3: Enumeration with HTTP proxy and additional environment variables
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: nmap-with-proxy
@@ -57,7 +57,7 @@ spec:
 
 ---
 # Example 4: One-time Liveness check with ping
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Liveness
 metadata:
   name: ping-host-check
@@ -73,7 +73,7 @@ spec:
 
 ---
 # Example 5: Periodic Liveness check (every 5 minutes)
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Liveness
 metadata:
   name: ping-continuous
@@ -91,7 +91,7 @@ spec:
 
 ---
 # Example 6: Simple one-time SecurityAttack
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: sqlmap-check
@@ -109,7 +109,7 @@ spec:
 
 ---
 # Example 7: Periodic SecurityAttack (weekly vulnerability scan)
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: gobuster-weekly-scan
@@ -129,7 +129,7 @@ spec:
 
 ---
 # Example 8: SecurityAttack with environment variables and proxy
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: SecurityAttack
 metadata:
   name: custom-attack
@@ -152,7 +152,7 @@ spec:
 
 ---
 # Example 9: Enumeration in debug mode (output to stdout)
-apiVersion: kttack.io/v1alpha1
+apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
   name: nmap-debug

@@ -25,12 +25,11 @@ import (
 	"text/template"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // ToolConfig represents the configuration for a single tool
@@ -42,58 +41,78 @@ type ToolConfig struct {
 	Capabilities    map[string]interface{} `yaml:"capabilities"`
 }
 
-// ToolsConfigurator manages tool configurations loaded from ConfigMap
+// ToolsConfigurator manages tool configurations loaded from ConfigMaps
 type ToolsConfigurator struct {
-	mu            sync.RWMutex
-	tools         map[string]*ToolConfig
-	client        client.Client
-	configMapName string
-	configMapNS   string
+	mu          sync.RWMutex
+	tools       map[string]*ToolConfig
+	client      client.Client
+	configMapNS string
 }
 
 // NewToolsConfigurator creates a new ToolsConfigurator instance
-func NewToolsConfigurator(c client.Client, configMapName, configMapNS string) *ToolsConfigurator {
+func NewToolsConfigurator(c client.Client, configMapNS string) *ToolsConfigurator {
 	return &ToolsConfigurator{
-		tools:         make(map[string]*ToolConfig),
-		client:        c,
-		configMapName: configMapName,
-		configMapNS:   configMapNS,
+		tools:       make(map[string]*ToolConfig),
+		client:      c,
+		configMapNS: configMapNS,
 	}
 }
 
-// LoadConfig loads the tool configurations from the ConfigMap
+// LoadConfig loads the tool configurations from all ConfigMaps with the label kentra.sh/resource-type: tool-specs
 func (tc *ToolsConfigurator) LoadConfig(ctx context.Context) error {
 	log := log.FromContext(ctx)
 
-	cm := &corev1.ConfigMap{}
-	if err := tc.client.Get(ctx, types.NamespacedName{
-		Name:      tc.configMapName,
-		Namespace: tc.configMapNS,
-	}, cm); err != nil {
-		log.Error(err, "Failed to get kttack-tool-specs ConfigMap", "ConfigMap", fmt.Sprintf("%s/%s", tc.configMapNS, tc.configMapName))
+	// List all ConfigMaps in the namespace with the label selector
+	cmList := &corev1.ConfigMapList{}
+	if err := tc.client.List(ctx, cmList,
+		client.InNamespace(tc.configMapNS),
+		client.MatchingLabels{"kentra.sh/resource-type": "tool-specs"},
+	); err != nil {
+		log.Error(err, "Failed to list tool-specs ConfigMaps", "Namespace", tc.configMapNS)
 		return err
 	}
 
-	toolsYAML, ok := cm.Data["tools"]
-	if !ok {
-		err := fmt.Errorf("'tools' key not found in ConfigMap")
-		log.Error(err, "Missing 'tools' key in ConfigMap data")
-		return err
+	if len(cmList.Items) == 0 {
+		log.Info("No ConfigMaps found with label kentra.sh/resource-type: tool-specs", "Namespace", tc.configMapNS)
+		return fmt.Errorf("no tool-specs ConfigMaps found in namespace %s", tc.configMapNS)
 	}
 
-	// Parse YAML into tools map
-	toolsMap := make(map[string]*ToolConfig)
-	if err := yaml.Unmarshal([]byte(toolsYAML), &toolsMap); err != nil {
-		log.Error(err, "Failed to unmarshal tools YAML")
-		return err
+	log.Info("Found tool-specs ConfigMaps", "Count", len(cmList.Items), "Namespace", tc.configMapNS)
+
+	// Merge tools from all ConfigMaps
+	mergedTools := make(map[string]*ToolConfig)
+
+	for _, cm := range cmList.Items {
+		toolsYAML, ok := cm.Data["tools"]
+		if !ok {
+			log.Info("Skipping ConfigMap without 'tools' key", "ConfigMap", cm.Name)
+			continue
+		}
+
+		// Parse YAML into tools map
+		toolsMap := make(map[string]*ToolConfig)
+		if err := yaml.Unmarshal([]byte(toolsYAML), &toolsMap); err != nil {
+			log.Error(err, "Failed to unmarshal tools YAML from ConfigMap", "ConfigMap", cm.Name)
+			continue
+		}
+
+		// Merge tools into the main map (later ConfigMaps override earlier ones)
+		for toolName, toolConfig := range toolsMap {
+			if _, exists := mergedTools[toolName]; exists {
+				log.Info("Tool configuration overridden", "Tool", toolName, "ConfigMap", cm.Name)
+			}
+			mergedTools[toolName] = toolConfig
+		}
+
+		log.Info("Loaded tools from ConfigMap", "ConfigMap", cm.Name, "ToolCount", len(toolsMap))
 	}
 
 	// Update tools with lock
 	tc.mu.Lock()
-	tc.tools = toolsMap
+	tc.tools = mergedTools
 	tc.mu.Unlock()
 
-	log.Info("Successfully loaded tool configurations", "ToolCount", len(toolsMap))
+	log.Info("Successfully loaded all tool configurations", "TotalToolCount", len(mergedTools))
 	return nil
 }
 

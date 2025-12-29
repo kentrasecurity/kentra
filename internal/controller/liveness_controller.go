@@ -24,13 +24,14 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	securityv1alpha1 "github.com/kttack/kttack/api/v1alpha1"
+	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
 // LivenessReconciler reconciles a Liveness object
@@ -40,10 +41,10 @@ type LivenessReconciler struct {
 	Configurator *ToolsConfigurator
 }
 
-//+kubebuilder:rbac:groups=kttack.io,resources=livenesses,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kttack.io,resources=livenesses/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kttack.io,resources=livenesses/finalizers,verbs=update
-//+kubebuilder:rbac:groups=kttack.io,resources=targetpools,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kentra.sh,resources=livenesses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kentra.sh,resources=livenesses/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=kentra.sh,resources=livenesses/finalizers,verbs=update
+//+kubebuilder:rbac:groups=kentra.sh,resources=targetpools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
@@ -54,7 +55,7 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// Load tool configurations from ConfigMap if not already loaded
 	if err := r.Configurator.LoadConfig(ctx); err != nil {
-		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "kttack-tool-specs")
+		log.Error(err, "Failed to load tool specifications ConfigMap - controller cannot proceed", "ConfigMap", "kentra-tool-specs")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, err
 	}
 
@@ -74,8 +75,8 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		liveness.Labels = make(map[string]string)
 	}
 	needsUpdate := false
-	if liveness.Labels["kttack-resource-type"] != "attack" {
-		liveness.Labels["kttack-resource-type"] = "attack"
+	if liveness.Labels["kentra.sh/resource-type"] != "attack" {
+		liveness.Labels["kentra.sh/resource-type"] = "attack"
 		needsUpdate = true
 	}
 
@@ -148,6 +149,40 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		} else if err != nil {
 			log.Error(err, "Failed to get CronJob")
 			return ctrl.Result{}, err
+		} else {
+			// CronJob exists - check if it needs to be recreated due to spec change
+			currentGeneration := fmt.Sprintf("%d", liveness.Generation)
+			existingGeneration := cronJob.Annotations["kentra.sh/parent-generation"]
+
+			if existingGeneration != currentGeneration {
+				log.Info("Liveness spec changed, deleting and recreating CronJob",
+					"CronJob", cronJobName,
+					"oldGeneration", existingGeneration,
+					"newGeneration", currentGeneration)
+
+				// Delete the existing CronJob
+				if err := r.Delete(ctx, cronJob); err != nil {
+					log.Error(err, "Failed to delete outdated CronJob")
+					return ctrl.Result{}, err
+				}
+
+				// Create new CronJob with updated spec
+				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, cronJobName, targetNamespace, "liveness")
+				if err != nil {
+					log.Error(err, "Failed to build new CronJob")
+					return ctrl.Result{}, err
+				}
+				if err := r.Create(ctx, newCronJob); err != nil {
+					log.Error(err, "Failed to create new CronJob")
+					return ctrl.Result{}, err
+				}
+				log.Info("Recreated CronJob with updated spec", "CronJob", cronJobName)
+				liveness.Status.State = "Running"
+				liveness.Status.LastExecuted = time.Now().Format(time.RFC3339)
+				if err := r.Status().Update(ctx, liveness); err != nil {
+					log.Error(err, "Failed to update status")
+				}
+			}
 		}
 	} else {
 		// Create one-time Job
@@ -175,6 +210,27 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		} else if err != nil {
 			log.Error(err, "Failed to get Job")
 			return ctrl.Result{}, err
+		} else {
+			// Job exists - check if it needs to be recreated due to spec change
+			currentGeneration := fmt.Sprintf("%d", liveness.Generation)
+			existingGeneration := job.Annotations["kentra.sh/parent-generation"]
+
+			if existingGeneration != currentGeneration {
+				log.Info("Liveness spec changed, deleting and recreating Job",
+					"Job", jobName,
+					"oldGeneration", existingGeneration,
+					"newGeneration", currentGeneration)
+
+				// Delete the existing Job
+				propagationPolicy := metav1.DeletePropagationBackground
+				if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagationPolicy}); err != nil {
+					log.Error(err, "Failed to delete outdated Job")
+					return ctrl.Result{}, err
+				}
+
+				log.Info("Deleted outdated Job, will recreate on next reconcile", "Job", jobName)
+				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+			}
 		}
 	}
 

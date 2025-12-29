@@ -1,4 +1,4 @@
-module github.com/kttack/kttack
+module github.com/kentrasecurity/kentra
 
 go 1.24.5
 

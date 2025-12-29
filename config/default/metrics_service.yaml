@@ -3,8 +3,7 @@ kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-    app.kubernetes.io/name: kttack
-    app.kubernetes.io/component: metrics
+    app.kubernetes.io/name: kentra
     app.kubernetes.io/managed-by: kustomize
   name: controller-manager-metrics-service
   namespace: system
@@ -16,4 +15,4 @@ spec:
     targetPort: 8443
   selector:
     control-plane: controller-manager
-    app.kubernetes.io/name: kttack
+    app.kubernetes.io/name: kentra
