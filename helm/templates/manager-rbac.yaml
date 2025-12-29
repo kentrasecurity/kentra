@@ -29,7 +29,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - kttack.io
+  - kentra.sh
   resources:
   - assetpools
   - enumerations
@@ -47,7 +47,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - kttack.io
+  - kentra.sh
   resources:
   - assetpools/finalizers
   - enumerations/finalizers
@@ -59,7 +59,7 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - kttack.io
+  - kentra.sh
   resources:
   - assetpools/status
   - enumerations/status

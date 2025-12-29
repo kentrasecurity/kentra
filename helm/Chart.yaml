@@ -1,16 +1,16 @@
 apiVersion: v2
-name: kttack-controller
+name: kentra-controller
 description: |
-  KTtack - Kubernetes Security Testing Framework
-  A comprehensive Kubernetes Operator for orchestrating and managing security testing 
-  operations. Deploy security scanners, enumeration tools, and attack simulations as 
+  Kentra - Kubernetes Security Testing Framework
+  A comprehensive Kubernetes Operator for orchestrating and managing security testing
+  operations. Deploy security scanners, enumeration tools, and attack simulations as
   native Kubernetes resources with built-in logging and monitoring.
 type: application
 
 # Chart version - increment this when making changes to the chart
 version: 0.1.1
 
-# Application version - the version of KTtack being deployed
+# Application version - the version of Kentra being deployed
 appVersion: "0.1.0"
 
 # Keywords for chart discovery
@@ -23,16 +23,16 @@ keywords:
   - security-testing
 
 # Project information
-home: https://github.com/kttack/kttack
+home: https://github.com/kentra/kentra
 sources:
-  - https://github.com/kttack/kttack
+  - https://github.com/kentra/kentra
 
 maintainers:
-  - name: KTtack Team
-    url: https://github.com/kttack
+  - name: Kentra Team
+    url: https://github.com/kentra
 
 # Chart icon (optional - add when available)
-# icon: https://example.com/kttack-icon.png
+# icon: https://example.com/kentra-icon.png
 
 # Kubernetes version constraints
 kubeVersion: ">=1.11.3"

@@ -1,13 +1,11 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: osints.kttack.io
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  labels:
-  {{- include "controller.labels" . | nindent 4 }}
+  name: osints.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
     kind: Osint
     listKind: OsintList
@@ -62,7 +60,8 @@ spec:
                   type: string
                 type: array
               assetPool:
-                description: AssetPool references an AssetPool resource for OSINT targets
+                description: AssetPool references an AssetPool resource for OSINT
+                  targets
                 type: string
               capabilities:
                 description: Capabilities specifies additional Linux capabilities
@@ -143,7 +142,8 @@ spec:
                 description: ResolvedPort is the actual port after TargetPool resolution
                 type: string
               resolvedTarget:
-                description: ResolvedTarget is the actual target after TargetPool resolution
+                description: ResolvedTarget is the actual target after TargetPool
+                  resolution
                 type: string
               resultsLocation:
                 description: ResultsLocation indicates where results are stored
@@ -157,9 +157,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

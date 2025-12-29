@@ -1,6 +1,6 @@
-# KTtack Helm Chart
+# Kentra Helm Chart
 
-This Helm chart deploys KTtack, a Kubernetes Security Testing Framework that enables automated security scanning, enumeration, and vulnerability testing through Kubernetes Custom Resource Definitions (CRDs).
+This Helm chart deploys Kentra, a Kubernetes Security Testing Framework that enables automated security scanning, enumeration, and vulnerability testing through Kubernetes Custom Resource Definitions (CRDs).
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ This Helm chart deploys KTtack, a Kubernetes Security Testing Framework that ena
 
 ```bash
 # If hosted in a Helm repository
-helm repo add kttack https://charts.kttack.io
+helm repo add kentra https://charts.kentra.sh
 helm repo update
 ```
 
@@ -22,11 +22,11 @@ helm repo update
 
 ```bash
 # Install with default values
-helm install kttack kttack/kttack --namespace kttack-system --create-namespace
+helm install kentra kentra/kentra --namespace kentra-system --create-namespace
 
 # Install with custom values
-helm install kttack kttack/kttack \
-  --namespace kttack-system \
+helm install kentra kentra/kentra \
+  --namespace kentra-system \
   --create-namespace \
   --values custom-values.yaml
 ```
@@ -35,8 +35,8 @@ helm install kttack kttack/kttack \
 
 ```bash
 # From the repository root
-helm install kttack ./helm \
-  --namespace kttack-system \
+helm install kentra ./helm \
+  --namespace kentra-system \
   --create-namespace \
   --set loki.host="loki.loki-system.svc.cluster.local" \
   --set loki.port="3100" \
@@ -45,7 +45,7 @@ helm install kttack ./helm \
 
 ## Configuration
 
-The following table lists the configurable parameters of the KTtack chart and their default values.
+The following table lists the configurable parameters of the Kentra chart and their default values.
 
 ### Loki Configuration
 
@@ -64,14 +64,14 @@ Configuration for centralized logging using Loki. These credentials are used by 
 
 ### Controller Configuration
 
-Configuration for the KTtack controller manager.
+Configuration for the Kentra controller manager.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `controller.replicas` | Number of controller replicas | `1` |
 | `controller.kubernetesClusterDomain` | Kubernetes cluster domain | `cluster.local` |
 | `controller.args` | Controller arguments | `["--metrics-bind-address=:8443", "--leader-elect", "--health-probe-bind-address=:8081"]` |
-| `controller.image.repository` | Controller image repository | `ghcr.io/kttack/controller` |
+| `controller.image.repository` | Controller image repository | `kentrasecurity/docker/controller` |
 | `controller.image.tag` | Controller image tag (overrides chart appVersion) | `latest` |
 | `controller.imagePullSecrets` | Image pull secrets for private registries | `[]` |
 | `controller.resources.limits.cpu` | CPU limit | `500m` |
@@ -103,7 +103,7 @@ loki:
   clusterName: "production-cluster"
   host: "loki.monitoring.svc.cluster.local"
   port: "3100"
-  user: "kttack"
+  user: "kentra"
   password: "supersecret"
   tenantId: "1"
   tls: "false"
@@ -121,7 +121,7 @@ loki:
   clusterName: "prod-k8s"
   host: "loki.monitoring.svc.cluster.local"
   port: "3100"
-  user: "kttack-prod"
+  user: "kentra-prod"
   password: "changeme"
   tenantId: "production"
   tls: "true"
@@ -129,14 +129,14 @@ loki:
 
 controller:
   replicas: 2
-  
+
   image:
-    repository: "myregistry.io/kttack/controller"
+    repository: "myregistry.io/kentra/controller"
     tag: "v0.1.0"
-  
+
   imagePullSecrets:
     - name: registry-credentials
-  
+
   resources:
     limits:
       cpu: 1000m
@@ -144,10 +144,10 @@ controller:
     requests:
       cpu: 100m
       memory: 128Mi
-  
+
   serviceAccount:
     annotations:
-      iam.gke.io/gcp-service-account: "kttack@myproject.iam.gserviceaccount.com"
+      iam.gke.io/gcp-service-account: "kentra@myproject.iam.gserviceaccount.com"
 
 service:
   type: LoadBalancer
@@ -168,9 +168,9 @@ loki:
 
 controller:
   replicas: 1
-  
+
   image:
-    repository: "ghcr.io/kttack/controller"
+    repository: "kentrasecurity/docker/controller"
     tag: "latest"
   
   resources:
@@ -193,7 +193,7 @@ loki:
   clusterName: "my-cluster"
   host: "loki.monitoring.svc.cluster.local"
   port: "3100"
-  user: "kttack"
+  user: "kentra"
   password: "mysecretpassword"
   tenantId: "1"
   tls: "false"
@@ -205,8 +205,8 @@ controller:
 EOF
 
 # Install with custom values
-helm install kttack ./helm \
-  --namespace kttack-system \
+helm install kentra ./helm \
+  --namespace kentra-system \
   --create-namespace \
   --values my-values.yaml
 ```
@@ -215,13 +215,13 @@ helm install kttack ./helm \
 
 ```bash
 # Upgrade to a new version
-helm upgrade kttack kttack/kttack \
-  --namespace kttack-system \
+helm upgrade kentra kentra/kentra \
+  --namespace kentra-system \
   --values my-values.yaml
 
 # Or upgrade from local chart
-helm upgrade kttack ./helm \
-  --namespace kttack-system \
+helm upgrade kentra ./helm \
+  --namespace kentra-system \
   --values my-values.yaml
 ```
 
@@ -229,36 +229,36 @@ helm upgrade kttack ./helm \
 
 ```bash
 # Uninstall the chart
-helm uninstall kttack --namespace kttack-system
+helm uninstall kentra --namespace kentra-system
 
 # Note: CRDs are NOT removed by helm uninstall
 # To remove CRDs manually:
-kubectl delete crd assetpools.kttack.io
-kubectl delete crd enumerations.kttack.io
-kubectl delete crd livenesses.kttack.io
-kubectl delete crd osints.kttack.io
-kubectl delete crd securityattacks.kttack.io
-kubectl delete crd storagepools.kttack.io
-kubectl delete crd targetpools.kttack.io
+kubectl delete crd assetpools.kentra.sh
+kubectl delete crd enumerations.kentra.sh
+kubectl delete crd livenesses.kentra.sh
+kubectl delete crd osints.kentra.sh
+kubectl delete crd securityattacks.kentra.sh
+kubectl delete crd storagepools.kentra.sh
+kubectl delete crd targetpools.kentra.sh
 ```
 
 ## Custom Resource Definitions (CRDs)
 
 This chart installs the following CRDs:
 
-- `assetpools.kttack.io` - Asset pool management
-- `enumerations.kttack.io` - Enumeration operations
-- `livenesses.kttack.io` - Liveness checks
-- `osints.kttack.io` - OSINT operations
-- `securityattacks.kttack.io` - Security attack simulations
-- `storagepools.kttack.io` - Storage pool management
-- `targetpools.kttack.io` - Target pool management
+- `assetpools.kentra.sh` - Asset pool management
+- `enumerations.kentra.sh` - Enumeration operations
+- `livenesses.kentra.sh` - Liveness checks
+- `osints.kentra.sh` - OSINT operations
+- `securityattacks.kentra.sh` - Security attack simulations
+- `storagepools.kentra.sh` - Storage pool management
+- `targetpools.kentra.sh` - Target pool management
 
 CRDs are located in the `crds/` directory and are installed automatically by Helm.
 
 ## Tool Specifications
 
-KTtack includes pre-configured specifications for various security tools:
+Kentra includes pre-configured specifications for various security tools:
 
 - **Enumeration Tools**: nmap, masscan, rustscan, gobuster, feroxbuster, ffuf, dirsearch, nikto
 - **DNS Tools**: amass, subfinder, dnsrecon
@@ -267,7 +267,7 @@ KTtack includes pre-configured specifications for various security tools:
 - **OSINT Tools**: sherlock, maigret
 - **Liveness Tools**: ping
 
-Tool specifications are configured in the `kttack-tool-specs` ConfigMap and cannot be modified via Helm values.
+Tool specifications are configured in the `kentra-tool-specs` ConfigMap and cannot be modified via Helm values.
 
 ## Fluent Bit Logging
 
@@ -285,14 +285,14 @@ Configuration is static and includes:
 
 Check controller logs:
 ```bash
-kubectl logs -n kttack-system deployment/kttack-controller-manager -f
+kubectl logs -n kentra-system deployment/kentra-controller-manager -f
 ```
 
 ### Loki connection issues
 
 Verify Loki credentials:
 ```bash
-kubectl get secret -n kttack-system kttack-loki-credentials -o yaml
+kubectl get secret -n kentra-system kentra-loki-credentials -o yaml
 ```
 
 Test Loki connectivity from within the cluster:
@@ -305,7 +305,7 @@ kubectl run -it --rm debug --image=curlimages/curl --restart=Never -- \
 
 Check Helm release status:
 ```bash
-helm status kttack -n kttack-system
+helm status kentra -n kentra-system
 ```
 
 Manually install CRDs if needed:
@@ -316,8 +316,8 @@ kubectl apply -f helm/crds/
 ## Support
 
 For issues, questions, or contributions:
-- GitHub: https://github.com/kttack/kttack
-- Documentation: https://github.com/kttack/kttack/tree/main/docs
+- GitHub: https://github.com/kentra/kentra
+- Documentation: https://github.com/kentra/kentra/tree/main/docs
 
 ## License
 

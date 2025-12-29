@@ -1,13 +1,11 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: assetpools.kttack.io
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  labels:
-  {{- include "controller.labels" . | nindent 4 }}
+  name: assetpools.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
     kind: AssetPool
     listKind: AssetPoolList
@@ -85,7 +83,8 @@ spec:
                 description: LastUpdated is the timestamp of last update
                 type: string
               observedGeneration:
-                description: ObservedGeneration is the generation observed by the controller
+                description: ObservedGeneration is the generation observed by the
+                  controller
                 format: int64
                 type: integer
             type: object
@@ -94,9 +93,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
