@@ -1,0 +1,178 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: livenesses.kttack.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+  {{- include "controller.labels" . | nindent 4 }}
+spec:
+  group: kttack.io
+  names:
+    kind: Liveness
+    listKind: LivenessList
+    plural: livenesses
+    shortNames:
+    - live
+    singular: liveness
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.tool
+      name: Tool
+      type: string
+    - jsonPath: .spec.targetPool
+      name: TargetPool
+      type: string
+    - jsonPath: .status.resolvedTarget
+      name: Target
+      type: string
+    - jsonPath: .spec.category
+      name: Category
+      type: string
+    - jsonPath: .spec.periodic
+      name: Periodic
+      type: boolean
+    - jsonPath: .status.lastResult
+      name: LastResult
+      type: boolean
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Liveness is the Schema for the livenesses API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: LivenessSpec defines the desired state of Liveness
+            properties:
+              additional_env:
+                description: AdditionalEnv contains additional environment variables
+                items:
+                  description: EnvVar represents an environment variable
+                  properties:
+                    name:
+                      description: Name of the environment variable
+                      type: string
+                    value:
+                      description: Value of the environment variable
+                      type: string
+                  required:
+                  - name
+                  - value
+                  type: object
+                type: array
+              args:
+                description: Args contains additional arguments for the tool
+                items:
+                  type: string
+                type: array
+              capabilities:
+                description: Capabilities are additional capabilities required by the
+                  tool
+                items:
+                  type: string
+                type: array
+              category:
+                description: Category is a label to categorize the liveness check (e.g.,
+                  'critical-targets')
+                type: string
+              debug:
+                description: Debug enables debug mode (output to stdout instead of log
+                  file)
+                type: boolean
+              fileName:
+                description: FileName contains the output file names
+                items:
+                  type: string
+                type: array
+              http_proxy:
+                description: HTTPProxy is the HTTP proxy URL to use
+                type: string
+              periodic:
+                description: Periodic indicates if this should run on a schedule
+                type: boolean
+              schedule:
+                description: Schedule is the cron schedule (only used if Periodic is
+                  true)
+                type: string
+              target:
+                description: Target is the primary target for liveness check (IP, CIDR,
+                  or hostname). Can be either a direct target or a reference to a TargetPool
+                  name.
+                type: string
+              targetPool:
+                description: TargetPool is the name of a TargetPool resource to reference
+                  for target and port information
+                type: string
+              targets:
+                description: Targets are additional targets for liveness checks
+                items:
+                  type: string
+                type: array
+              tool:
+                description: Tool is the liveness check tool to use (ex ping)
+                type: string
+            required:
+            - tool
+            type: object
+          status:
+            description: LivenessStatus defines the observed state of Liveness
+            properties:
+              jobName:
+                description: JobName is the name of the created job or cronjob
+                type: string
+              lastExecuted:
+                description: LastExecuted is the timestamp of last execution
+                type: string
+              lastResult:
+                description: LastResult indicates if the target was reachable
+                type: boolean
+              resolvedTarget:
+                description: ResolvedTarget is the resolved target after TargetPool
+                  reference is applied
+                type: string
+              resultsLocation:
+                description: ResultsLocation is the path where results are stored
+                type: string
+              state:
+                description: State represents the current state
+                enum:
+                - Pending
+                - Running
+                - Completed
+                - Failed
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

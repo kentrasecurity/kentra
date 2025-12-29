@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "controller.fullname" . }}-controller-manager-metrics-service
+  labels:
+    app.kubernetes.io/component: metrics
+    control-plane: controller-manager
+  {{- include "controller.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app.kubernetes.io/name: kttack
+    control-plane: controller-manager
+    {{- include "controller.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- toYaml .Values.service.ports | nindent 2 }}

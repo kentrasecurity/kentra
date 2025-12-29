@@ -1,0 +1,68 @@
+# Loki configuration for log aggregation
+loki:
+  clusterName: ""
+  host: ""
+  port: ""
+  user: ""
+  password: ""
+  tenantId: ""
+  tls: ""
+  tlsVerify: ""
+
+# Controller configuration
+controller:
+  replicas: 1
+  kubernetesClusterDomain: cluster.local
+  
+  # Controller arguments
+  args:
+  - --metrics-bind-address=:8443
+  - --leader-elect
+  - --health-probe-bind-address=:8081
+  
+  # Controller image
+  image:
+    repository: ghcr.io/kttack/controller
+    tag: latest
+  
+  # Image pull secrets for private registries
+  imagePullSecrets: []
+  # Example:
+  # imagePullSecrets:
+  #   - name: regcred
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  
+  # Container security context
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+  
+  # Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Service account configuration
+  serviceAccount:
+    annotations: {}
+
+# Metrics service configuration
+service:
+  type: ClusterIP
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
