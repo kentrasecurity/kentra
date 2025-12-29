@@ -1,0 +1,52 @@
+name: Package and Push Helm Chart for Kentra Controller
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+  HELM_CHART_NAME: ${{ vars.HELM_CHART_NAME }}
+
+jobs:
+  package-and-push:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Log in to Container Registry
+        run: |
+          REGISTRY_HOST=$(echo "${{ env.REGISTRY }}" | cut -d'/' -f1)
+          echo "${{ secrets.DOCKER_TOKEN }}" | helm registry login ${REGISTRY_HOST} --username ${{ vars.DOCKER_USERNAME }} --password-stdin
+
+      - name: Package Helm chart
+        run: |
+          helm package ./helm
+
+      - name: Push Helm chart to registry
+        run: |
+          CHART_VERSION=$(grep '^version:' ./helm/Chart.yaml | awk '{print $2}')
+          CHART_FILE=$(grep '^name:' ./helm/Chart.yaml | awk '{print $2}')
+          helm push ${CHART_FILE}-${CHART_VERSION}.tgz oci://${{ env.REGISTRY }}/helm
+
+      - name: Chart pushed
+        run: |
+          CHART_VERSION=$(grep '^version:' ./helm/Chart.yaml | awk '{print $2}')
+          CHART_FILE=$(grep '^name:' ./helm/Chart.yaml | awk '{print $2}')
+          echo "Chart pushed to oci://${{ env.REGISTRY }}/helm/${CHART_FILE}:${CHART_VERSION}"
