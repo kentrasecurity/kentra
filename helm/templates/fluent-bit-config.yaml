@@ -17,7 +17,7 @@ data:
         Path              /logs/job.log
         Read_from_Head    true
         Refresh_Interval  5
-        Tag               kttack.job.*
+        Tag               kentra.job.*
 
     [FILTER]
         Name    grep
@@ -28,7 +28,7 @@ data:
         Name    modify
         Match   *
         Add     cluster ${CLUSTER_NAME}
-        Add     app kttack
+        Add     app kentra
         Add     type ${RESOURCE_TYPE}
         Add     task ${TASK_TYPE}
         Add     name ${JOB_NAME}

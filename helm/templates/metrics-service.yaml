@@ -9,7 +9,7 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   selector:
-    app.kubernetes.io/name: kttack
+    app.kubernetes.io/name: kentra
     control-plane: controller-manager
     {{- include "controller.selectorLabels" . | nindent 4 }}
   ports:

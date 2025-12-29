@@ -10,14 +10,14 @@ spec:
   replicas: {{ .Values.controller.replicas }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: kttack
+      app.kubernetes.io/name: kentra
       control-plane: controller-manager
     {{- include "controller.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app.kubernetes.io/component: controller
-        app.kubernetes.io/name: kttack
+        app.kubernetes.io/name: kentra
         control-plane: controller-manager
       {{- include "controller.selectorLabels" . | nindent 8 }}
       annotations:
@@ -52,8 +52,12 @@ spec:
       securityContext:
       {{- toYaml .Values.controller.podSecurityContext | nindent 8 }}
       serviceAccountName: {{ include "controller.fullname" . }}-controller-manager
-      {{- with .Values.controller.imagePullSecrets }}
+      {{- if .Values.controller.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+        {{- if kindIs "slice" .Values.controller.imagePullSecrets }}
+        {{- toYaml .Values.controller.imagePullSecrets | nindent 8 }}
+        {{- else }}
+        - name: {{ .Values.controller.imagePullSecrets }}
+        {{- end }}
       {{- end }}
       terminationGracePeriodSeconds: 10

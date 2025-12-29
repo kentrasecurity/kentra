@@ -1,13 +1,11 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: livenesses.kttack.io
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  labels:
-  {{- include "controller.labels" . | nindent 4 }}
+  name: livenesses.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
     kind: Liveness
     listKind: LivenessList
@@ -89,18 +87,18 @@ spec:
                   type: string
                 type: array
               capabilities:
-                description: Capabilities are additional capabilities required by the
-                  tool
+                description: Capabilities are additional capabilities required by
+                  the tool
                 items:
                   type: string
                 type: array
               category:
-                description: Category is a label to categorize the liveness check (e.g.,
-                  'critical-targets')
+                description: Category is a label to categorize the liveness check
+                  (e.g., 'critical-targets')
                 type: string
               debug:
-                description: Debug enables debug mode (output to stdout instead of log
-                  file)
+                description: Debug enables debug mode (output to stdout instead of
+                  log file)
                 type: boolean
               fileName:
                 description: FileName contains the output file names
@@ -114,13 +112,13 @@ spec:
                 description: Periodic indicates if this should run on a schedule
                 type: boolean
               schedule:
-                description: Schedule is the cron schedule (only used if Periodic is
-                  true)
+                description: Schedule is the cron schedule (only used if Periodic
+                  is true)
                 type: string
               target:
-                description: Target is the primary target for liveness check (IP, CIDR,
-                  or hostname). Can be either a direct target or a reference to a TargetPool
-                  name.
+                description: Target is the primary target for liveness check (IP,
+                  CIDR, or hostname). Can be either a direct target or a reference
+                  to a TargetPool name.
                 type: string
               targetPool:
                 description: TargetPool is the name of a TargetPool resource to reference
@@ -170,9 +168,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

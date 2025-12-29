@@ -1,13 +1,11 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: targetpools.kttack.io
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  labels:
-  {{- include "controller.labels" . | nindent 4 }}
+  name: targetpools.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
     kind: TargetPool
     listKind: TargetPoolList
@@ -56,11 +54,12 @@ spec:
             description: TargetPoolSpec defines the desired state of TargetPool
             properties:
               description:
-                description: Description is an optional description of the target group
+                description: Description is an optional description of the target
+                  group
                 type: string
               port:
-                description: Port is the port or port range to target (e.g., '22', '80,443',
-                  '8000-8100')
+                description: Port is the port or port range to target (e.g., '22',
+                  '80,443', '8000-8100')
                 type: string
               target:
                 description: Target is the IP address, CIDR, or hostname to target
@@ -75,7 +74,8 @@ spec:
                 description: LastUpdated is the timestamp of last update
                 type: string
               observedGeneration:
-                description: ObservedGeneration is the generation observed by the controller
+                description: ObservedGeneration is the generation observed by the
+                  controller
                 format: int64
                 type: integer
             type: object
@@ -84,9 +84,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

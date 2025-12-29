@@ -1,13 +1,11 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: securityattacks.kttack.io
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  labels:
-  {{- include "controller.labels" . | nindent 4 }}
+  name: securityattacks.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
     kind: SecurityAttack
     listKind: SecurityAttackList
@@ -96,12 +94,12 @@ spec:
                 - Exploitation
                 type: string
               category:
-                description: Category is a label to categorize the security attack (e.g.,
-                  'vulnerability-scan')
+                description: Category is a label to categorize the security attack
+                  (e.g., 'vulnerability-scan')
                 type: string
               debug:
-                description: Debug enables debug mode (output to stdout instead of log
-                  file)
+                description: Debug enables debug mode (output to stdout instead of
+                  log file)
                 type: boolean
               http_proxy:
                 description: HTTPProxy is the HTTP proxy URL to use
@@ -110,12 +108,12 @@ spec:
                 description: Periodic indicates if this should run on a schedule
                 type: boolean
               schedule:
-                description: Schedule is the cron schedule (only used if Periodic is
-                  true)
+                description: Schedule is the cron schedule (only used if Periodic
+                  is true)
                 type: string
               target:
-                description: Target is the IP, CIDR, or hostname to attack. Can be either
-                  a direct target or a reference to a TargetPool name.
+                description: Target is the IP, CIDR, or hostname to attack. Can be
+                  either a direct target or a reference to a TargetPool name.
                 type: string
               targetPool:
                 description: TargetPool is the name of a TargetPool resource to reference
@@ -155,9 +153,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

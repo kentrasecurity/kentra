@@ -196,7 +196,7 @@ sherlock:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kttack-tool-specs
+  name: kentra-tool-specs
   labels:
   {{- include "controller.labels" . | nindent 4 }}
 data:

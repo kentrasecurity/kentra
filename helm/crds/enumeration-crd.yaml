@@ -1,13 +1,11 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: enumerations.kttack.io
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  labels:
-  {{- include "controller.labels" . | nindent 4 }}
+  name: enumerations.kentra.sh
 spec:
-  group: kttack.io
+  group: kentra.sh
   names:
     kind: Enumeration
     listKind: EnumerationList
@@ -86,8 +84,8 @@ spec:
                   type: string
                 type: array
               capabilities:
-                description: Capabilities are additional capabilities required by the
-                  tool
+                description: Capabilities are additional capabilities required by
+                  the tool
                 items:
                   type: string
                 type: array
@@ -96,8 +94,8 @@ spec:
                   'normal-scan', 'deep-scan')
                 type: string
               debug:
-                description: Debug if true, logs are written to stdout instead of emptydir
-                  volume
+                description: Debug if true, logs are written to stdout instead of
+                  emptydir volume
                 type: boolean
               fileName:
                 description: FileName contains the output file names
@@ -111,16 +109,16 @@ spec:
                 description: Periodic indicates if this should run on a schedule
                 type: boolean
               port:
-                description: Port is the port(s) to target (e.g., '22', '80,443', '8000-8100').
-                  Can be overridden per resource.
+                description: Port is the port(s) to target (e.g., '22', '80,443',
+                  '8000-8100'). Can be overridden per resource.
                 type: string
               schedule:
-                description: Schedule is the cron schedule (only used if Periodic is
-                  true)
+                description: Schedule is the cron schedule (only used if Periodic
+                  is true)
                 type: string
               storagePool:
-                description: StoragePool is the name of a StoragePool resource to reference
-                  for files to download from S3
+                description: StoragePool is the name of a StoragePool resource to
+                  reference for files to download from S3
                 type: string
               target:
                 description: |-
@@ -171,9 +169,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
