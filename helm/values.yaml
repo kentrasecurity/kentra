@@ -24,7 +24,7 @@ controller:
   
   # Controller image
   image:
-    repository: kentrasecurity/docker/controller
+    repository: ghcr.io/kentrasecurity/docker/controller
     tag: latest
   
   # Image pull secrets for private registries
