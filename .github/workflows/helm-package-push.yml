@@ -20,6 +20,9 @@ env:
 jobs:
   package-and-push:
     runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -32,7 +35,7 @@ jobs:
 
       - name: Log in to Container Registry
         run: |
-          echo "${{ secrets.DOCKER_TOKEN }}" | helm registry login ghcr.io --username ${{ vars.DOCKER_USERNAME }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
           
       - name: Package Helm chart
         run: |
