@@ -21,9 +21,8 @@ import (
 // SecurityAttackReconciler reconciles a SecurityAttack object
 type SecurityAttackReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	ToolSpecManager *ToolSpecManager
-	Configurator    *ToolsConfigurator
+	Scheme       *runtime.Scheme
+	Configurator *ToolsConfigurator
 }
 
 //+kubebuilder:rbac:groups=kentra.sh,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
