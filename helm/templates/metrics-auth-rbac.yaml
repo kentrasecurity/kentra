@@ -1,8 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "controller.name" . }}-metrics-auth-role
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "controller.fullname" . }}-metrics-auth-role
   labels:
   {{- include "controller.labels" . | nindent 4 }}
 rules:
