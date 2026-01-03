@@ -65,6 +65,11 @@ spec:
           - --health-probe-bind-address=:8081
         image: ghcr.io/kentrasecurity/controller:latest
         name: kentra-controller
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         ports: []
         securityContext:
           readOnlyRootFilesystem: true

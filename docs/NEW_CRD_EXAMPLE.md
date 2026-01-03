@@ -99,7 +99,7 @@ In the file `cmd/main.go` you have to add to the main function after other contr
 
 ```go
 // Create ToolsConfigurator for <Resource> controller
-<resource>Configurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
+<resource>Configurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
 
 if err := (&controller.<Resource>Reconciler{
     Client:       mgr.GetClient(),
@@ -179,7 +179,7 @@ The OsintReconciler follows the standard reconciliation pattern: loads tool conf
 Registration in `cmd/main.go`:
 
 ```go
-osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
+osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
 
 if err := (&controller.OsintReconciler{
     Client:       mgr.GetClient(),
