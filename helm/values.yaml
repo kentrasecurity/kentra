@@ -60,6 +60,48 @@ controller:
   serviceAccount:
     annotations: {}
 
+  # Pod annotations - add custom annotations to controller pods
+  podAnnotations: {}
+  # Example:
+  # podAnnotations:
+  #   prometheus.io/scrape: "true"
+  #   prometheus.io/port: "8443"
+
+  # Pod labels - add custom labels to controller pods
+  podLabels: {}
+  # Example:
+  # podLabels:
+  #   environment: production
+  #   team: security
+
+  # Node selector for pod assignment
+  nodeSelector: {}
+  # Example:
+  # nodeSelector:
+  #   kubernetes.io/os: linux
+
+  # Tolerations for pod assignment
+  tolerations: []
+  # Example:
+  # tolerations:
+  # - key: "key1"
+  #   operator: "Equal"
+  #   value: "value1"
+  #   effect: "NoSchedule"
+
+  # Affinity rules for pod assignment
+  affinity: {}
+  # Example:
+  # affinity:
+  #   nodeAffinity:
+  #     requiredDuringSchedulingIgnoredDuringExecution:
+  #       nodeSelectorTerms:
+  #       - matchExpressions:
+  #         - key: kubernetes.io/os
+  #           operator: In
+  #           values:
+  #           - linux
+
 # Metrics service configuration
 service:
   type: ClusterIP
