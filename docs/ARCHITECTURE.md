@@ -29,7 +29,6 @@ This document provides a comprehensive overview of the Kentra Kubernetes Operato
 │  │  │  - SecurityAttackReconciler              │    │    │
 │  │  │  - EnumerationReconciler                 │    │    │
 │  │  │  - LivenessReconciler                    │    │    │
-│  │  │  - ToolSpecManager                       │    │    │
 │  │  │  - ToolsConfigurator                     │    │    │
 │  │  └──────────────────────────────────────────┘    │    │
 │  │                                                    │    │
@@ -119,17 +118,16 @@ Handles liveness probes and health checks.
 
 ### 3. Tool Management Components
 
-#### ToolSpecManager (`internal/controller/toolspec.go`)
+#### ToolsConfigurator (`internal/controller/config.go`)
 
-Manages tool specifications and their configurations.
+Manages tool specifications and their configurations loaded from ConfigMaps.
 
 **Responsibilities:**
-- Parse tool specifications from ConfigMap
-- Validate tool definitions
-- Provide tool metadata (image, default args, etc.)
-- Support tool discovery and validation
-
-#### ToolsConfigurator
+- Load tool specifications from ConfigMaps with label `kentra.sh/resource-type: tool-specs`
+- Parse and validate tool definitions
+- Provide tool metadata (image, command templates, capabilities, etc.)
+- Support tool discovery by name or type
+- Merge configurations from multiple ConfigMaps
 
 Handles tool-specific configuration:
 

@@ -197,8 +197,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kentra-tool-specs
+  namespace: {{ .Release.Namespace }}
   labels:
   {{- include "controller.labels" . | nindent 4 }}
+    kentra.sh/resource-type: "tool-specs"
 data:
   tools: |
 {{ $tools | indent 4 }}

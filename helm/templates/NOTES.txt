@@ -1,0 +1,47 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+Kentra Controller has been deployed to namespace: {{ .Release.Namespace }}
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }} -n {{ .Release.Namespace }}
+  $ helm get all {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+The Kentra controller is now running and ready to manage security testing resources.
+
+Available Custom Resources:
+  - Enumeration (enum)       - Network and service enumeration tasks
+  - SecurityAttack           - Security testing and attack simulations
+  - OSINT                    - Open Source Intelligence gathering
+  - Liveness                 - Service availability checks
+  - TargetPool               - Target management
+  - AssetPool                - Asset discovery results
+  - StoragePool              - Storage configuration for results
+
+Get started:
+
+  1. Check the controller status:
+     $ kubectl get deployment {{ include "controller.name" . }}-controller -n {{ .Release.Namespace }}
+
+  2. View controller logs:
+     $ kubectl logs -f deployment/{{ include "controller.name" . }}-controller -n {{ .Release.Namespace }}
+
+  3. Create your first enumeration:
+     $ kubectl apply -f examples/enumeration.yaml
+
+  4. List all enumerations:
+     $ kubectl get enumerations
+
+{{- if .Values.loki.url }}
+
+Loki Integration:
+  Logs will be sent to: {{ .Values.loki.url }}
+{{- if .Values.loki.orgId }}
+  Organization ID: {{ .Values.loki.orgId }}
+{{- end }}
+{{- end }}
+
+Documentation: https://github.com/kentra/kentra
+Report issues: https://github.com/kentra/kentra/issues

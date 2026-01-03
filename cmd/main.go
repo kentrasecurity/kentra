@@ -178,12 +178,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get the namespace where the controller is running
+	// Falls back to "kentra-system" if POD_NAMESPACE is not set
+	controllerNamespace := os.Getenv("POD_NAMESPACE")
+	if controllerNamespace == "" {
+		controllerNamespace = "kentra-system"
+		setupLog.Info("POD_NAMESPACE not set, using default namespace", "namespace", controllerNamespace)
+	} else {
+		setupLog.Info("Using controller namespace for toolspecs", "namespace", controllerNamespace)
+	}
+
 	// Create ToolsConfigurator for Enumeration controller
-	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
+	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
 	setupLog.Info("ToolsConfigurator created for Enumeration controller")
 
 	// Create ToolsConfigurator for Osint controller
-	osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
+	osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
 	setupLog.Info("ToolsConfigurator created for Osint controller")
 
 	// Setup OsintReconciler
@@ -207,7 +217,7 @@ func main() {
 	}
 
 	// Create ToolsConfigurator for Liveness controller
-	livenessConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
+	livenessConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
 	setupLog.Info("ToolsConfigurator created for Liveness controller")
 
 	// Setup LivenessReconciler
@@ -221,7 +231,7 @@ func main() {
 	}
 
 	// Create ToolsConfigurator for SecurityAttack controller
-	securityAttackConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), "kentra-system")
+	securityAttackConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
 	setupLog.Info("ToolsConfigurator created for SecurityAttack controller")
 
 	if err := (&controller.SecurityAttackReconciler{
