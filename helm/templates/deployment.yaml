@@ -1,7 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "controller.fullname" . }}-controller-manager
+  name: {{ include "controller.name" . }}-controller
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/component: controller
     control-plane: controller-manager
