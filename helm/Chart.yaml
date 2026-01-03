@@ -8,7 +8,7 @@ description: |
 type: application
 
 # Chart version - increment this when making changes to the chart
-version: 0.1.4
+version: 0.1.5
 
 # Application version - the version of Kentra being deployed
 appVersion: "0.1.4"

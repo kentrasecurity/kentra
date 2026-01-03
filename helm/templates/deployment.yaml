@@ -21,8 +21,14 @@ spec:
         app.kubernetes.io/name: kentra
         control-plane: controller-manager
       {{- include "controller.selectorLabels" . | nindent 8 }}
+      {{- with .Values.controller.podLabels }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       annotations:
         kubectl.kubernetes.io/default-container: manager
+      {{- with .Values.controller.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       containers:
       - args:
@@ -32,6 +38,10 @@ spec:
         env:
         - name: KUBERNETES_CLUSTER_DOMAIN
           value: {{ quote .Values.controller.kubernetesClusterDomain }}
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         image: {{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag | default .Chart.AppVersion }}
         livenessProbe:
           httpGet:
@@ -60,5 +70,17 @@ spec:
         {{- else }}
         - name: {{ .Values.controller.imagePullSecrets }}
         {{- end }}
+      {{- end }}
+      {{- with .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       terminationGracePeriodSeconds: 10
