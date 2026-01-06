@@ -1,11 +1,5 @@
 # Loki configuration for log aggregation
 loki:
-  # Loki URL for log queries (used by dashboard)
-  url: "http://loki.loki-system.svc.cluster.local:3100"
-
-  # Org ID for Loki (if configured with multi-tenancy)
-  orgId: ""
-
   # Loki host (for fluent-bit)
   host: "loki.loki-system.svc.cluster.local"
 
