@@ -1,10 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "controller.name" . }}-fluent-bit-config
+  name: {{ include "controller.fullname" . }}-fluent-bit-config
   namespace: {{ .Release.Namespace }}
   labels:
   {{- include "controller.labels" . | nindent 4 }}
+    kentra.sh/resource-type: "fluentbit-config"
 data:
   fluent-bit.conf: |
     [SERVICE]

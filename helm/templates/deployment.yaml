@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "controller.name" . }}-controller
+  name: {{ include "controller.fullname" . }}-controller
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/component: controller
@@ -11,14 +11,12 @@ spec:
   replicas: {{ .Values.controller.replicas }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: kentra
       control-plane: controller-manager
     {{- include "controller.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app.kubernetes.io/component: controller
-        app.kubernetes.io/name: kentra
         control-plane: controller-manager
       {{- include "controller.selectorLabels" . | nindent 8 }}
       {{- with .Values.controller.podLabels }}

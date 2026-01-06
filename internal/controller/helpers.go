@@ -34,6 +34,54 @@ import (
 	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
+// getConfigMapByLabel finds a ConfigMap by label in the given namespace
+func getConfigMapByLabel(ctx context.Context, c client.Client, namespace, labelKey, labelValue string) (string, error) {
+	log := log.FromContext(ctx)
+
+	cmList := &corev1.ConfigMapList{}
+	if err := c.List(ctx, cmList,
+		client.InNamespace(namespace),
+		client.MatchingLabels{labelKey: labelValue},
+	); err != nil {
+		log.Error(err, "Failed to list ConfigMaps", "Namespace", namespace, "Label", labelKey+"="+labelValue)
+		return "", err
+	}
+
+	if len(cmList.Items) == 0 {
+		return "", fmt.Errorf("no ConfigMap found with label %s=%s in namespace %s", labelKey, labelValue, namespace)
+	}
+
+	if len(cmList.Items) > 1 {
+		log.Info("Multiple ConfigMaps found with same label, using first one", "Count", len(cmList.Items), "Label", labelKey+"="+labelValue)
+	}
+
+	return cmList.Items[0].Name, nil
+}
+
+// getSecretByLabel finds a Secret by label in the given namespace
+func getSecretByLabel(ctx context.Context, c client.Client, namespace, labelKey, labelValue string) (string, error) {
+	log := log.FromContext(ctx)
+
+	secretList := &corev1.SecretList{}
+	if err := c.List(ctx, secretList,
+		client.InNamespace(namespace),
+		client.MatchingLabels{labelKey: labelValue},
+	); err != nil {
+		log.Error(err, "Failed to list Secrets", "Namespace", namespace, "Label", labelKey+"="+labelValue)
+		return "", err
+	}
+
+	if len(secretList.Items) == 0 {
+		return "", fmt.Errorf("no Secret found with label %s=%s in namespace %s", labelKey, labelValue, namespace)
+	}
+
+	if len(secretList.Items) > 1 {
+		log.Info("Multiple Secrets found with same label, using first one", "Count", len(secretList.Items), "Label", labelKey+"="+labelValue)
+	}
+
+	return secretList.Items[0].Name, nil
+}
+
 // SecurityResource is an interface that defines the common structure for security-related resources
 type SecurityResource interface {
 	GetName() string
@@ -82,7 +130,7 @@ func getResourceType(appType string) string {
 }
 
 // BuildJob creates a Job object for a security resource
-func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, jobName, namespace, appType string) (*batchv1.Job, error) {
+func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, c client.Client, jobName, namespace, appType string) (*batchv1.Job, error) {
 	spec := res.GetSpec()
 
 	labels := map[string]string{
@@ -92,7 +140,7 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 		"kentra.sh/resource-type": getResourceType(appType),
 	}
 
-	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "job", appType)
+	podSpec, err := buildPodSpec(ctx, c, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "job", appType)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +174,7 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 }
 
 // BuildCronJob creates a CronJob object for a security resource
-func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, cronJobName, namespace, appType string) (*batchv1.CronJob, error) {
+func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, c client.Client, cronJobName, namespace, appType string) (*batchv1.CronJob, error) {
 	spec := res.GetSpec()
 
 	labels := map[string]string{
@@ -136,7 +184,7 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 		"kentra.sh/resource-type": getResourceType(appType),
 	}
 
-	podSpec, err := buildPodSpec(ctx, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "cronjob", appType)
+	podSpec, err := buildPodSpec(ctx, c, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "cronjob", appType)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +223,7 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 }
 
 // buildPodSpec creates the PodSpec for a security resource
-func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string, debug bool, taskType, resourceType string) (corev1.PodSpec, error) {
+func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string, debug bool, taskType, resourceType string) (corev1.PodSpec, error) {
 	log := log.FromContext(ctx)
 
 	// Get tool configuration from configurator
@@ -268,12 +316,20 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		})
+
+		// Find fluent-bit config by label
+		fluentBitConfigName, err := getConfigMapByLabel(ctx, c, namespace, "kentra.sh/resource-type", "fluentbit-config")
+		if err != nil {
+			log.Error(err, "Failed to find fluent-bit ConfigMap", "namespace", namespace)
+			return corev1.PodSpec{}, fmt.Errorf("failed to find fluent-bit ConfigMap: %w", err)
+		}
+
 		volumes = append(volumes, corev1.Volume{
 			Name: "fluent-bit-config",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "kentra-fluent-bit-config",
+						Name: fluentBitConfigName,
 					},
 				},
 			},
@@ -311,7 +367,11 @@ func buildPodSpec(ctx context.Context, spec *ResourceSpec, configurator *ToolsCo
 
 	// Add Fluent Bit sidecar only if not in debug mode
 	if !debug {
-		fluentBitSidecar := buildFluentBitSidecar(namespace, resourceName, spec.Tool, taskType, resourceType)
+		fluentBitSidecar, err := buildFluentBitSidecar(ctx, c, namespace, resourceName, spec.Tool, taskType, resourceType)
+		if err != nil {
+			log.Error(err, "Failed to build fluent-bit sidecar", "namespace", namespace)
+			return corev1.PodSpec{}, fmt.Errorf("failed to build fluent-bit sidecar: %w", err)
+		}
 		podSpec.Containers = append(podSpec.Containers, fluentBitSidecar)
 	}
 
@@ -378,7 +438,16 @@ func buildS3FileDownloaderInitContainer(files []string) corev1.Container {
 }
 
 // buildFluentBitSidecar creates the Fluent Bit sidecar container
-func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resourceType string) corev1.Container {
+func buildFluentBitSidecar(ctx context.Context, c client.Client, namespace, resourceName, toolType, taskType, resourceType string) (corev1.Container, error) {
+	log := log.FromContext(ctx)
+
+	// Find Loki credentials secret by label
+	lokiSecretName, err := getSecretByLabel(ctx, c, namespace, "kentra.sh/resource-type", "loki-credentials")
+	if err != nil {
+		log.Error(err, "Failed to find Loki credentials Secret", "namespace", namespace)
+		return corev1.Container{}, fmt.Errorf("failed to find Loki credentials Secret: %w", err)
+	}
+
 	return corev1.Container{
 		Name:  "fluent-bit-sidecar",
 		Image: "percona/fluentbit:4.0.1",
@@ -400,7 +469,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kentra-loki-credentials",
+							Name: lokiSecretName,
 						},
 						Key: "loki-host",
 					},
@@ -411,7 +480,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kentra-loki-credentials",
+							Name: lokiSecretName,
 						},
 						Key: "loki-port",
 					},
@@ -422,7 +491,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kentra-loki-credentials",
+							Name: lokiSecretName,
 						},
 						Key: "loki-tls",
 					},
@@ -433,7 +502,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kentra-loki-credentials",
+							Name: lokiSecretName,
 						},
 						Key: "loki-tls-verify",
 					},
@@ -444,7 +513,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kentra-loki-credentials",
+							Name: lokiSecretName,
 						},
 						Key: "loki-tenant-id",
 					},
@@ -455,7 +524,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kentra-loki-credentials",
+							Name: lokiSecretName,
 						},
 						Key: "loki-user",
 					},
@@ -466,7 +535,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kentra-loki-credentials",
+							Name: lokiSecretName,
 						},
 						Key: "loki-password",
 					},
@@ -477,7 +546,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "kentra-loki-credentials",
+							Name: lokiSecretName,
 						},
 						Key: "cluster-name",
 					},
@@ -525,7 +594,7 @@ func buildFluentBitSidecar(namespace, resourceName, toolType, taskType, resource
 				corev1.ResourceMemory: *resource.NewQuantity(256*1024*1024, resource.BinarySI),
 			},
 		},
-	}
+	}, nil
 }
 
 // UpdateResourceStatus updates the status of a security resource
