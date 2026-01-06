@@ -23,10 +23,10 @@ Available Custom Resources:
 Get started:
 
   1. Check the controller status:
-     $ kubectl get deployment {{ include "controller.name" . }}-controller -n {{ .Release.Namespace }}
+     $ kubectl get deployment {{ include "controller.fullname" . }}-controller -n {{ .Release.Namespace }}
 
   2. View controller logs:
-     $ kubectl logs -f deployment/{{ include "controller.name" . }}-controller -n {{ .Release.Namespace }}
+     $ kubectl logs -f deployment/{{ include "controller.fullname" . }}-controller -n {{ .Release.Namespace }}
 
   3. Create your first enumeration:
      $ kubectl apply -f examples/enumeration.yaml
