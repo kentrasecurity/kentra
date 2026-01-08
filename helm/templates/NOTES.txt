@@ -34,13 +34,10 @@ Get started:
   4. List all enumerations:
      $ kubectl get enumerations
 
-{{- if .Values.loki.url }}
+{{- if .Values.loki.host }}
 
 Loki Integration:
-  Logs will be sent to: {{ .Values.loki.url }}
-{{- if .Values.loki.orgId }}
-  Organization ID: {{ .Values.loki.orgId }}
-{{- end }}
+  Logs will be sent to: {{ .Values.loki.host }}:{{ .Values.loki.port }}
 {{- end }}
 
 Documentation: https://github.com/kentra/kentra

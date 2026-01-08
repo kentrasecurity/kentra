@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: kentra
     app.kubernetes.io/managed-by: kustomize
+    kentra.sh/resource-type: "fluentbit-config"
 data:
   fluent-bit.conf: |
     [SERVICE]
