@@ -7,7 +7,7 @@ loki:
   orgId: ""
 
   # Loki host (for fluent-bit)
-  host: "loki.loki-system.svc.cluster.local"
+  host: ""
 
   # Loki port (for fluent-bit)
   port: "3100"
