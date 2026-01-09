@@ -1,7 +1,7 @@
 apiVersion: kentra.sh/v1alpha1
 kind: Osint
 metadata:
-  name: sherlock-multi-asset
+  name: osint-sample
   namespace: kentra-system
 spec:
   tool: sherlock
