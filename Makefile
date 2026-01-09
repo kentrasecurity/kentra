@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?=  controller:test
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -65,29 +65,35 @@ test: manifests generate fmt vet setup-envtest ## Run tests.
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
 # CertManager is installed by default; skip with:
 # - CERT_MANAGER_INSTALL_SKIP=true
-KIND_CLUSTER ?= project-test-e2e
+KIND ?= kind
+KIND_CLUSTER ?= kentra-e2e
 
-.PHONY: setup-test-e2e
-setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
-	@command -v $(KIND) >/dev/null 2>&1 || { \
-		echo "Kind is not installed. Please install Kind manually."; \
-		exit 1; \
-	}
-	@case "$$($(KIND) get clusters)" in \
-		*"$(KIND_CLUSTER)"*) \
-			echo "Kind cluster '$(KIND_CLUSTER)' already exists. Skipping creation." ;; \
-		*) \
-			echo "Creating Kind cluster '$(KIND_CLUSTER)'..."; \
-			$(KIND) create cluster --name $(KIND_CLUSTER) ;; \
-	esac
+.PHONY: test-e2e-kind
+test-e2e-kind: docker-build setup-test-e2e manifests ## Run the e2e tests in Kind. Put docker-build if you want to build the image first.
+	@echo "Starting E2E tests..."
+	# Pass the image name to the test suite via environment variable if supported by your suite
+	-IMG=controller:test KIND_CLUSTER=$(KIND_CLUSTER) ginkgo run \
+		-p --procs=2 -tags=e2e -v ./test/e2e/
+	@$(MAKE) cleanup-test-e2e
 
 .PHONY: test-e2e
-test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	KIND=$(KIND) KIND_CLUSTER=$(KIND_CLUSTER) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
-	$(MAKE) cleanup-test-e2e
+test-e2e: manifests generate fmt vet ## Run the e2e tests.
+	go test -tags=e2e ./test/e2e/ -v -ginkgo.v
+
+.PHONY: setup-test-e2e
+setup-test-e2e:
+	@command -v $(KIND) >/dev/null 2>&1 || { echo "Kind not installed"; exit 1; }
+	@command -v helm >/dev/null 2>&1 || { echo "Helm not installed. Please install it first."; exit 1; }
+	@if ! $(KIND) get clusters | grep -q "^$(KIND_CLUSTER)$$"; then \
+		echo "Creating Kind cluster $(KIND_CLUSTER)..."; \
+		$(KIND) create cluster --name $(KIND_CLUSTER); \
+	fi
+	@echo "Load image $(IMG) in Kind..."
+	$(KIND) load docker-image $(IMG) --name $(KIND_CLUSTER)
 
 .PHONY: cleanup-test-e2e
-cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
+cleanup-test-e2e:
+	@echo "Tearing down cluster..."
 	@$(KIND) delete cluster --name $(KIND_CLUSTER)
 
 .PHONY: lint

@@ -10,7 +10,7 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kentra-controller-manager
+  name: controller-manager
   namespace: kentra-system
   labels:
     control-plane: controller-manager
@@ -64,7 +64,7 @@ spec:
           - --leader-elect
           - --health-probe-bind-address=:8081
         image: ghcr.io/kentrasecurity/controller:latest
-        name: kentra-controller
+        name: controller
         env:
         - name: POD_NAMESPACE
           valueFrom:

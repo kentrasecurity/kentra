@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2" // nolint:revive,staticcheck
 )
@@ -40,23 +41,40 @@ func warnError(err error) {
 }
 
 // Run executes the provided command within this context
-func Run(cmd *exec.Cmd) (string, error) {
+func Run(cmd *exec.Cmd) ([]byte, error) {
 	dir, _ := GetProjectDir()
 	cmd.Dir = dir
+	fmt.Fprintf(GinkgoWriter, "running dir: %s\n", cmd.Dir)
 
+	// To allow make commands be executed from the project directory which is subdir on SDK repo
+	// TODO:(user) You might not need the following code
 	if err := os.Chdir(cmd.Dir); err != nil {
-		_, _ = fmt.Fprintf(GinkgoWriter, "chdir dir: %q\n", err)
+		fmt.Fprintf(GinkgoWriter, "chdir dir: %s\n", err)
 	}
 
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	command := strings.Join(cmd.Args, " ")
-	_, _ = fmt.Fprintf(GinkgoWriter, "running: %q\n", command)
+	fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return string(output), fmt.Errorf("%q failed with error %q: %w", command, string(output), err)
+		return output, fmt.Errorf("%s failed with error: (%v) %s", command, err, string(output))
 	}
 
-	return string(output), nil
+	return output, nil
+}
+
+// InstallAttackOperator generates the operators crds by running make all-crd
+func InstallAttackOperator() error {
+	cmd := exec.Command("make", "all-crd")
+	_, err := Run(cmd)
+	return err
+}
+
+// UninstallAttackOperator uninstalls the CRDs for the controller
+func UninstallAttackOperator() error {
+	cmd := exec.Command("make", "uninstall")
+	_, err := Run(cmd)
+	return err
 }
 
 // UninstallCertManager uninstalls the cert manager
@@ -121,7 +139,7 @@ func IsCertManagerCRDsInstalled() bool {
 	}
 
 	// Check if any of the Cert Manager CRDs are present
-	crdList := GetNonEmptyLines(output)
+	crdList := GetNonEmptyLines(string(output))
 	for _, crd := range certManagerCRDs {
 		for _, line := range crdList {
 			if strings.Contains(line, crd) {
@@ -223,4 +241,31 @@ func UncommentCode(filename, target, prefix string) error {
 	}
 
 	return nil
+}
+
+// RunIgnoringOutput executes a command and returns an error if it fails,
+// but does not return the command's output string.
+func RunIgnoringOutput(cmd *exec.Cmd) error {
+	_, err := Run(cmd)
+	return err
+}
+
+// calculatePollingInterval determines how often to check based on total timeout
+func CalculatePollingInterval(timeoutStr string) time.Duration {
+	d, err := time.ParseDuration(timeoutStr)
+	if err != nil {
+		return 5 * time.Second // Default fallback
+	}
+
+	// Rule: Poll every 10% of the total duration
+	interval := d / 10
+
+	// Bounds: Minimum 1s, Maximum 1m
+	if interval < 1*time.Second {
+		return 1 * time.Second
+	}
+	if interval > 1*time.Minute {
+		return 1 * time.Minute
+	}
+	return interval
 }
