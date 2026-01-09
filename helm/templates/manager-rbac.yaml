@@ -9,8 +9,22 @@ rules:
   - ""
   resources:
   - configmaps
-  - pods
   - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - pods
   verbs:
   - get
   - list
