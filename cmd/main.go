@@ -198,9 +198,10 @@ func main() {
 
 	// Setup OsintReconciler
 	if err := (&controller.OsintReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Configurator: osintConfigurator,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Configurator:        osintConfigurator,
+		ControllerNamespace: controllerNamespace,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Osint")
 		os.Exit(1)
@@ -208,9 +209,10 @@ func main() {
 
 	// Setup EnumerationReconciler
 	if err := (&controller.EnumerationReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Configurator: toolsConfigurator,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Configurator:        toolsConfigurator,
+		ControllerNamespace: controllerNamespace,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Enumeration")
 		os.Exit(1)
@@ -222,9 +224,10 @@ func main() {
 
 	// Setup LivenessReconciler
 	if err := (&controller.LivenessReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Configurator: livenessConfigurator,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Configurator:        livenessConfigurator,
+		ControllerNamespace: controllerNamespace,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Liveness")
 		os.Exit(1)
@@ -235,9 +238,10 @@ func main() {
 	setupLog.Info("ToolsConfigurator created for SecurityAttack controller")
 
 	if err := (&controller.SecurityAttackReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Configurator: securityAttackConfigurator,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Configurator:        securityAttackConfigurator,
+		ControllerNamespace: controllerNamespace,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SecurityAttack")
 		os.Exit(1)

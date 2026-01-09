@@ -21,8 +21,9 @@ import (
 // OsintReconciler reconciles a Osint object
 type OsintReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	Configurator *ToolsConfigurator
+	Scheme              *runtime.Scheme
+	Configurator        *ToolsConfigurator
+	ControllerNamespace string
 }
 
 // +kubebuilder:rbac:groups=kentra.sh,resources=osints,verbs=get;list;watch;create;update;patch;delete
@@ -30,6 +31,8 @@ type OsintReconciler struct {
 // +kubebuilder:rbac:groups=kentra.sh,resources=osints/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get
 
 // Reconcile implements reconciliation for Osint resources
 func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -186,7 +189,7 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		err := r.Get(ctx, cronJobNN, cronJob)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new CronJob
-			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "osint")
+			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "osint", r.ControllerNamespace)
 			if err != nil {
 				log.Error(err, "Failed to build CronJob")
 				return ctrl.Result{}, err
@@ -220,7 +223,7 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				}
 
 				// Create new CronJob with updated spec
-				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "osint")
+				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "osint", r.ControllerNamespace)
 				if err != nil {
 					log.Error(err, "Failed to build new CronJob")
 					return ctrl.Result{}, err
@@ -245,7 +248,7 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		err := r.Get(ctx, jobNN, job)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new Job
-			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "osint")
+			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "osint", r.ControllerNamespace)
 			if err != nil {
 				log.Error(err, "Failed to build Job")
 				return ctrl.Result{}, err

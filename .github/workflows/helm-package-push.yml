@@ -6,11 +6,12 @@ on:
       - main
     paths:
       - 'helm/**'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'helm/**'
+    tags:
+      - 'v*'
+  release:
+    types:
+      - published
+      - created
   workflow_dispatch:
 
 env:

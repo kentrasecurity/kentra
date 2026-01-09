@@ -37,8 +37,9 @@ import (
 // LivenessReconciler reconciles a Liveness object
 type LivenessReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	Configurator *ToolsConfigurator
+	Scheme              *runtime.Scheme
+	Configurator        *ToolsConfigurator
+	ControllerNamespace string
 }
 
 //+kubebuilder:rbac:groups=kentra.sh,resources=livenesses,verbs=get;list;watch;create;update;patch;delete
@@ -47,7 +48,8 @@ type LivenessReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=targetpools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get
 
 // Reconcile implements reconciliation for Liveness resources
 func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -131,7 +133,7 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		err := r.Get(ctx, cronJobNN, cronJob)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new CronJob
-			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "liveness")
+			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "liveness", r.ControllerNamespace)
 			if err != nil {
 				log.Error(err, "Failed to build CronJob")
 				return ctrl.Result{}, err
@@ -167,7 +169,7 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				}
 
 				// Create new CronJob with updated spec
-				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "liveness")
+				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "liveness", r.ControllerNamespace)
 				if err != nil {
 					log.Error(err, "Failed to build new CronJob")
 					return ctrl.Result{}, err
@@ -192,7 +194,7 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		err := r.Get(ctx, jobNN, job)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new Job
-			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "liveness")
+			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "liveness", r.ControllerNamespace)
 			if err != nil {
 				log.Error(err, "Failed to build Job")
 				return ctrl.Result{}, err
