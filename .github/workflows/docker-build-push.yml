@@ -51,7 +51,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/docker/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
+            type=ref,event=branch,enable=${{ github.event_name == 'workflow_dispatch' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{version}}-{{branch}},enable=${{ github.ref_name != 'main' }}
             type=raw,value=latest,enable={{is_default_branch}}
