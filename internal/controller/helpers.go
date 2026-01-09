@@ -34,8 +34,116 @@ import (
 	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
+// isNamespaceManagedByKentra checks if a namespace has the managed-by-kentra annotation
+func isNamespaceManagedByKentra(ctx context.Context, c client.Client, namespace string) (bool, error) {
+	log := log.FromContext(ctx)
+
+	ns := &corev1.Namespace{}
+	if err := c.Get(ctx, client.ObjectKey{Name: namespace}, ns); err != nil {
+		log.Error(err, "Failed to get namespace", "namespace", namespace)
+		return false, err
+	}
+
+	// Check for managed-by-kentra annotation
+	if annotations := ns.GetAnnotations(); annotations != nil {
+		if _, ok := annotations["managed-by-kentra"]; ok {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// copyConfigMapToNamespace copies a ConfigMap from source namespace to target namespace
+func copyConfigMapToNamespace(ctx context.Context, c client.Client, sourceNamespace, targetNamespace, labelKey, labelValue string) (string, error) {
+	log := log.FromContext(ctx)
+
+	// Find the ConfigMap in the source namespace
+	cmList := &corev1.ConfigMapList{}
+	if err := c.List(ctx, cmList,
+		client.InNamespace(sourceNamespace),
+		client.MatchingLabels{labelKey: labelValue},
+	); err != nil {
+		log.Error(err, "Failed to list ConfigMaps in source namespace", "sourceNamespace", sourceNamespace, "Label", labelKey+"="+labelValue)
+		return "", err
+	}
+
+	if len(cmList.Items) == 0 {
+		return "", fmt.Errorf("no ConfigMap found with label %s=%s in source namespace %s", labelKey, labelValue, sourceNamespace)
+	}
+
+	sourceCM := &cmList.Items[0]
+	log.Info("Found ConfigMap in source namespace, copying to target", "name", sourceCM.Name, "sourceNamespace", sourceNamespace, "targetNamespace", targetNamespace)
+
+	// Create a new ConfigMap in the target namespace
+	targetCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        sourceCM.Name,
+			Namespace:   targetNamespace,
+			Labels:      sourceCM.Labels,
+			Annotations: sourceCM.Annotations,
+		},
+		Data:       sourceCM.Data,
+		BinaryData: sourceCM.BinaryData,
+	}
+
+	// Create the ConfigMap in the target namespace
+	if err := c.Create(ctx, targetCM); err != nil {
+		log.Error(err, "Failed to create ConfigMap in target namespace", "name", targetCM.Name, "targetNamespace", targetNamespace)
+		return "", err
+	}
+
+	log.Info("Successfully copied ConfigMap to target namespace", "name", targetCM.Name, "targetNamespace", targetNamespace)
+	return targetCM.Name, nil
+}
+
+// copySecretToNamespace copies a Secret from source namespace to target namespace
+func copySecretToNamespace(ctx context.Context, c client.Client, sourceNamespace, targetNamespace, labelKey, labelValue string) (string, error) {
+	log := log.FromContext(ctx)
+
+	// Find the Secret in the source namespace
+	secretList := &corev1.SecretList{}
+	if err := c.List(ctx, secretList,
+		client.InNamespace(sourceNamespace),
+		client.MatchingLabels{labelKey: labelValue},
+	); err != nil {
+		log.Error(err, "Failed to list Secrets in source namespace", "sourceNamespace", sourceNamespace, "Label", labelKey+"="+labelValue)
+		return "", err
+	}
+
+	if len(secretList.Items) == 0 {
+		return "", fmt.Errorf("no Secret found with label %s=%s in source namespace %s", labelKey, labelValue, sourceNamespace)
+	}
+
+	sourceSecret := &secretList.Items[0]
+	log.Info("Found Secret in source namespace, copying to target", "name", sourceSecret.Name, "sourceNamespace", sourceNamespace, "targetNamespace", targetNamespace)
+
+	// Create a new Secret in the target namespace
+	targetSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        sourceSecret.Name,
+			Namespace:   targetNamespace,
+			Labels:      sourceSecret.Labels,
+			Annotations: sourceSecret.Annotations,
+		},
+		Type:       sourceSecret.Type,
+		Data:       sourceSecret.Data,
+		StringData: sourceSecret.StringData,
+	}
+
+	// Create the Secret in the target namespace
+	if err := c.Create(ctx, targetSecret); err != nil {
+		log.Error(err, "Failed to create Secret in target namespace", "name", targetSecret.Name, "targetNamespace", targetNamespace)
+		return "", err
+	}
+
+	log.Info("Successfully copied Secret to target namespace", "name", targetSecret.Name, "targetNamespace", targetNamespace)
+	return targetSecret.Name, nil
+}
+
 // getConfigMapByLabel finds a ConfigMap by label in the given namespace
-func getConfigMapByLabel(ctx context.Context, c client.Client, namespace, labelKey, labelValue string) (string, error) {
+// If not found and the namespace is managed by Kentra, it copies from the controller namespace
+func getConfigMapByLabel(ctx context.Context, c client.Client, namespace, labelKey, labelValue, controllerNamespace string) (string, error) {
 	log := log.FromContext(ctx)
 
 	cmList := &corev1.ConfigMapList{}
@@ -48,7 +156,23 @@ func getConfigMapByLabel(ctx context.Context, c client.Client, namespace, labelK
 	}
 
 	if len(cmList.Items) == 0 {
-		return "", fmt.Errorf("no ConfigMap found with label %s=%s in namespace %s", labelKey, labelValue, namespace)
+		// ConfigMap not found in target namespace
+		log.Info("ConfigMap not found in target namespace", "namespace", namespace, "label", labelKey+"="+labelValue)
+
+		// Check if namespace is managed by Kentra
+		isManaged, err := isNamespaceManagedByKentra(ctx, c, namespace)
+		if err != nil {
+			return "", fmt.Errorf("failed to check if namespace is managed by Kentra: %w", err)
+		}
+
+		if !isManaged {
+			return "", fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", namespace)
+		}
+
+		log.Info("Namespace is managed by Kentra, attempting to copy ConfigMap from controller namespace", "namespace", namespace, "controllerNamespace", controllerNamespace)
+
+		// Copy ConfigMap from controller namespace to target namespace
+		return copyConfigMapToNamespace(ctx, c, controllerNamespace, namespace, labelKey, labelValue)
 	}
 
 	if len(cmList.Items) > 1 {
@@ -59,7 +183,8 @@ func getConfigMapByLabel(ctx context.Context, c client.Client, namespace, labelK
 }
 
 // getSecretByLabel finds a Secret by label in the given namespace
-func getSecretByLabel(ctx context.Context, c client.Client, namespace, labelKey, labelValue string) (string, error) {
+// If not found and the namespace is managed by Kentra, it copies from the controller namespace
+func getSecretByLabel(ctx context.Context, c client.Client, namespace, labelKey, labelValue, controllerNamespace string) (string, error) {
 	log := log.FromContext(ctx)
 
 	secretList := &corev1.SecretList{}
@@ -72,7 +197,23 @@ func getSecretByLabel(ctx context.Context, c client.Client, namespace, labelKey,
 	}
 
 	if len(secretList.Items) == 0 {
-		return "", fmt.Errorf("no Secret found with label %s=%s in namespace %s", labelKey, labelValue, namespace)
+		// Secret not found in target namespace
+		log.Info("Secret not found in target namespace", "namespace", namespace, "label", labelKey+"="+labelValue)
+
+		// Check if namespace is managed by Kentra
+		isManaged, err := isNamespaceManagedByKentra(ctx, c, namespace)
+		if err != nil {
+			return "", fmt.Errorf("failed to check if namespace is managed by Kentra: %w", err)
+		}
+
+		if !isManaged {
+			return "", fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", namespace)
+		}
+
+		log.Info("Namespace is managed by Kentra, attempting to copy Secret from controller namespace", "namespace", namespace, "controllerNamespace", controllerNamespace)
+
+		// Copy Secret from controller namespace to target namespace
+		return copySecretToNamespace(ctx, c, controllerNamespace, namespace, labelKey, labelValue)
 	}
 
 	if len(secretList.Items) > 1 {
@@ -130,7 +271,7 @@ func getResourceType(appType string) string {
 }
 
 // BuildJob creates a Job object for a security resource
-func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, c client.Client, jobName, namespace, appType string) (*batchv1.Job, error) {
+func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, c client.Client, jobName, namespace, appType, controllerNamespace string) (*batchv1.Job, error) {
 	spec := res.GetSpec()
 
 	labels := map[string]string{
@@ -140,7 +281,7 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 		"kentra.sh/resource-type": getResourceType(appType),
 	}
 
-	podSpec, err := buildPodSpec(ctx, c, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "job", appType)
+	podSpec, err := buildPodSpec(ctx, c, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "job", appType, controllerNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +315,7 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 }
 
 // BuildCronJob creates a CronJob object for a security resource
-func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, c client.Client, cronJobName, namespace, appType string) (*batchv1.CronJob, error) {
+func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme, configurator *ToolsConfigurator, c client.Client, cronJobName, namespace, appType, controllerNamespace string) (*batchv1.CronJob, error) {
 	spec := res.GetSpec()
 
 	labels := map[string]string{
@@ -184,7 +325,7 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 		"kentra.sh/resource-type": getResourceType(appType),
 	}
 
-	podSpec, err := buildPodSpec(ctx, c, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "cronjob", appType)
+	podSpec, err := buildPodSpec(ctx, c, spec, configurator, res.GetNamespace(), res.GetName(), spec.Debug, "cronjob", appType, controllerNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +364,7 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 }
 
 // buildPodSpec creates the PodSpec for a security resource
-func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string, debug bool, taskType, resourceType string) (corev1.PodSpec, error) {
+func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string, debug bool, taskType, resourceType, controllerNamespace string) (corev1.PodSpec, error) {
 	log := log.FromContext(ctx)
 
 	// Get tool configuration from configurator
@@ -318,7 +459,7 @@ func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, conf
 		})
 
 		// Find fluent-bit config by label
-		fluentBitConfigName, err := getConfigMapByLabel(ctx, c, namespace, "kentra.sh/resource-type", "fluentbit-config")
+		fluentBitConfigName, err := getConfigMapByLabel(ctx, c, namespace, "kentra.sh/resource-type", "fluentbit-config", controllerNamespace)
 		if err != nil {
 			log.Error(err, "Failed to find fluent-bit ConfigMap", "namespace", namespace)
 			return corev1.PodSpec{}, fmt.Errorf("failed to find fluent-bit ConfigMap: %w", err)
@@ -367,7 +508,7 @@ func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, conf
 
 	// Add Fluent Bit sidecar only if not in debug mode
 	if !debug {
-		fluentBitSidecar, err := buildFluentBitSidecar(ctx, c, namespace, resourceName, spec.Tool, taskType, resourceType)
+		fluentBitSidecar, err := buildFluentBitSidecar(ctx, c, namespace, resourceName, spec.Tool, taskType, resourceType, controllerNamespace)
 		if err != nil {
 			log.Error(err, "Failed to build fluent-bit sidecar", "namespace", namespace)
 			return corev1.PodSpec{}, fmt.Errorf("failed to build fluent-bit sidecar: %w", err)
@@ -438,11 +579,11 @@ func buildS3FileDownloaderInitContainer(files []string) corev1.Container {
 }
 
 // buildFluentBitSidecar creates the Fluent Bit sidecar container
-func buildFluentBitSidecar(ctx context.Context, c client.Client, namespace, resourceName, toolType, taskType, resourceType string) (corev1.Container, error) {
+func buildFluentBitSidecar(ctx context.Context, c client.Client, namespace, resourceName, toolType, taskType, resourceType, controllerNamespace string) (corev1.Container, error) {
 	log := log.FromContext(ctx)
 
 	// Find Loki credentials secret by label
-	lokiSecretName, err := getSecretByLabel(ctx, c, namespace, "kentra.sh/resource-type", "loki-credentials")
+	lokiSecretName, err := getSecretByLabel(ctx, c, namespace, "kentra.sh/resource-type", "loki-credentials", controllerNamespace)
 	if err != nil {
 		log.Error(err, "Failed to find Loki credentials Secret", "namespace", namespace)
 		return corev1.Container{}, fmt.Errorf("failed to find Loki credentials Secret: %w", err)
