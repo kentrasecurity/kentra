@@ -14,19 +14,10 @@ on:
       - 'go.sum'
       - 'Makefile'
       - '.github/workflows/docker-build-push.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'api/**'
-      - 'cmd/**'
-      - 'internal/**'
-      - 'config/**'
-      - 'Dockerfile'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Makefile'
-      - '.github/workflows/docker-build-push.yml'
+    tags:
+      - 'v*.*.*'
+  release:
+    types: [published]
   workflow_dispatch:
 
 env:
@@ -61,9 +52,8 @@ jobs:
           images: ${{ env.REGISTRY }}/docker/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}}-{{branch}},enable=${{ github.ref_name != 'main' }}
             type=raw,value=latest,enable={{is_default_branch}}
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
