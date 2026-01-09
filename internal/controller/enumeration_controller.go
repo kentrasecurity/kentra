@@ -37,8 +37,9 @@ import (
 // EnumerationReconciler reconciles a Enumeration object
 type EnumerationReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	Configurator *ToolsConfigurator
+	Scheme              *runtime.Scheme
+	Configurator        *ToolsConfigurator
+	ControllerNamespace string
 }
 
 //+kubebuilder:rbac:groups=kentra.sh,resources=enumerations,verbs=get;list;watch;create;update;patch;delete
@@ -48,10 +49,12 @@ type EnumerationReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=storagepools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get
 
 // Reconcile implements reconciliation for Enumeration resources
 func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -157,7 +160,7 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		err := r.Get(ctx, cronJobNN, cronJob)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new CronJob
-			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "enumeration")
+			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "enumeration", r.ControllerNamespace)
 			if err != nil {
 				log.Error(err, "Failed to build CronJob")
 				return ctrl.Result{}, err
@@ -190,7 +193,7 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				}
 
 				// Create new CronJob with updated spec
-				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "enumeration")
+				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "enumeration", r.ControllerNamespace)
 				if err != nil {
 					log.Error(err, "Failed to build new CronJob")
 					return ctrl.Result{}, err
@@ -212,7 +215,7 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		err := r.Get(ctx, jobNN, job)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new Job
-			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "enumeration")
+			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "enumeration", r.ControllerNamespace)
 			if err != nil {
 				log.Error(err, "Failed to build Job")
 				return ctrl.Result{}, err

@@ -21,8 +21,9 @@ import (
 // SecurityAttackReconciler reconciles a SecurityAttack object
 type SecurityAttackReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	Configurator *ToolsConfigurator
+	Scheme              *runtime.Scheme
+	Configurator        *ToolsConfigurator
+	ControllerNamespace string
 }
 
 //+kubebuilder:rbac:groups=kentra.sh,resources=securityattacks,verbs=get;list;watch;create;update;patch;delete
@@ -30,7 +31,8 @@ type SecurityAttackReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=securityattacks/finalizers,verbs=update
 //+kubebuilder:rbac:groups=kentra.sh,resources=targetpools,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=pods;configmaps,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get
 
 func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
@@ -108,7 +110,7 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		err := r.Get(ctx, cronJobNN, cronJob)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new CronJob
-			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "security-attack")
+			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "security-attack", r.ControllerNamespace)
 			if err != nil {
 				log.Error(err, "Failed to build CronJob")
 				return ctrl.Result{}, err
@@ -144,7 +146,7 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 
 				// Create new CronJob with updated spec
-				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "security-attack")
+				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "security-attack", r.ControllerNamespace)
 				if err != nil {
 					log.Error(err, "Failed to build new CronJob")
 					return ctrl.Result{}, err
@@ -169,7 +171,7 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		err := r.Get(ctx, jobNN, job)
 		if err != nil && errors.IsNotFound(err) {
 			// Create new Job
-			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "security-attack")
+			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "security-attack", r.ControllerNamespace)
 			if err != nil {
 				log.Error(err, "Failed to build Job")
 				return ctrl.Result{}, err
