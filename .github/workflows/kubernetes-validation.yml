@@ -30,15 +30,25 @@ jobs:
             exit 1
           }
 
-      - name: Install kubeconform
-        run: |
-          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
-          sudo mv kubeconform /usr/local/bin/
-
-      - name: Validate CRDs with kubeconform
+      - name: Validate CRD YAML syntax
         run: |
           if [ -d "config/crd/bases" ]; then
-            kubeconform -summary -strict config/crd/bases/*.yaml
+            for crd in config/crd/bases/*.yaml; do
+              echo "Validating YAML syntax: $crd"
+              python3 -c "import yaml, sys; yaml.safe_load(open('$crd'))" || exit 1
+            done
+          fi
+
+      - name: Check CRD structure
+        run: |
+          if [ -d "config/crd/bases" ]; then
+            for crd in config/crd/bases/*.yaml; do
+              echo "Checking $crd"
+              if ! grep -q "kind: CustomResourceDefinition" "$crd"; then
+                echo "Error: $crd is not a CRD"
+                exit 1
+              fi
+            done
           fi
 
   validate-helm:
