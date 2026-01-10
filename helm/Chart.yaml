@@ -8,10 +8,10 @@ description: |
 type: application
 
 # Chart version - increment this when making changes to the chart
-version: 0.1.10
+version: 0.2.0
 
 # Application version - the version of Kentra being deployed
-appVersion: "0.1.4"
+appVersion: "0.2.0"
 
 # Keywords for chart discovery
 keywords:

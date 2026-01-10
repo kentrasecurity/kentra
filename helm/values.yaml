@@ -25,7 +25,12 @@ loki:
 controller:
   replicas: 1
   kubernetesClusterDomain: cluster.local
-  
+
+  # Enable validating webhooks for namespace management
+  # Webhooks validate resources before creation and provide immediate feedback to kubectl
+  # Set to false to disable webhooks (useful for local development without certificates)
+  enableValidatingWebhooks: true
+
   # Controller arguments
   args:
   - --metrics-bind-address=:8443
@@ -111,6 +116,13 @@ controller:
   #           operator: In
   #           values:
   #           - linux
+
+# cert-manager configuration (for webhook TLS certificates)
+certManager:
+  # Enable cert-manager integration for webhook certificates
+  # If true, cert-manager will automatically generate and manage TLS certificates
+  # If false, you must provide certificates manually or disable webhooks
+  enabled: true
 
 # Metrics service configuration
 service:
