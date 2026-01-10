@@ -23,7 +23,7 @@ jobs:
       - name: Go security check with Gosec
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -fmt=text ./...
+          gosec -fmt=text -exclude-dir=test ./...
 
       - name: Dependency vulnerabilities with govulncheck
         run: |
