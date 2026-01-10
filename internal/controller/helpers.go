@@ -310,7 +310,9 @@ func BuildJob(ctx context.Context, res SecurityResource, scheme *runtime.Scheme,
 		},
 	}
 
-	controllerutil.SetControllerReference(res.GetKubeObject(), job, scheme)
+	if err := controllerutil.SetControllerReference(res.GetKubeObject(), job, scheme); err != nil {
+		return nil, err
+	}
 	return job, nil
 }
 
@@ -359,7 +361,9 @@ func BuildCronJob(ctx context.Context, res SecurityResource, scheme *runtime.Sch
 		},
 	}
 
-	controllerutil.SetControllerReference(res.GetKubeObject(), cronJob, scheme)
+	if err := controllerutil.SetControllerReference(res.GetKubeObject(), cronJob, scheme); err != nil {
+		return nil, err
+	}
 	return cronJob, nil
 }
 

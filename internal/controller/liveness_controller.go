@@ -46,10 +46,9 @@ type LivenessReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=livenesses/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kentra.sh,resources=livenesses/finalizers,verbs=update
 //+kubebuilder:rbac:groups=kentra.sh,resources=targetpools,verbs=get;list;watch
-//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch;create
-//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list
 
 // Reconcile implements reconciliation for Liveness resources
 func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -70,6 +69,17 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		log.Error(err, "Failed to get Liveness")
 		return ctrl.Result{}, err
+	}
+
+	// Check if namespace is managed by Kentra
+	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, liveness.Namespace)
+	if err != nil {
+		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", liveness.Namespace)
+		return ctrl.Result{}, err
+	}
+	if !isManaged {
+		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create Liveness in namespace without 'managed-by-kentra' annotation", "namespace", liveness.Namespace)
+		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", liveness.Namespace)
 	}
 
 	// Ensure labels are set

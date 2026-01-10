@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +39,7 @@ type StoragePoolReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=storagepools,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kentra.sh,resources=storagepools/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kentra.sh,resources=storagepools/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list
 
 // Reconcile implements reconciliation for StoragePool resources
 func (r *StoragePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -52,6 +54,17 @@ func (r *StoragePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		log.Error(err, "Failed to get StoragePool")
 		return ctrl.Result{}, err
+	}
+
+	// Check if namespace is managed by Kentra
+	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, sg.Namespace)
+	if err != nil {
+		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", sg.Namespace)
+		return ctrl.Result{}, err
+	}
+	if !isManaged {
+		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create StoragePool in namespace without 'managed-by-kentra' annotation", "namespace", sg.Namespace)
+		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", sg.Namespace)
 	}
 
 	// Ensure labels are set
