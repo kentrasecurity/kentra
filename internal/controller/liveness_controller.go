@@ -72,6 +72,17 @@ func (r *LivenessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
+	// Check if namespace is managed by Kentra
+	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, liveness.Namespace)
+	if err != nil {
+		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", liveness.Namespace)
+		return ctrl.Result{}, err
+	}
+	if !isManaged {
+		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create Liveness in namespace without 'managed-by-kentra' annotation", "namespace", liveness.Namespace)
+		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", liveness.Namespace)
+	}
+
 	// Ensure labels are set
 	if liveness.Labels == nil {
 		liveness.Labels = make(map[string]string)

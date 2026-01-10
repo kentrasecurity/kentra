@@ -77,6 +77,17 @@ func (r *EnumerationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
+	// Check if namespace is managed by Kentra
+	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, enum.Namespace)
+	if err != nil {
+		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", enum.Namespace)
+		return ctrl.Result{}, err
+	}
+	if !isManaged {
+		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create Enumeration in namespace without 'managed-by-kentra' annotation", "namespace", enum.Namespace)
+		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", enum.Namespace)
+	}
+
 	// Ensure labels are set
 	if enum.Labels == nil {
 		enum.Labels = make(map[string]string)

@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -52,6 +53,17 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		log.Error(err, "Failed to get AssetPool")
 		return ctrl.Result{}, err
+	}
+
+	// Check if namespace is managed by Kentra
+	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, ap.Namespace)
+	if err != nil {
+		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", ap.Namespace)
+		return ctrl.Result{}, err
+	}
+	if !isManaged {
+		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create AssetPool in namespace without 'managed-by-kentra' annotation", "namespace", ap.Namespace)
+		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", ap.Namespace)
 	}
 
 	// Ensure labels are set

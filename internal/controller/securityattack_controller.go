@@ -53,6 +53,17 @@ func (r *SecurityAttackReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
+	// Check if namespace is managed by Kentra
+	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, sa.Namespace)
+	if err != nil {
+		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", sa.Namespace)
+		return ctrl.Result{}, err
+	}
+	if !isManaged {
+		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create SecurityAttack in namespace without 'managed-by-kentra' annotation", "namespace", sa.Namespace)
+		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", sa.Namespace)
+	}
+
 	// Ensure labels are set
 	if sa.Labels == nil {
 		sa.Labels = make(map[string]string)
