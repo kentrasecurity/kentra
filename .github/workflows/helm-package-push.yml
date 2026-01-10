@@ -1,4 +1,4 @@
-name: Package and Push Helm Chart for Kentra Controller
+name: Package and Push Helm Chart
 
 on:
   push:

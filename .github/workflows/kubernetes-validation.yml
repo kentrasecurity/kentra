@@ -1,0 +1,67 @@
+name: Kubernetes Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-manifests:
+    name: Validate Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Generate manifests
+        run: make manifests
+
+      - name: Check uncommitted changes
+        run: |
+          git diff --exit-code || {
+            echo "Generated manifests are out of sync. Run 'make manifests' and commit."
+            exit 1
+          }
+
+      - name: Install kubeconform
+        run: |
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate CRDs
+        run: |
+          if [ -d "config/crd/bases" ]; then
+            kubeconform -summary -strict config/crd/bases/*.yaml
+          fi
+
+      - name: kubectl dry-run
+        run: |
+          if [ -d "config/crd/bases" ]; then
+            for crd in config/crd/bases/*.yaml; do
+              kubectl apply --dry-run=client -f "$crd"
+            done
+          fi
+
+  validate-helm:
+    name: Validate Helm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Helm lint
+        run: helm lint ./helm
+
+      - name: Helm template
+        run: helm template kentra ./helm > /tmp/helm-output.yaml
+
+      - name: Validate template output
+        run: kubectl apply --dry-run=client -f /tmp/helm-output.yaml

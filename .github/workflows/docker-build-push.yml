@@ -1,4 +1,4 @@
-name: Build and Push Kentra Controller
+name: Build and Push Docker Image
 
 on:
   push:
