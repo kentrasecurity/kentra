@@ -22,7 +22,7 @@ func RunAttackFlow(ns string, conf AttackConfig) {
 
 	// 1. Apply Resources
 	for _, f := range conf.Samples {
-		utils.RunIgnoringOutput(exec.Command("kubectl", "apply", "-f", filepath.Join(projDir, f), "-n", ns))
+		_ = utils.RunIgnoringOutput(exec.Command("kubectl", "apply", "-f", filepath.Join(projDir, f), "-n", ns))
 	}
 
 	// 2. Phase 1: Verify Job Creation (Match by Name)

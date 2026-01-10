@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +39,7 @@ type AssetPoolReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list
 
 // Reconcile implements reconciliation for AssetPool resources
 func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -52,6 +54,17 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		log.Error(err, "Failed to get AssetPool")
 		return ctrl.Result{}, err
+	}
+
+	// Check if namespace is managed by Kentra
+	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, ap.Namespace)
+	if err != nil {
+		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", ap.Namespace)
+		return ctrl.Result{}, err
+	}
+	if !isManaged {
+		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create AssetPool in namespace without 'managed-by-kentra' annotation", "namespace", ap.Namespace)
+		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", ap.Namespace)
 	}
 
 	// Ensure labels are set
@@ -72,18 +85,36 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	// Update status with item count
-	ap.Status.ItemCount = len(ap.Spec.Items)
+	// Calculate counts
+	itemCount := len(ap.Spec.Items)
+	groupCount := len(ap.Spec.Groups)
+	totalAssetSets := 0
+
+	for _, group := range ap.Spec.Groups {
+		if len(group.AssetSets) > 0 {
+			totalAssetSets += len(group.AssetSets)
+		} else if len(group.Assets) > 0 {
+			totalAssetSets += 1 // Legacy single asset set
+		}
+	}
+
+	// Update status
+	ap.Status.ItemCount = itemCount
+	ap.Status.GroupCount = groupCount
+	ap.Status.TotalAssetSets = totalAssetSets
 	ap.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	ap.Status.ObservedGeneration = ap.Generation
 
-	// Update status
 	if err := r.Status().Update(ctx, ap); err != nil {
 		log.Error(err, "Failed to update AssetPool status")
 		return ctrl.Result{}, err
 	}
 
-	log.Info("AssetPool reconciled successfully", "AssetPool", ap.Name, "ItemCount", len(ap.Spec.Items))
+	log.Info("AssetPool reconciled successfully",
+		"AssetPool", ap.Name,
+		"ItemCount", itemCount,
+		"GroupCount", groupCount,
+		"TotalAssetSets", totalAssetSets)
 	return ctrl.Result{}, nil
 }
 

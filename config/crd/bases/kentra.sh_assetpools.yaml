@@ -54,8 +54,78 @@ spec:
               description:
                 description: Description is an optional description of the asset pool
                 type: string
+              groups:
+                description: |-
+                  Groups is the structured list of asset groups
+                  When Groups is specified, Items is ignored
+                items:
+                  description: |-
+                    AssetGroup represents a logical grouping of multiple asset sets
+                    For example: a person with their primary and secondary contact info
+                  properties:
+                    assetSets:
+                      description: |-
+                        AssetSets contains multiple named sets of assets
+                        Each set will generate its own job
+                      items:
+                        description: NamedAssetSet represents a named collection of
+                          assets
+                        properties:
+                          assets:
+                            description: Assets are the individual assets in this
+                              set
+                            items:
+                              description: AssetItem defines a single asset in the
+                                pool
+                              properties:
+                                type:
+                                  description: Type specifies the type of asset (e.g.,
+                                    username, email, domain, ip)
+                                  type: string
+                                value:
+                                  description: Value is the actual value of the asset
+                                  type: string
+                              required:
+                              - type
+                              - value
+                              type: object
+                            type: array
+                          name:
+                            description: Name is the identifier for this asset set
+                              (e.g., "primary", "work", "personal")
+                            type: string
+                        required:
+                        - assets
+                        - name
+                        type: object
+                      type: array
+                    assets:
+                      description: |-
+                        Assets is the legacy field for backward compatibility
+                        When AssetSets is empty, this will be used as a single asset set
+                      items:
+                        description: AssetItem defines a single asset in the pool
+                        properties:
+                          type:
+                            description: Type specifies the type of asset (e.g., username,
+                              email, domain, ip)
+                            type: string
+                          value:
+                            description: Value is the actual value of the asset
+                            type: string
+                        required:
+                        - type
+                        - value
+                        type: object
+                      type: array
+                    name:
+                      description: Name is a friendly identifier for this group (e.g.,
+                        "john-doe")
+                      type: string
+                  type: object
+                type: array
               items:
-                description: Items is the list of assets in this pool
+                description: Items is the flat list of assets (legacy/simple mode)
                 items:
                   description: AssetItem defines a single asset in the pool
                   properties:
@@ -71,22 +141,20 @@ spec:
                   - value
                   type: object
                 type: array
-            required:
-            - items
             type: object
           status:
             description: AssetPoolStatus defines the observed state of AssetPool
             properties:
+              groupCount:
+                type: integer
               itemCount:
-                description: ItemCount is the number of items in this asset pool
                 type: integer
               lastUpdated:
-                description: LastUpdated is the timestamp of last update
                 type: string
               observedGeneration:
-                description: ObservedGeneration is the generation observed by the
-                  controller
                 format: int64
+                type: integer
+              totalAssetSets:
                 type: integer
             type: object
         type: object

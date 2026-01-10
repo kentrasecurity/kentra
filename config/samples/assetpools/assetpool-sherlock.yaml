@@ -4,13 +4,35 @@ metadata:
   name: username-targets
   namespace: kentra-system
 spec:
-  description: "Pool of username targets for OSINT"
-  items:
-    - type: username
-      value: johndoe
-    - type: email
-      value: johndoe@email.com
-    - type: username
-      value: janedoe
-    - type: phone
-      value: "+1234567890"
+  description: Grouped assets - fully dynamic structure
+  groups:
+    - assetSets:
+        - assets:
+            - type: username
+              value: john
+            - type: username
+              value: doe
+            - type: email
+              value: johndoe@gmail.com
+            - type: phone
+              value: '+1234567890'
+          name: primary
+        - assets:
+            - type: username
+              value: jhondoe
+            - type: email
+              value: johndoe@company.com
+          name: secondary
+      name: john-doe
+    - assetSets:
+        - assets:
+            - type: username
+              value: jane
+          name: university
+        - assets:
+            - type: username
+              value: janelove
+            - type: email
+              value: jane@personal.com
+          name: personal
+      name: jane-doe

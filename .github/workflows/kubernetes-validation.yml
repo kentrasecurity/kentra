@@ -1,0 +1,66 @@
+name: Kubernetes Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-manifests:
+    name: Validate Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Generate manifests
+        run: make manifests
+
+      - name: Check uncommitted changes
+        run: |
+          git diff --exit-code || {
+            echo "Generated manifests are out of sync. Run 'make manifests' and commit."
+            exit 1
+          }
+
+      - name: Validate CRD YAML syntax
+        run: |
+          if [ -d "config/crd/bases" ]; then
+            for crd in config/crd/bases/*.yaml; do
+              echo "Validating YAML syntax: $crd"
+              python3 -c "import yaml, sys; yaml.safe_load(open('$crd'))" || exit 1
+            done
+          fi
+
+      - name: Check CRD structure
+        run: |
+          if [ -d "config/crd/bases" ]; then
+            for crd in config/crd/bases/*.yaml; do
+              echo "Checking $crd"
+              if ! grep -q "kind: CustomResourceDefinition" "$crd"; then
+                echo "Error: $crd is not a CRD"
+                exit 1
+              fi
+            done
+          fi
+
+  validate-helm:
+    name: Validate Helm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Helm lint
+        run: helm lint ./helm
+
+      - name: Helm template validation
+        run: helm template kentra ./helm > /tmp/helm-output.yaml

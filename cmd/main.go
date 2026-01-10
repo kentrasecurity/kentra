@@ -285,6 +285,39 @@ func main() {
 	//	os.Exit(1)
 	// }
 
+	// Setup webhooks
+	if os.Getenv("ENABLE_WEBHOOKS") == "true" {
+		if err = (&securityv1alpha1.Enumeration{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Enumeration")
+			os.Exit(1)
+		}
+		if err = (&securityv1alpha1.Liveness{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Liveness")
+			os.Exit(1)
+		}
+		if err = (&securityv1alpha1.SecurityAttack{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "SecurityAttack")
+			os.Exit(1)
+		}
+		if err = (&securityv1alpha1.Osint{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Osint")
+			os.Exit(1)
+		}
+		if err = (&securityv1alpha1.StoragePool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "StoragePool")
+			os.Exit(1)
+		}
+		if err = (&securityv1alpha1.TargetPool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "TargetPool")
+			os.Exit(1)
+		}
+		if err = (&securityv1alpha1.AssetPool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AssetPool")
+			os.Exit(1)
+		}
+		setupLog.Info("Webhooks registered successfully")
+	}
+
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
