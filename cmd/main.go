@@ -286,7 +286,7 @@ func main() {
 	// }
 
 	// Setup webhooks
-	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+	if os.Getenv("ENABLE_WEBHOOKS") == "true" {
 		if err = (&securityv1alpha1.Enumeration{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Enumeration")
 			os.Exit(1)

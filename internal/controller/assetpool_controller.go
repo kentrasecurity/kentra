@@ -39,6 +39,7 @@ type AssetPoolReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list
 
 // Reconcile implements reconciliation for AssetPool resources
 func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

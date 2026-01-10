@@ -1,0 +1,153 @@
+{{- if .Values.controller.enableValidatingWebhooks }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "controller.fullname" . }}-validating-webhook-configuration
+  labels:
+  {{- include "controller.labels" . | nindent 4 }}
+  {{- if .Values.certManager.enabled }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "controller.fullname" . }}-serving-cert
+  {{- end }}
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "controller.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kentra-sh-v1alpha1-assetpool
+  failurePolicy: Fail
+  name: vassetpool.kb.io
+  rules:
+  - apiGroups:
+    - kentra.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - assetpools
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "controller.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kentra-sh-v1alpha1-enumeration
+  failurePolicy: Fail
+  name: venumeration.kb.io
+  rules:
+  - apiGroups:
+    - kentra.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - enumerations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "controller.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kentra-sh-v1alpha1-liveness
+  failurePolicy: Fail
+  name: vliveness.kb.io
+  rules:
+  - apiGroups:
+    - kentra.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - livenesses
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "controller.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kentra-sh-v1alpha1-osint
+  failurePolicy: Fail
+  name: vosint.kb.io
+  rules:
+  - apiGroups:
+    - kentra.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - osints
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "controller.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kentra-sh-v1alpha1-securityattack
+  failurePolicy: Fail
+  name: vsecurityattack.kb.io
+  rules:
+  - apiGroups:
+    - kentra.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - securityattacks
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "controller.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kentra-sh-v1alpha1-storagepool
+  failurePolicy: Fail
+  name: vstoragepool.kb.io
+  rules:
+  - apiGroups:
+    - kentra.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - storagepools
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "controller.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kentra-sh-v1alpha1-targetpool
+  failurePolicy: Fail
+  name: vtargetpool.kb.io
+  rules:
+  - apiGroups:
+    - kentra.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - targetpools
+  sideEffects: None
+{{- end }}

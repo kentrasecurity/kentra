@@ -39,6 +39,7 @@ type StoragePoolReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=storagepools,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kentra.sh,resources=storagepools/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kentra.sh,resources=storagepools/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list
 
 // Reconcile implements reconciliation for StoragePool resources
 func (r *StoragePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
