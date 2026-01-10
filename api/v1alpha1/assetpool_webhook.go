@@ -25,7 +25,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -43,6 +42,7 @@ func (r *AssetPool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:path=/validate-kentra-sh-v1alpha1-assetpool,mutating=false,failurePolicy=fail,sideEffects=None,groups=kentra.sh,resources=assetpools,verbs=create;update,versions=v1alpha1,name=vassetpool.kb.io,admissionReviewVersions=v1
 
 // AssetPoolValidator validates AssetPool resources
+// +kubebuilder:object:generate=false
 type AssetPoolValidator struct {
 	Client client.Client
 }

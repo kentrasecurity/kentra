@@ -25,7 +25,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -43,6 +42,7 @@ func (r *Liveness) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:path=/validate-kentra-sh-v1alpha1-liveness,mutating=false,failurePolicy=fail,sideEffects=None,groups=kentra.sh,resources=livenesses,verbs=create;update,versions=v1alpha1,name=vliveness.kb.io,admissionReviewVersions=v1
 
 // LivenessValidator validates Liveness resources
+// +kubebuilder:object:generate=false
 type LivenessValidator struct {
 	Client client.Client
 }

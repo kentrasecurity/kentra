@@ -25,7 +25,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -43,6 +42,7 @@ func (r *StoragePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:path=/validate-kentra-sh-v1alpha1-storagepool,mutating=false,failurePolicy=fail,sideEffects=None,groups=kentra.sh,resources=storagepools,verbs=create;update,versions=v1alpha1,name=vstoragepool.kb.io,admissionReviewVersions=v1
 
 // StoragePoolValidator validates StoragePool resources
+// +kubebuilder:object:generate=false
 type StoragePoolValidator struct {
 	Client client.Client
 }
