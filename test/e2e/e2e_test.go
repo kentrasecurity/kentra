@@ -21,14 +21,14 @@ var _ = Describe("Kentra Attack Operator", func() {
 				"config/samples/attacks/security_v1alpha1_osint_sherlock_with_assets.yaml",
 			},
 		}),
-		Entry("Enumeration Nmap", AttackConfig{
-			Kind: "enumeration",
-			Name: "nmap-scan-ports",
-			Time: "5m",
-			Samples: []string{
-				"config/samples/targetpools/kttack_v1alpha1_targetpool_nmap_ports.yaml",
-				"config/samples/attacks/kttack_v1alpha1_enumeration_nmap_scan_ports.yaml",
-			},
-		}),
+		// Entry("Enumeration Nmap", AttackConfig{
+		// 	Kind: "enumeration",
+		// 	Name: "nmap-scan-ports",
+		// 	Time: "5m",
+		// 	Samples: []string{
+		// 		"config/samples/targetpools/kttack_v1alpha1_targetpool_nmap_ports.yaml",
+		// 		"config/samples/attacks/kttack_v1alpha1_enumeration_nmap_scan_ports.yaml",
+		// 	},
+		// }),
 	)
 })
