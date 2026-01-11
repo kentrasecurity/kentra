@@ -77,7 +77,6 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		needsUpdate = true
 	}
 
-	// Update the resource if labels were modified
 	if needsUpdate {
 		if err := r.Update(ctx, ap); err != nil {
 			log.Error(err, "Failed to update AssetPool labels")
@@ -85,23 +84,19 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	// Calculate counts
+	// Calcolo dei conteggi con la nuova struttura piatta
 	itemCount := len(ap.Spec.Items)
 	groupCount := len(ap.Spec.Groups)
-	totalAssetSets := 0
 
+	// Calcoliamo il totale degli asset individuali presenti in tutti i gruppi
+	totalAssets := 0
 	for _, group := range ap.Spec.Groups {
-		if len(group.AssetSets) > 0 {
-			totalAssetSets += len(group.AssetSets)
-		} else if len(group.Assets) > 0 {
-			totalAssetSets += 1 // Legacy single asset set
-		}
+		totalAssets += len(group.Assets)
 	}
 
-	// Update status
+	// Aggiornamento status
 	ap.Status.ItemCount = itemCount
 	ap.Status.GroupCount = groupCount
-	ap.Status.TotalAssetSets = totalAssetSets
 	ap.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	ap.Status.ObservedGeneration = ap.Generation
 
@@ -112,9 +107,9 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	log.Info("AssetPool reconciled successfully",
 		"AssetPool", ap.Name,
-		"ItemCount", itemCount,
-		"GroupCount", groupCount,
-		"TotalAssetSets", totalAssetSets)
+		"Groups", groupCount,
+		"TotalAssets", totalAssets)
+
 	return ctrl.Result{}, nil
 }
 

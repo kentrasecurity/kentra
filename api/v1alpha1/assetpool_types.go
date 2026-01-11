@@ -22,58 +22,32 @@ import (
 
 // AssetItem defines a single asset in the pool
 type AssetItem struct {
-	// Type specifies the type of asset (e.g., username, email, domain, ip)
-	// +kubebuilder:validation:Required
+	// Type es: "username", "email", "phone"
 	Type string `json:"type"`
 
-	// Value is the actual value of the asset
-	// +kubebuilder:validation:Required
+	// Value deve essere una stringa singola
 	Value string `json:"value"`
-}
-
-// NamedAssetSet represents a named collection of assets
-type NamedAssetSet struct {
-	// Name is the identifier for this asset set (e.g., "primary", "work", "personal")
-	Name string `json:"name"`
-
-	// Assets are the individual assets in this set
-	Assets []AssetItem `json:"assets"`
 }
 
 // AssetGroup represents a logical grouping of multiple asset sets
 // For example: a person with their primary and secondary contact info
 type AssetGroup struct {
-	// Name is a friendly identifier for this group (e.g., "john-doe")
-	Name string `json:"name,omitempty"`
-
-	// AssetSets contains multiple named sets of assets
-	// Each set will generate its own job
-	AssetSets []NamedAssetSet `json:"assetSets,omitempty"`
-
-	// Assets is the legacy field for backward compatibility
-	// When AssetSets is empty, this will be used as a single asset set
+	Name   string      `json:"name,omitempty"`
 	Assets []AssetItem `json:"assets,omitempty"`
 }
 
 // AssetPoolSpec defines the desired state of AssetPool
 type AssetPoolSpec struct {
-	// Description is an optional description of the asset pool
-	// +optional
-	Description string `json:"description,omitempty"`
-
-	// Items is the flat list of assets (legacy/simple mode)
+	Description string       `json:"description,omitempty"`
+	Groups      []AssetGroup `json:"group,omitempty"`
+	// Manteniamo Items per compatibilità se lo usi ancora all'esterno dei gruppi
 	Items []AssetItem `json:"items,omitempty"`
-
-	// Groups is the structured list of asset groups
-	// When Groups is specified, Items is ignored
-	Groups []AssetGroup `json:"groups,omitempty"`
 }
 
 // AssetPoolStatus defines the observed state of AssetPool
 type AssetPoolStatus struct {
 	ItemCount          int    `json:"itemCount,omitempty"`
 	GroupCount         int    `json:"groupCount,omitempty"`
-	TotalAssetSets     int    `json:"totalAssetSets,omitempty"`
 	LastUpdated        string `json:"lastUpdated,omitempty"`
 	ObservedGeneration int64  `json:"observedGeneration,omitempty"`
 }

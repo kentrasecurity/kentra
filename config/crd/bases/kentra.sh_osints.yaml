@@ -128,11 +128,10 @@ spec:
                   description: AssetItem defines a single asset in the pool
                   properties:
                     type:
-                      description: Type specifies the type of asset (e.g., username,
-                        email, domain, ip)
+                      description: 'Type es: "username", "email", "phone"'
                       type: string
                     value:
-                      description: Value is the actual value of the asset
+                      description: Value deve essere una stringa singola
                       type: string
                   required:
                   - type
