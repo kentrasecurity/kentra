@@ -31,6 +31,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	ns := "kentra-system"
 	utils.RunIgnoringOutput(exec.Command("kubectl", "create", "ns", ns))
 
+	// add annotation to the namespace to mark it as managed by Kentra
+	utils.RunIgnoringOutput(exec.Command("kubectl", "annotate", "ns", ns, "managed-by-kentra=true"))
+
 	// Apply the kustomize overlay for testing
 	overlay := fmt.Sprintf("%s/config/overlays/test", projDir)
 	err = utils.RunIgnoringOutput(exec.Command("kubectl", "apply", "-k", overlay, "-n", ns))
