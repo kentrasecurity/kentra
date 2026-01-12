@@ -11,63 +11,82 @@ import (
 )
 
 type AttackConfig struct {
-	Name, Kind, Label, Time string
-	Samples                 []string
+	Name, Kind, Time string
+	Samples          []string
+	Label            map[string]string
 }
 
 func RunAttackFlow(ns string, conf AttackConfig) {
 	projDir, _ := utils.GetProjectDir()
 	prefix := fmt.Sprintf("[%s] ", strings.ToUpper(conf.Kind))
-	rate := utils.CalculatePollingInterval(conf.Time) // calculate rate based on time
+	rate := utils.CalculatePollingInterval(conf.Time)
 
-	// 1. Apply Resources
+	// 1. Convertiamo la mappa Label in una stringa selettore per kubectl (es: "app=osint,tool=sherlock")
+	var labelParts []string
+	for k, v := range conf.Label {
+		labelParts = append(labelParts, fmt.Sprintf("%s=%s", k, v))
+	}
+	labelSelector := strings.Join(labelParts, ",")
+
+	// 2. Apply Resources
 	for _, f := range conf.Samples {
 		_ = utils.RunIgnoringOutput(exec.Command("kubectl", "apply", "-f", filepath.Join(projDir, f), "-n", ns))
 	}
 
-	// 2. Phase 1: Verify Job Creation (Match by Name)
-	fmt.Printf("%s⏳ Waiting for Job/%s...\n", prefix, conf.Name)
+	// 3. Phase 1: Verify Job Creation (Usa il selettore dinamico)
+	fmt.Printf("%s⏳ Waiting for Jobs of %s (Selector: %s)...\n", prefix, conf.Name, labelSelector)
 	Eventually(func() error {
-		return utils.RunIgnoringOutput(exec.Command("kubectl", "get", "jobs", "-n", ns, "-l", "kentra.sh/"+strings.ToLower(conf.Kind)+"-name="+conf.Name))
-	}, "2m", "5s").Should(Succeed(), "Job should be created with name: "+conf.Name)
-	fmt.Printf("%s✅ Job/%s detected.\n", prefix, conf.Name)
+		// Verifichiamo se esiste almeno un job con quei label
+		return utils.RunIgnoringOutput(exec.Command("kubectl", "get", "jobs", "-n", ns, "-l", labelSelector))
+	}, "2m", "5s").Should(Succeed(), "At least one Job should be created for: "+conf.Name)
+	fmt.Printf("%s✅ Job(s) detected.\n", prefix)
 
-	// 3. Phase 2: Verify Completion of ALL Jobs
+	// 4. Phase 2: Verify Completion of ALL Jobs
 	fmt.Printf("%s⏳ Waiting for all Jobs of %s to complete...\n", prefix, conf.Name)
 
-	labelSelector := fmt.Sprintf("kentra.sh/%s-name=%s", strings.ToLower(conf.Kind), conf.Name)
-
 	Eventually(func() error {
-		// 1. Ottieni la lista dei Job tramite label
-		// jsonpath restituisce lo stato della condizione 'Complete' per ogni job trovato, separato da spazio
+		// Otteniamo il conteggio totale dei Job presenti per questo attacco
+		countOut, _ := utils.Run(exec.Command("kubectl", "get", "jobs", "-n", ns, "-l", labelSelector, "--no-headers"))
+		jobLines := strings.Split(strings.TrimSpace(string(countOut)), "\n")
+		totalJobs := len(jobLines)
+		if string(countOut) == "" {
+			totalJobs = 0
+		}
+
+		if totalJobs == 0 {
+			return fmt.Errorf("no jobs found with selector: %s", labelSelector)
+		}
+
+		// Verifichiamo quanti sono marcati come "Complete"
+		// Usiamo un JSONPath robusto che restituisce una lista di status
 		cmd := exec.Command("kubectl", "get", "jobs", "-n", ns, "-l", labelSelector, "-o", "jsonpath={.items[*].status.conditions[?(@.type==\"Complete\")].status}")
 		out, err := utils.Run(cmd)
 		if err != nil {
 			return err
 		}
 
-		// Dividiamo l'output (es: "True True" se ci sono due job completati)
 		statuses := strings.Fields(string(out))
-
-		// Controlliamo quanti job ci aspettiamo (opzionale, ma consigliato)
-		// Se lo YAML ha 2 gruppi, dobbiamo trovare 2 stati "True"
-		if len(statuses) == 0 {
-			return fmt.Errorf("no jobs found yet")
-		}
-
-		for _, status := range statuses {
-			if status != "True" {
-				return fmt.Errorf("one or more jobs are not completed yet (status: %s)", status)
+		completedCount := 0
+		for _, s := range statuses {
+			if s == "True" {
+				completedCount++
 			}
 		}
 
-		// 2. Controllo Fallimenti (opzionale ma utile)
+		// Se non tutti i job trovati sono completati, ritenta
+		if completedCount < totalJobs {
+			return fmt.Errorf("waiting for completion: %d/%d jobs finished", completedCount, totalJobs)
+		}
+
+		// Controllo rapido per i fallimenti
 		failCmd := exec.Command("kubectl", "get", "jobs", "-n", ns, "-l", labelSelector, "-o", "jsonpath={.items[*].status.conditions[?(@.type==\"Failed\")].status}")
 		failOut, _ := utils.Run(failCmd)
 		if strings.Contains(string(failOut), "True") {
-			return fmt.Errorf("one or more jobs FAILED")
+			return fmt.Errorf("one or more jobs FAILED for %s", conf.Name)
 		}
 
 		return nil
 	}, conf.Time, rate).Should(Succeed(), "All jobs for "+conf.Name+" should complete successfully")
+
+	fmt.Printf("%s🏁 All Jobs for %s finished successfully.\n", prefix, conf.Name)
 }

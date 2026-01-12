@@ -16,6 +16,11 @@ var _ = Describe("Kentra Attack Operator", func() {
 			Kind: "osint",
 			Name: "osint-sample",
 			Time: "10m",
+			Label: map[string]string{
+				"app":                     "osint",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "sherlock",
+			},
 			Samples: []string{
 				"config/samples/assetpools/assetpool-sherlock.yaml",
 				"config/samples/attacks/security_v1alpha1_osint_sherlock_with_assets.yaml",
