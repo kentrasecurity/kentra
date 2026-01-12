@@ -237,15 +237,20 @@ type ResourceSpec struct {
 	Tool          string
 	Target        string
 	Category      string
+	Module        string
+	Payload       string
+	RawCommand    string
 	Args          []string
 	HTTPProxy     string
 	AdditionalEnv []corev1.EnvVar
+	Capabilities  []string
 	Debug         bool
 	Periodic      bool
 	Schedule      string
 	Port          string
 	Files         []string
 	Assets        []securityv1alpha1.AssetItem
+	ReverseShell  *securityv1alpha1.ReverseShellConfig
 }
 
 // ResourceStatus defines the common status fields across security resources
@@ -397,10 +402,19 @@ func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, conf
 
 	// Build command from template using proper template handling
 	var command []string
-	if len(spec.Assets) > 0 {
+	if spec.RawCommand != "" {
+		// Use raw command as-is for rawExploit category
+		log.Info("Using raw command", "tool", spec.Tool, "command", spec.RawCommand)
+		command = []string{"/bin/sh", "-c", spec.RawCommand}
+	} else if len(spec.Assets) > 0 {
 		// Use asset-aware command building
 		log.Info("Building command with assets", "tool", spec.Tool, "assetsCount", len(spec.Assets))
 		command, err = configurator.BuildCommandWithAssets(spec.Tool, spec.Assets, spec.Args)
+		log.Info("Built command", "command", command)
+	} else if spec.Module != "" {
+		// Use module/payload-aware command building for exploits
+		log.Info("Building command with module", "tool", spec.Tool, "module", spec.Module, "payload", spec.Payload)
+		command, err = configurator.BuildCommandWithModule(spec.Tool, spec.Target, spec.Port, spec.Module, spec.Payload, spec.Args)
 		log.Info("Built command", "command", command)
 	} else {
 		// Use standard command building
@@ -412,27 +426,65 @@ func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, conf
 		return corev1.PodSpec{}, err
 	}
 
-	// Extract capabilities
-	capabilities, _ := configurator.GetCapabilities(spec.Tool)
-	securityContext := &corev1.SecurityContext{}
-	if len(capabilities) > 0 {
-		capList := make([]corev1.Capability, len(capabilities))
-		for i, cap := range capabilities {
-			capList[i] = corev1.Capability(cap)
+	// For rawExploit, use custom capabilities and skip tool config processing
+	var securityContext *corev1.SecurityContext
+	if spec.RawCommand != "" {
+		// rawExploit: use spec.Capabilities instead of tool capabilities
+		securityContext = &corev1.SecurityContext{}
+		if len(spec.Capabilities) > 0 {
+			capList := make([]corev1.Capability, len(spec.Capabilities))
+			for i, cap := range spec.Capabilities {
+				capList[i] = corev1.Capability(cap)
+			}
+			securityContext.Capabilities = &corev1.Capabilities{
+				Add: capList,
+			}
 		}
-		securityContext.Capabilities = &corev1.Capabilities{
-			Add: capList,
+	} else {
+		// Normal exploit: extract capabilities from tool config
+		securityContext = &corev1.SecurityContext{}
+		toolCapabilities, _ := configurator.GetCapabilities(spec.Tool)
+		if len(toolCapabilities) > 0 {
+			capList := make([]corev1.Capability, len(toolCapabilities))
+			for i, cap := range toolCapabilities {
+				capList[i] = corev1.Capability(cap)
+			}
+			securityContext.Capabilities = &corev1.Capabilities{
+				Add: capList,
+			}
 		}
 	}
 
 	// Build command with shell wrapper for logging
 	var shellWrappedCommand string
-	if debug {
-		// Debug mode: output to stdout - pass command directly with 5 sec delay
-		shellWrappedCommand = "sleep 5 && " + strings.Join(command, " ")
+	var containerCmd []string
+	var containerArgs []string
+
+	if spec.RawCommand != "" {
+		// For rawExploit: execute rawCommand directly without wrapping
+		containerCmd = []string{"/bin/sh", "-c"}
+		containerArgs = []string{spec.RawCommand}
 	} else {
-		// Normal mode: redirect to emptydir volume and create done file with 5 sec delay
-		shellWrappedCommand = "sleep 5 && " + strings.Join(command, " ") + " > /logs/job.log 2>&1; touch /logs/done"
+		// For other exploits: apply shell wrapping with sleep delay
+		if debug {
+			// Debug mode: output to stdout - pass command directly with 5 sec delay
+			if len(command) > 0 && (command[0] == "sh" || command[0] == "/bin/sh") && len(command) > 2 && command[1] == "-c" {
+				// Already shell-wrapped raw command
+				shellWrappedCommand = "sleep 5 && " + command[2]
+			} else {
+				shellWrappedCommand = "sleep 5 && " + strings.Join(command, " ")
+			}
+		} else {
+			// Normal mode: redirect to emptydir volume and create done file with 5 sec delay
+			if len(command) > 0 && (command[0] == "sh" || command[0] == "/bin/sh") && len(command) > 2 && command[1] == "-c" {
+				// Already shell-wrapped raw command
+				shellWrappedCommand = "sleep 5 && " + command[2] + " > /logs/job.log 2>&1; touch /logs/done"
+			} else {
+				shellWrappedCommand = "sleep 5 && " + strings.Join(command, " ") + " > /logs/job.log 2>&1; touch /logs/done"
+			}
+		}
+		containerCmd = []string{"sh"}
+		containerArgs = []string{"-c", shellWrappedCommand}
 	}
 
 	podSpec := corev1.PodSpec{
@@ -441,8 +493,8 @@ func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, conf
 			{
 				Name:            "security-tool",
 				Image:           toolConfig.Image,
-				Command:         []string{"sh"},
-				Args:            []string{"-c", shellWrappedCommand},
+				Command:         containerCmd,
+				Args:            containerArgs,
 				Env:             envVars,
 				SecurityContext: securityContext,
 			},
@@ -503,11 +555,22 @@ func buildPodSpec(ctx context.Context, c client.Client, spec *ResourceSpec, conf
 	podSpec.Volumes = volumes
 	podSpec.Containers[0].VolumeMounts = volumeMounts
 
-	// Add init container if files are specified
+	// Add init containers for files
+	initContainers := []corev1.Container{}
+
 	if len(spec.Files) > 0 {
-		podSpec.InitContainers = []corev1.Container{
-			buildS3FileDownloaderInitContainer(spec.Files),
-		}
+		initContainers = append(initContainers, buildS3FileDownloaderInitContainer(spec.Files))
+	}
+
+	if len(initContainers) > 0 {
+		podSpec.InitContainers = initContainers
+	}
+
+	// Add reverse shell sidecar container if enabled
+	if spec.ReverseShell != nil && spec.ReverseShell.Enabled {
+		revshellContainer := buildReverseShellHandlerSidecar(ctx, spec, configurator, namespace, resourceName)
+		podSpec.Containers = append(podSpec.Containers, revshellContainer)
+		podSpec.InitContainers = initContainers
 	}
 
 	// Add Fluent Bit sidecar only if not in debug mode
@@ -579,6 +642,91 @@ func buildS3FileDownloaderInitContainer(files []string) corev1.Container {
 				},
 			},
 		},
+	}
+}
+
+// buildReverseShellHandlerInitContainer creates an init container that spawns a reverse shell handler
+func buildReverseShellHandlerInitContainer(ctx context.Context, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string) corev1.Container {
+	log := log.FromContext(ctx)
+
+	// Build the reverse shell handler command using metasploit
+	handlerArgs := []string{
+		fmt.Sprintf("PAYLOAD=%s", spec.ReverseShell.Payload),
+		fmt.Sprintf("LHOST=%s", spec.ReverseShell.Host),
+		fmt.Sprintf("LPORT=%s", spec.ReverseShell.Port),
+	}
+
+	handlerCmd, err := configurator.BuildCommandWithModule("metasploit", "", spec.ReverseShell.Port, "exploit/multi/handler", spec.ReverseShell.Payload, handlerArgs)
+	if err != nil {
+		log.Error(err, "Failed to build reverse shell handler command")
+		handlerCmd = []string{
+			"/usr/src/metasploit-framework/msfconsole",
+			"-q",
+			"-x",
+			fmt.Sprintf("use exploit/multi/handler ; set PAYLOAD %s; set LHOST %s; set LPORT %s; exploit; exit -y", spec.ReverseShell.Payload, spec.ReverseShell.Host, spec.ReverseShell.Port),
+		}
+	}
+
+	return corev1.Container{
+		Name:    "reverse-shell-handler",
+		Image:   "metasploitframework/metasploit-framework:latest",
+		Command: []string{"sh", "-c"},
+		Args:    []string{strings.Join(handlerCmd, " ")},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "LHOST",
+				Value: spec.ReverseShell.Host,
+			},
+			{
+				Name:  "LPORT",
+				Value: spec.ReverseShell.Port,
+			},
+			{
+				Name:  "PAYLOAD",
+				Value: spec.ReverseShell.Payload,
+			},
+		},
+	}
+}
+
+// buildReverseShellHandlerSidecar creates a sidecar container that spawns a reverse shell handler
+// This sidecar runs in parallel with the main exploit container, ensuring the handler is ready
+func buildReverseShellHandlerSidecar(ctx context.Context, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string) corev1.Container {
+	log := log.FromContext(ctx)
+
+	// Build the reverse shell handler command using metasploit with exploit mode (stays running)
+	handlerCmd := fmt.Sprintf(
+		"/usr/src/metasploit-framework/msfconsole -q -x 'use exploit/multi/handler ; set PAYLOAD %s; set LHOST %s; set LPORT %s; exploit'",
+		spec.ReverseShell.Payload,
+		spec.ReverseShell.Host,
+		spec.ReverseShell.Port,
+	)
+
+	log.Info("Building reverse shell handler sidecar", "host", spec.ReverseShell.Host, "port", spec.ReverseShell.Port, "payload", spec.ReverseShell.Payload)
+
+	return corev1.Container{
+		Name:    "reverse-shell-handler",
+		Image:   "metasploitframework/metasploit-framework:latest",
+		Command: []string{"/bin/sh", "-c"},
+		Args:    []string{handlerCmd},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "LHOST",
+				Value: spec.ReverseShell.Host,
+			},
+			{
+				Name:  "LPORT",
+				Value: spec.ReverseShell.Port,
+			},
+			{
+				Name:  "PAYLOAD",
+				Value: spec.ReverseShell.Payload,
+			},
+		},
+		// Container stays running as long as the handler is active
+		TTY:   true,
+		Stdin: true,
+		// No restart policy - container completes when handler exits
 	}
 }
 

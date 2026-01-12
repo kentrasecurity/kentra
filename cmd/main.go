@@ -207,6 +207,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create ToolsConfigurator for Exploit controller
+	exploitConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
+	setupLog.Info("ToolsConfigurator created for Exploit controller")
+
+	// Setup ExploitReconciler
+	if err := (&controller.ExploitReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Configurator:        exploitConfigurator,
+		ControllerNamespace: controllerNamespace,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Exploit")
+		os.Exit(1)
+	}
+
 	// Setup EnumerationReconciler
 	if err := (&controller.EnumerationReconciler{
 		Client:              mgr.GetClient(),

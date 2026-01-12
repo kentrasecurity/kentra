@@ -197,6 +197,39 @@ func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, port s
 	return cmd, nil
 }
 
+// BuildCommandWithModule builds command with Module and Payload for exploit resources
+func (tc *ToolsConfigurator) BuildCommandWithModule(toolName string, target string, port string, module string, payload string, args []string) ([]string, error) {
+	tc.mu.RLock()
+	config, ok := tc.tools[toolName]
+	tc.mu.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("tool %q not found in configuration", toolName)
+	}
+
+	tmpl, err := template.New("cmd").Parse(config.CommandTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse command template: %w", err)
+	}
+
+	data := map[string]interface{}{
+		"Target":  target,
+		"Port":    port,
+		"Module":  module,
+		"Payload": payload,
+		"Args":    strings.Join(args, " "),
+		"Item":    target,
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, data); err != nil {
+		return nil, fmt.Errorf("failed to execute command template: %w", err)
+	}
+
+	cmd := strings.Fields(out.String())
+	return cmd, nil
+}
+
 // BuildCommandWithAssets builds command with assets as individual or grouped template variables
 func (tc *ToolsConfigurator) BuildCommandWithAssets(toolName string, assets []securityv1alpha1.AssetItem, args []string) ([]string, error) {
 	tc.mu.RLock()
