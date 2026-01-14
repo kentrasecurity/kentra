@@ -45,6 +45,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract appVersion from Chart.yaml
+        id: chart_version
+        run: |
+          APP_VERSION=$(grep '^appVersion:' helm/Chart.yaml | awk '{print $2}' | tr -d '"')
+          echo "version=$APP_VERSION" >> $GITHUB_OUTPUT
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
@@ -55,6 +61,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{version}}-{{branch}},enable=${{ github.ref_name != 'main' }}
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.chart_version.outputs.version }},enable={{is_default_branch}}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
