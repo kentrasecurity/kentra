@@ -330,6 +330,10 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AssetPool")
 			os.Exit(1)
 		}
+		if err = (&securityv1alpha1.Exploit{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Exploit")
+			os.Exit(1)
+		}
 		setupLog.Info("Webhooks registered successfully")
 	}
 
