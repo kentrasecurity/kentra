@@ -13,7 +13,23 @@ spec:
     singular: osint
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.tool
+      name: Tool
+      type: string
+    - jsonPath: .spec.assetPool
+      name: AssetPool
+      type: string
+    - jsonPath: .spec.category
+      name: Category
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Osint is the Schema for the osints API
