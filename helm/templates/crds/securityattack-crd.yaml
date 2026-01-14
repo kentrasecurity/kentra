@@ -1,23 +1,24 @@
+{{- if .Values.crds.install }}
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: livenesses.kentra.sh
+  name: securityattacks.kentra.sh
 spec:
   group: kentra.sh
   names:
-    kind: Liveness
-    listKind: LivenessList
-    plural: livenesses
+    kind: SecurityAttack
+    listKind: SecurityAttackList
+    plural: securityattacks
     shortNames:
-    - live
-    singular: liveness
+    - sa
+    singular: securityattack
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.tool
-      name: Tool
+    - jsonPath: .spec.attackType
+      name: Type
       type: string
     - jsonPath: .spec.targetPool
       name: TargetPool
@@ -25,14 +26,14 @@ spec:
     - jsonPath: .status.resolvedTarget
       name: Target
       type: string
+    - jsonPath: .spec.tool
+      name: Tool
+      type: string
     - jsonPath: .spec.category
       name: Category
       type: string
     - jsonPath: .spec.periodic
       name: Periodic
-      type: boolean
-    - jsonPath: .status.lastResult
-      name: LastResult
       type: boolean
     - jsonPath: .status.state
       name: State
@@ -43,7 +44,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Liveness is the Schema for the livenesses API
+        description: SecurityAttack is the Schema for the securityattacks API
         properties:
           apiVersion:
             description: |-
@@ -63,7 +64,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: LivenessSpec defines the desired state of Liveness
+            description: SecurityAttackSpec defines the desired state of SecurityAttack
             properties:
               additional_env:
                 description: AdditionalEnv contains additional environment variables
@@ -86,25 +87,21 @@ spec:
                 items:
                   type: string
                 type: array
-              capabilities:
-                description: Capabilities are additional capabilities required by
-                  the tool
-                items:
-                  type: string
-                type: array
+              attackType:
+                description: AttackType specifies the type of security test
+                enum:
+                - Enumeration
+                - Vulnerability
+                - Exploitation
+                type: string
               category:
-                description: Category is a label to categorize the liveness check
-                  (e.g., 'critical-targets')
+                description: Category is a label to categorize the security attack
+                  (e.g., 'vulnerability-scan')
                 type: string
               debug:
                 description: Debug enables debug mode (output to stdout instead of
                   log file)
                 type: boolean
-              fileName:
-                description: FileName contains the output file names
-                items:
-                  type: string
-                type: array
               http_proxy:
                 description: HTTPProxy is the HTTP proxy URL to use
                 type: string
@@ -116,27 +113,22 @@ spec:
                   is true)
                 type: string
               target:
-                description: Target is the primary target for liveness check (IP,
-                  CIDR, or hostname). Can be either a direct target or a reference
-                  to a TargetPool name.
+                description: Target is the IP, CIDR, or hostname to attack. Can be
+                  either a direct target or a reference to a TargetPool name.
                 type: string
               targetPool:
                 description: TargetPool is the name of a TargetPool resource to reference
                   for target and port information
                 type: string
-              targets:
-                description: Targets are additional targets for liveness checks
-                items:
-                  type: string
-                type: array
               tool:
-                description: Tool is the liveness check tool to use (ex ping)
+                description: Tool is the security tool to use
                 type: string
             required:
+            - attackType
             - tool
             type: object
           status:
-            description: LivenessStatus defines the observed state of Liveness
+            description: SecurityAttackStatus defines the observed state of SecurityAttack
             properties:
               jobName:
                 description: JobName is the name of the created job or cronjob
@@ -144,15 +136,9 @@ spec:
               lastExecuted:
                 description: LastExecuted is the timestamp of last execution
                 type: string
-              lastResult:
-                description: LastResult indicates if the target was reachable
-                type: boolean
               resolvedTarget:
                 description: ResolvedTarget is the resolved target after TargetPool
                   reference is applied
-                type: string
-              resultsLocation:
-                description: ResultsLocation is the path where results are stored
                 type: string
               state:
                 description: State represents the current state
@@ -168,3 +154,4 @@ spec:
     storage: true
     subresources:
       status: {}
+{{- end }}
