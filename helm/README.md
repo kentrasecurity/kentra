@@ -46,6 +46,19 @@ helm install kentra ./helm \
 
 The following table lists the configurable parameters of the Kentra chart and their default values.
 
+### CRD Configuration
+
+Configuration for Custom Resource Definition installation and management.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `crds.install` | Install CRDs with this chart. Set to `false` if CRDs are managed separately or already installed | `true` |
+
+**Important Notes:**
+- CRDs are now installed in `templates/crds/` and are automatically upgraded with `helm upgrade`
+- If you're using this chart as a subchart, you can disable CRD installation by setting `kentra.crds.install=false`
+- CRDs include: `assetpools`, `enumerations`, `exploits`, `livenesses`, `osints`, `securityattacks`, `storagepools`, `targetpools`
+
 ### Loki Configuration
 
 Configuration for centralized logging using Loki. These credentials are used by the Fluent Bit sidecar to ship logs.
@@ -208,16 +221,21 @@ helm upgrade kentra ./helm \
   --values my-values.yaml
 ```
 
+**Note:** Starting from version 0.3.0, CRDs are automatically upgraded with `helm upgrade`. Previously, CRDs were in the `crds/` directory and required manual updates.
+
 ## Uninstalling
 
 ```bash
 # Uninstall the chart
 helm uninstall kentra --namespace kentra-system
 
-# Note: CRDs are NOT removed by helm uninstall
-# To remove CRDs manually:
+# WARNING: CRDs are NOT automatically removed by helm uninstall
+# This is intentional to prevent accidental data loss of custom resources
+
+# To remove CRDs and ALL associated custom resources, run:
 kubectl delete crd assetpools.kentra.sh
 kubectl delete crd enumerations.kentra.sh
+kubectl delete crd exploits.kentra.sh
 kubectl delete crd livenesses.kentra.sh
 kubectl delete crd osints.kentra.sh
 kubectl delete crd securityattacks.kentra.sh
@@ -231,13 +249,14 @@ This chart installs the following CRDs:
 
 - `assetpools.kentra.sh` - Asset pool management
 - `enumerations.kentra.sh` - Enumeration operations
+- `exploits.kentra.sh` - Exploit management
 - `livenesses.kentra.sh` - Liveness checks
 - `osints.kentra.sh` - OSINT operations
 - `securityattacks.kentra.sh` - Security attack simulations
 - `storagepools.kentra.sh` - Storage pool management
 - `targetpools.kentra.sh` - Target pool management
 
-CRDs are located in the `crds/` directory and are installed automatically by Helm.
+CRDs are located in `templates/crds/` and are automatically installed and upgraded by Helm. You can disable CRD installation by setting `crds.install=false` in your values.
 
 ## Tool Specifications
 
@@ -284,16 +303,26 @@ kubectl run -it --rm debug --image=curlimages/curl --restart=Never -- \
   curl -v http://loki.monitoring.svc.cluster.local:3100/ready
 ```
 
-### CRDs not installing
+### CRDs not installing or updating
 
 Check Helm release status:
 ```bash
 helm status kentra -n kentra-system
 ```
 
-Manually install CRDs if needed:
+Verify CRD installation:
 ```bash
-kubectl apply -f helm/crds/
+kubectl get crds | grep kentra.sh
+```
+
+If CRDs are not being installed, check that `crds.install` is set to `true`:
+```bash
+helm get values kentra -n kentra-system
+```
+
+Manually apply CRDs if needed:
+```bash
+kubectl apply -f helm/templates/crds/
 ```
 
 ## Support
