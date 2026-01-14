@@ -184,6 +184,18 @@ make all-crd-run #with make run
      - <NEW_ATTACK>s/status
    ```
 
+## 7. (Optional) Enable webhooks
+
+If you have the webook enabled, register the new attack webhook. In `cmd/main.go` add:
+
+```go
+if err = (&securityv1alpha1.NEW_ATTACK{}).SetupWebhookWithManager(mgr); err != nil {
+  setupLog.Error(err, "unable to create webhook", "webhook", "NEW_ATTACK")
+  os.Exit(1)
+}
+```
+
+
 
 # Case Study: OSINT Resource
 
