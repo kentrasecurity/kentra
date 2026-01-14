@@ -46,7 +46,8 @@ controller:
   # Controller image
   image:
     repository: ghcr.io/kentrasecurity/docker/controller
-    tag: latest
+    tag: 0.3.1
+    pullPolicy: IfNotPresent
   
   # Image pull secrets for private registries
   imagePullSecrets: []

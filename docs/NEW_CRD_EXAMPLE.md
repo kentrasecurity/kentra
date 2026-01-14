@@ -183,6 +183,19 @@ make all-crd-run #with make run
      resources:
      - <NEW_ATTACK>s/status
    ```
+3) edit the tool-specs configmap in `helm/templates/kentra-tool-specs.yaml` in order to include the new tools that you set for the attack.
+
+## 7. (Optional) Enable webhooks
+
+If you have the webook enabled, register the new attack webhook. In `cmd/main.go` add:
+
+```go
+if err = (&securityv1alpha1.NEW_ATTACK{}).SetupWebhookWithManager(mgr); err != nil {
+  setupLog.Error(err, "unable to create webhook", "webhook", "NEW_ATTACK")
+  os.Exit(1)
+}
+```
+
 
 
 # Case Study: OSINT Resource
