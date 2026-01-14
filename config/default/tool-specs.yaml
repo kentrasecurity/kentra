@@ -200,5 +200,38 @@ data:
       type: "osint"
       image: "sherlock/sherlock:0.16.0"
       commandTemplate: "sherlock {{.Args}} {{.Item.username}}"
+      separator: " "
       capabilities:
         add: []
+
+    trufflehog:
+      type: "osint"
+      image: "trufflesecurity/trufflehog:3.91.2"
+      commandTemplate: "trufflehog {{.Item.subcommand}} {{.Args}} {{.Item.uri}}"
+      capabilities:
+        add: []
+
+    metasploit:
+      type: "exploit"
+      image: "metasploitframework/metasploit-framework:latest"
+      commandTemplate: "/usr/src/metasploit-framework/msfconsole -q -x 'use {{.Module}} ; set RHOSTS {{.Target}}; set PORTS {{.Port}}; {{.Args}}; exploit; exit -y'"
+    
+    curl:
+      type: "exploit"
+      image: "curlimages/curl:latest"
+      commandTemplate: "curl {{.Target}} {{.Args}}"
+
+    busybox:
+      type: "exploit"
+      image: "busybox:latest"
+      commandTemplate: "sh -c 'while true; do sleep 3600; done'"
+
+    kali:
+      type: "exploit"
+      image: "kalilinux/kali-rolling:latest"
+      commandTemplate: "sh -c 'while true; do sleep 3600; done'"
+
+    revshell:
+      type: "exploit"
+      image: "metasploitframework/metasploit-framework:latest"
+      commandTemplate: "/usr/src/metasploit-framework/msfconsole -q -x 'use exploit/multi/handler ; set PAYLOAD {{.reverseShell.Payload}}; set LHOST {{.reverseShell.Host}}; set LPORT {{.reverseShell.Port}}; {{.Args}}; exploit; exit -y'"

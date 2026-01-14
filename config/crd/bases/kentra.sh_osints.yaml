@@ -125,14 +125,10 @@ spec:
               resolvedAssets:
                 description: ResolvedAssets contains all resolved assets from AssetPool
                 items:
-                  description: AssetItem defines a single asset in the pool
                   properties:
                     type:
-                      description: Type specifies the type of asset (e.g., username,
-                        email, domain, ip)
                       type: string
                     value:
-                      description: Value is the actual value of the asset
                       type: string
                   required:
                   - type

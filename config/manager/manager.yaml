@@ -71,7 +71,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: ENABLE_WEBHOOKS
-          value: "true"
+          value: "false"
         ports: []
         securityContext:
           readOnlyRootFilesystem: true

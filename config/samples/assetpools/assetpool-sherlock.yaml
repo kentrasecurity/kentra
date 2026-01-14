@@ -1,16 +1,24 @@
 apiVersion: kentra.sh/v1alpha1
 kind: AssetPool
 metadata:
-  name: username-targets
+  name: contacts
   namespace: kentra-system
 spec:
-  description: "Pool of username targets for OSINT"
-  items:
-    - type: username
-      value: johndoe
-    - type: email
-      value: johndoe@email.com
-    - type: username
-      value: janedoe
-    - type: phone
-      value: "+1234567890"
+  description: Pool of assets
+  pool:
+    - assets:
+        - type: username
+          value: john
+        - type: username
+          value: doe
+        - type: email
+          value: john@gmail.com
+        - type: phone
+          value: '+1234567890'
+      name: john
+    - assets:
+        - type: username
+          value: jane
+        - type: email
+          value: jane@company.com
+      name: jane

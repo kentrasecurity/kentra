@@ -69,7 +69,7 @@ KIND ?= kind
 KIND_CLUSTER ?= kentra-e2e
 
 .PHONY: test-e2e-kind
-test-e2e-kind: docker-build setup-test-e2e manifests ## Run the e2e tests in Kind. Put docker-build if you want to build the image first.
+test-e2e-kind: generate manifests docker-build setup-test-e2e ## Run the e2e tests in Kind. Put docker-build if you want to build the image first.
 	@echo "Starting E2E tests..."
 	# Pass the image name to the test suite via environment variable if supported by your suite
 	-IMG=controller:test KIND_CLUSTER=$(KIND_CLUSTER) ginkgo run \

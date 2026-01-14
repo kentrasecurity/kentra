@@ -9,6 +9,7 @@ resources:
 - bases/kentra.sh_storagepools.yaml
 - bases/kentra.sh_osints.yaml
 - bases/kentra.sh_assetpools.yaml
+- bases/kentra.sh_exploits.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

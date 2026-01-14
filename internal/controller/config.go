@@ -38,6 +38,7 @@ type ToolConfig struct {
 	Image           string                 `yaml:"image"`
 	CommandTemplate string                 `yaml:"commandTemplate"`
 	AssetTypeFlags  map[string]string      `yaml:"assetTypeFlags"`
+	Separator       string                 `yaml:"separator"`
 	Capabilities    map[string]interface{} `yaml:"capabilities"`
 }
 
@@ -196,7 +197,40 @@ func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, port s
 	return cmd, nil
 }
 
-// BuildCommandWithAssets builds command with assets as individual template variables
+// BuildCommandWithModule builds command with Module and Payload for exploit resources
+func (tc *ToolsConfigurator) BuildCommandWithModule(toolName string, target string, port string, module string, payload string, args []string) ([]string, error) {
+	tc.mu.RLock()
+	config, ok := tc.tools[toolName]
+	tc.mu.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("tool %q not found in configuration", toolName)
+	}
+
+	tmpl, err := template.New("cmd").Parse(config.CommandTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse command template: %w", err)
+	}
+
+	data := map[string]interface{}{
+		"Target":  target,
+		"Port":    port,
+		"Module":  module,
+		"Payload": payload,
+		"Args":    strings.Join(args, " "),
+		"Item":    target,
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, data); err != nil {
+		return nil, fmt.Errorf("failed to execute command template: %w", err)
+	}
+
+	cmd := strings.Fields(out.String())
+	return cmd, nil
+}
+
+// BuildCommandWithAssets builds command with assets as individual or grouped template variables
 func (tc *ToolsConfigurator) BuildCommandWithAssets(toolName string, assets []securityv1alpha1.AssetItem, args []string) ([]string, error) {
 	tc.mu.RLock()
 	config, ok := tc.tools[toolName]
@@ -206,30 +240,38 @@ func (tc *ToolsConfigurator) BuildCommandWithAssets(toolName string, assets []se
 		return nil, fmt.Errorf("tool %q not found in configuration", toolName)
 	}
 
-	// Build a map of asset type -> value(s)
-	// If multiple assets of the same type exist, we'll use the first one
-	// or concatenate them depending on the use case
+	// Determine separator (default to space if not specified)
+	separator := " "
+	if config.Separator != "" {
+		separator = config.Separator
+	}
+
+	// Build asset maps - supports multiple values per type
 	assetMap := make(map[string]string)
+	assetArrayMap := make(map[string][]string)
 
 	for _, asset := range assets {
-		// If the type already exists, append with space
+		// Store as single string (with custom separator for multiple values)
 		if existing, exists := assetMap[asset.Type]; exists {
-			assetMap[asset.Type] = existing + " " + asset.Value
+			assetMap[asset.Type] = existing + separator + asset.Value
 		} else {
 			assetMap[asset.Type] = asset.Value
 		}
+
+		// Also store as array for templates that need iteration
+		assetArrayMap[asset.Type] = append(assetArrayMap[asset.Type], asset.Value)
 	}
 
-	// Parse and execute template
 	tmpl, err := template.New("cmd").Parse(config.CommandTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse command template: %w", err)
 	}
 
-	// Create nested Item map for template access like {{.Item.username}}
 	data := map[string]interface{}{
-		"Args": strings.Join(args, " "),
-		"Item": assetMap,
+		"Args":      strings.Join(args, " "),
+		"Item":      assetMap,
+		"ItemArray": assetArrayMap,
+		"Separator": separator,
 	}
 
 	var out bytes.Buffer
@@ -238,8 +280,6 @@ func (tc *ToolsConfigurator) BuildCommandWithAssets(toolName string, assets []se
 	}
 
 	resultString := out.String()
-
-	// Clean up any <no value> placeholders and extra spaces
 	resultString = strings.ReplaceAll(resultString, "<no value>", "")
 	resultString = strings.Join(strings.Fields(resultString), " ")
 

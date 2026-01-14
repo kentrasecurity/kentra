@@ -39,20 +39,17 @@ type AssetPoolReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 
 // Reconcile implements reconciliation for AssetPool resources
 func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Fetch the AssetPool resource
 	ap := &securityv1alpha1.AssetPool{}
 	if err := r.Get(ctx, req.NamespacedName, ap); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("AssetPool resource not found, ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Failed to get AssetPool")
 		return ctrl.Result{}, err
 	}
 
@@ -68,35 +65,37 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Ensure labels are set
+	// Label management
 	if ap.Labels == nil {
 		ap.Labels = make(map[string]string)
 	}
-	needsUpdate := false
 	if ap.Labels["kentra.sh/resource-type"] != "asset" {
 		ap.Labels["kentra.sh/resource-type"] = "asset"
-		needsUpdate = true
-	}
-
-	// Update the resource if labels were modified
-	if needsUpdate {
 		if err := r.Update(ctx, ap); err != nil {
-			log.Error(err, "Failed to update AssetPool labels")
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Update status with item count
-	ap.Status.ItemCount = len(ap.Spec.Items)
+	// Calculation logic based on the "pool" field
+	groupCount := len(ap.Spec.Pool)
+	totalAssets := 0
+	for _, item := range ap.Spec.Pool {
+		totalAssets += len(item.Assets)
+	}
+
+	// Update status
+	ap.Status.GroupCount = groupCount
+	ap.Status.TotalAssets = totalAssets
 	ap.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	ap.Status.ObservedGeneration = ap.Generation
 
-	// Update status
 	if err := r.Status().Update(ctx, ap); err != nil {
 		log.Error(err, "Failed to update AssetPool status")
 		return ctrl.Result{}, err
 	}
 
-	log.Info("AssetPool reconciled successfully", "AssetPool", ap.Name, "ItemCount", len(ap.Spec.Items))
+	log.Info("AssetPool reconciled", "groups", groupCount, "totalAssets", totalAssets)
 	return ctrl.Result{}, nil
 }
 

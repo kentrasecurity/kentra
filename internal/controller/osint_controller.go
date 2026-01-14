@@ -8,7 +8,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -18,7 +17,6 @@ import (
 	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
 )
 
-// OsintReconciler reconciles a Osint object
 type OsintReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
@@ -29,308 +27,215 @@ type OsintReconciler struct {
 // +kubebuilder:rbac:groups=kentra.sh,resources=osints,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kentra.sh,resources=osints/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kentra.sh,resources=osints/finalizers,verbs=update
+// +kubebuilder:rbac:groups=kentra.sh,resources=targetpools,verbs=get;list;watch
+// +kubebuilder:rbac:groups=kentra.sh,resources=assetpools,verbs=get;list;watch
+// +kubebuilder:rbac:groups=kentra.sh,resources=storagepools,verbs=get;list;watch
 // +kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=pods;configmaps;secrets,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list
 
-// Reconcile implements reconciliation for Osint resources
 func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Load tool configurations from ConfigMap if not already loaded
 	if err := r.Configurator.LoadConfig(ctx); err != nil {
 		log.Error(err, "Failed to load tool configurations, retrying...")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 	}
 
-	// Fetch the Osint resource
 	osint := &securityv1alpha1.Osint{}
 	if err := r.Get(ctx, req.NamespacedName, osint); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("Osint resource not found, ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Failed to get Osint")
 		return ctrl.Result{}, err
 	}
 
-	// Check if namespace is managed by Kentra
 	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, osint.Namespace)
-	if err != nil {
-		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", osint.Namespace)
-		return ctrl.Result{}, err
-	}
-	if !isManaged {
-		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create Osint in namespace without 'managed-by-kentra' annotation", "namespace", osint.Namespace)
-		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", osint.Namespace)
+	if err != nil || !isManaged {
+		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra", osint.Namespace)
 	}
 
-	// Ensure labels are set
+	// Label management
 	if osint.Labels == nil {
 		osint.Labels = make(map[string]string)
 	}
-	needsUpdate := false
 	if osint.Labels["kentra.sh/resource-type"] != "attack" {
 		osint.Labels["kentra.sh/resource-type"] = "attack"
-		needsUpdate = true
-	}
-
-	// Update the resource if labels were modified
-	if needsUpdate {
 		if err := r.Update(ctx, osint); err != nil {
-			log.Error(err, "Failed to update Osint labels")
 			return ctrl.Result{}, err
 		}
 	}
 
-	// Initialize slices
 	var resolvedFiles []string
-	var resolvedAssets []securityv1alpha1.AssetItem
-
-	// Resolve StoragePool reference if provided
 	if osint.Spec.StoragePool != "" {
 		sg := &securityv1alpha1.StoragePool{}
-		sgNN := types.NamespacedName{Name: osint.Spec.StoragePool, Namespace: osint.Namespace}
-		if err := r.Get(ctx, sgNN, sg); err != nil {
-			log.Error(err, "Failed to get referenced StoragePool", "StoragePool", osint.Spec.StoragePool)
+		if err := r.Get(ctx, types.NamespacedName{Name: osint.Spec.StoragePool, Namespace: osint.Namespace}, sg); err != nil {
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// Set files from StoragePool
 		resolvedFiles = sg.Spec.Files
-		log.Info("Resolved StoragePool", "StoragePool", osint.Spec.StoragePool, "filesCount", len(resolvedFiles))
 	}
 
-	// Resolve AssetPool reference if provided
 	if osint.Spec.AssetPool != "" {
 		ap := &securityv1alpha1.AssetPool{}
-		apNN := types.NamespacedName{Name: osint.Spec.AssetPool, Namespace: osint.Namespace}
-		if err := r.Get(ctx, apNN, ap); err != nil {
-			log.Error(err, "Failed to get referenced AssetPool", "AssetPool", osint.Spec.AssetPool)
+		if err := r.Get(ctx, types.NamespacedName{Name: osint.Spec.AssetPool, Namespace: osint.Namespace}, ap); err != nil {
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
 
-		if len(ap.Spec.Items) == 0 {
-			err := fmt.Errorf("assetPool %s has no items", osint.Spec.AssetPool)
-			log.Error(err, "Invalid AssetPool")
-			return ctrl.Result{}, err
+		// Updated logic: if pool has items, we reconcile multiple jobs (one per group/person)
+		if len(ap.Spec.Pool) > 0 {
+			return r.reconcileMultipleJobs(ctx, osint, ap, resolvedFiles)
 		}
-
-		// Collect all assets for processing
-		resolvedAssets = make([]securityv1alpha1.AssetItem, len(ap.Spec.Items))
-		for i, item := range ap.Spec.Items {
-			resolvedAssets[i] = securityv1alpha1.AssetItem{
-				Type:  item.Type,
-				Value: item.Value,
-			}
-		}
-
-		// Update status with all resolved assets
-		osint.Status.ResolvedAssets = resolvedAssets
-
-		// For backward compatibility, set first item as primary
-		firstItem := ap.Spec.Items[0]
-		osint.Spec.Target = firstItem.Value
-		osint.Status.ResolvedAsset = firstItem.Value
-		osint.Status.ResolvedAssetType = firstItem.Type
-
-		log.Info("Resolved AssetPool",
-			"AssetPool", osint.Spec.AssetPool,
-			"totalAssets", len(resolvedAssets),
-			"primaryAsset", firstItem.Value,
-			"primaryType", firstItem.Type)
+		return ctrl.Result{}, fmt.Errorf("assetPool %s has no pool items", osint.Spec.AssetPool)
 	}
 
-	// Resolve TargetPool reference if provided
 	if osint.Spec.TargetPool != "" {
 		tg := &securityv1alpha1.TargetPool{}
-		tgNN := types.NamespacedName{Name: osint.Spec.TargetPool, Namespace: osint.Namespace}
-		if err := r.Get(ctx, tgNN, tg); err != nil {
-			log.Error(err, "Failed to get referenced TargetPool", "TargetPool", osint.Spec.TargetPool)
+		if err := r.Get(ctx, types.NamespacedName{Name: osint.Spec.TargetPool, Namespace: osint.Namespace}, tg); err != nil {
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
-		// Set target and port from TargetPool
 		osint.Spec.Target = tg.Spec.Target
-		if tg.Spec.Port != "" && osint.Spec.Port == "" {
-			osint.Spec.Port = tg.Spec.Port
-		}
-		// Update resolved status
 		osint.Status.ResolvedTarget = tg.Spec.Target
-		osint.Status.ResolvedPort = tg.Spec.Port
-		log.Info("Resolved TargetPool", "TargetPool", osint.Spec.TargetPool, "target", tg.Spec.Target)
 	} else {
-		// Use direct target and port
 		osint.Status.ResolvedTarget = osint.Spec.Target
-		osint.Status.ResolvedPort = osint.Spec.Port
 	}
 
-	// Validate that either Target, TargetPool, or AssetPool is set
 	if osint.Spec.Target == "" {
-		err := fmt.Errorf("neither target, targetPool, nor assetPool specified")
-		log.Error(err, "Invalid Osint resource")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("no target specified")
 	}
 
-	// Determine target namespace
-	targetNamespace := osint.Namespace
+	return r.reconcileSingleJobWithTarget(ctx, osint, resolvedFiles)
+}
 
-	// Generate names for Job/CronJob
-	jobName := osint.Name
-	cronJobName := fmt.Sprintf("%s-cronjob", osint.Name)
+func (r *OsintReconciler) reconcileMultipleJobs(ctx context.Context, osint *securityv1alpha1.Osint, ap *securityv1alpha1.AssetPool, resolvedFiles []string) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	createdJobs, existingJobs := 0, 0
 
-	// Convert to SecurityResource adapter
+	// Iterate over the corrected .Spec.Pool field
+	for i, item := range ap.Spec.Pool {
+		if len(item.Assets) == 0 {
+			continue
+		}
+
+		// Generate job name based on the person's name (e.g., osintname-john)
+		jobName := generateJobName(osint.Name, item.Name, i)
+
+		if err := r.createJobForGroup(ctx, osint, jobName, resolvedFiles, item.Assets, &createdJobs, &existingJobs); err != nil {
+			log.Error(err, "Failed to create job for group", "group", item.Name)
+			continue
+		}
+	}
+
+	// Update Status
+	osint.Status.State = "Running"
+	osint.Status.JobName = fmt.Sprintf("%d jobs managed", createdJobs+existingJobs)
+
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, r.Status().Update(ctx, osint)
+}
+
+func (r *OsintReconciler) createJobForGroup(
+	ctx context.Context,
+	osint *securityv1alpha1.Osint,
+	jobName string,
+	resolvedFiles []string,
+	assets []securityv1alpha1.AssetItem,
+	createdJobs *int,
+	existingJobs *int,
+) error {
 	adapter := &OsintAdapter{
 		osint:          osint,
 		resolvedFiles:  resolvedFiles,
-		resolvedAssets: resolvedAssets,
+		resolvedAssets: assets,
 	}
 
-	log.Info("Building resource with spec",
-		"tool", adapter.GetSpec().Tool,
-		"target", adapter.GetSpec().Target,
-		"filesCount", len(adapter.GetSpec().Files),
-		"assetsCount", len(adapter.GetSpec().Assets))
+	targetNamespace := osint.Namespace
 
-	// Check if we need to create a job or cronjob
 	if osint.Spec.Periodic {
-		// Create or update CronJob
 		cronJob := &batchv1.CronJob{}
-		cronJobNN := types.NamespacedName{Name: cronJobName, Namespace: targetNamespace}
-
-		err := r.Get(ctx, cronJobNN, cronJob)
+		err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: targetNamespace}, cronJob)
 		if err != nil && errors.IsNotFound(err) {
-			// Create new CronJob
-			cronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "osint", r.ControllerNamespace)
+			newCJ, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "osint", r.ControllerNamespace)
 			if err != nil {
-				log.Error(err, "Failed to build CronJob")
-				return ctrl.Result{}, err
+				return err
 			}
-			if err := r.Create(ctx, cronJob); err != nil {
-				log.Error(err, "Failed to create CronJob")
-				return ctrl.Result{}, err
+			if err := r.Create(ctx, newCJ); err != nil {
+				return err
 			}
-			log.Info("Created new CronJob", "CronJob", cronJobName)
-			osint.Status.State = "Running"
-			osint.Status.JobName = cronJobName
-			osint.Status.LastExecuted = time.Now().Format(time.RFC3339)
-		} else if err != nil {
-			log.Error(err, "Failed to get CronJob")
-			return ctrl.Result{}, err
+			*createdJobs++
+		} else if err == nil {
+			if cronJob.Annotations["kentra.sh/parent-generation"] != fmt.Sprintf("%d", osint.Generation) {
+				_ = r.Delete(ctx, cronJob)
+				return r.createJobForGroup(ctx, osint, jobName, resolvedFiles, assets, createdJobs, existingJobs)
+			}
+			*existingJobs++
 		} else {
-			// CronJob exists - check if it needs to be recreated due to spec change
-			currentGeneration := fmt.Sprintf("%d", osint.Generation)
-			existingGeneration := cronJob.Annotations["kentra.sh/parent-generation"]
-
-			if existingGeneration != currentGeneration {
-				log.Info("Osint spec changed, deleting and recreating CronJob",
-					"CronJob", cronJobName,
-					"oldGeneration", existingGeneration,
-					"newGeneration", currentGeneration)
-
-				// Delete the existing CronJob
-				if err := r.Delete(ctx, cronJob); err != nil {
-					log.Error(err, "Failed to delete outdated CronJob")
-					return ctrl.Result{}, err
-				}
-
-				// Create new CronJob with updated spec
-				newCronJob, err := BuildCronJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, cronJobName, targetNamespace, "osint", r.ControllerNamespace)
-				if err != nil {
-					log.Error(err, "Failed to build new CronJob")
-					return ctrl.Result{}, err
-				}
-				if err := r.Create(ctx, newCronJob); err != nil {
-					log.Error(err, "Failed to create new CronJob")
-					return ctrl.Result{}, err
-				}
-				log.Info("Recreated CronJob with updated spec", "CronJob", cronJobName)
-				osint.Status.State = "Running"
-				osint.Status.JobName = cronJobName
-				osint.Status.LastExecuted = time.Now().Format(time.RFC3339)
-			} else {
-				log.Info("CronJob already exists and is up to date", "CronJob", cronJobName)
-			}
+			return err
 		}
 	} else {
-		// Create one-time Job
 		job := &batchv1.Job{}
-		jobNN := types.NamespacedName{Name: jobName, Namespace: targetNamespace}
-
-		err := r.Get(ctx, jobNN, job)
+		err := r.Get(ctx, types.NamespacedName{Name: jobName, Namespace: targetNamespace}, job)
 		if err != nil && errors.IsNotFound(err) {
-			// Create new Job
-			job, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "osint", r.ControllerNamespace)
+			newJob, err := BuildJob(ctx, adapter, r.Scheme, r.Configurator, r.Client, jobName, targetNamespace, "osint", r.ControllerNamespace)
 			if err != nil {
-				log.Error(err, "Failed to build Job")
-				return ctrl.Result{}, err
+				return err
 			}
-			if err := r.Create(ctx, job); err != nil {
-				log.Error(err, "Failed to create Job")
-				return ctrl.Result{}, err
+			if err := r.Create(ctx, newJob); err != nil {
+				return err
 			}
-			log.Info("Created new Job", "Job", jobName)
-			osint.Status.State = "Running"
-			osint.Status.JobName = jobName
-			osint.Status.LastExecuted = time.Now().Format(time.RFC3339)
-		} else if err != nil {
-			log.Error(err, "Failed to get Job")
-			return ctrl.Result{}, err
+			*createdJobs++
+		} else if err == nil {
+			*existingJobs++
 		} else {
-			// Job exists - check if it needs to be recreated due to spec change
-			currentGeneration := fmt.Sprintf("%d", osint.Generation)
-			existingGeneration := job.Annotations["kentra.sh/parent-generation"]
-
-			if existingGeneration != currentGeneration {
-				log.Info("Osint spec changed, deleting and recreating Job",
-					"Job", jobName,
-					"oldGeneration", existingGeneration,
-					"newGeneration", currentGeneration)
-
-				// Delete the existing Job
-				propagationPolicy := metav1.DeletePropagationBackground
-				if err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: &propagationPolicy}); err != nil {
-					log.Error(err, "Failed to delete outdated Job")
-					return ctrl.Result{}, err
-				}
-
-				log.Info("Deleted outdated Job, will recreate on next reconcile", "Job", jobName)
-				return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
-			} else {
-				log.Info("Job already exists and is up to date", "Job", jobName)
-			}
+			return err
 		}
 	}
-
-	// Update status with resolved target and port
-	if err := r.Status().Update(ctx, osint); err != nil {
-		log.Error(err, "Failed to update status")
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	return nil
 }
 
-// OsintAdapter adapts Osint to SecurityResource interface
+func (r *OsintReconciler) reconcileSingleJobWithTarget(ctx context.Context, osint *securityv1alpha1.Osint, resolvedFiles []string) (ctrl.Result, error) {
+	c, e := 0, 0
+	_ = r.createJobForGroup(ctx, osint, osint.Name, resolvedFiles, []securityv1alpha1.AssetItem{}, &c, &e)
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, r.Status().Update(ctx, osint)
+}
+
+func generateJobName(osintName, groupName string, groupIndex int) string {
+	sanitizedGroupName := sanitizeName(groupName)
+	if sanitizedGroupName != "" {
+		return fmt.Sprintf("%s-%s", osintName, sanitizedGroupName)
+	}
+	return fmt.Sprintf("%s-group-%d", osintName, groupIndex)
+}
+
+func sanitizeName(name string) string {
+	result := ""
+	for _, char := range name {
+		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') {
+			result += string(char)
+		} else if char >= 'A' && char <= 'Z' {
+			result += string(char + 32)
+		} else if char == ' ' || char == '_' || char == '-' {
+			result += "-"
+		}
+	}
+	if len(result) > 50 {
+		result = result[:50]
+	}
+	return result
+}
+
 type OsintAdapter struct {
 	osint          *securityv1alpha1.Osint
 	resolvedFiles  []string
 	resolvedAssets []securityv1alpha1.AssetItem
 }
 
-func (a *OsintAdapter) GetName() string {
-	return a.osint.Name
-}
-
-func (a *OsintAdapter) GetNamespace() string {
-	return a.osint.Namespace
-}
+func (a *OsintAdapter) GetName() string              { return a.osint.Name }
+func (a *OsintAdapter) GetNamespace() string         { return a.osint.Namespace }
+func (a *OsintAdapter) GetKubeObject() client.Object { return a.osint }
 
 func (a *OsintAdapter) GetSpec() *ResourceSpec {
 	envVars := make([]corev1.EnvVar, len(a.osint.Spec.AdditionalEnv))
 	for i, ev := range a.osint.Spec.AdditionalEnv {
-		envVars[i] = corev1.EnvVar{
-			Name:  ev.Name,
-			Value: ev.Value,
-		}
+		envVars[i] = corev1.EnvVar{Name: ev.Name, Value: ev.Value}
 	}
 	return &ResourceSpec{
 		Tool:          a.osint.Spec.Tool,
@@ -355,11 +260,6 @@ func (a *OsintAdapter) GetStatus() *ResourceStatus {
 	}
 }
 
-func (a *OsintAdapter) GetKubeObject() client.Object {
-	return a.osint
-}
-
-// SetupWithManager sets up the controller with the Manager.
 func (r *OsintReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&securityv1alpha1.Osint{}).

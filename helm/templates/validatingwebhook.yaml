@@ -150,4 +150,24 @@ webhooks:
     resources:
     - targetpools
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "controller.fullname" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-kentra-sh-v1alpha1-exploit
+  failurePolicy: Fail
+  name: vexploit.kb.io
+  rules:
+  - apiGroups:
+    - kentra.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - exploits
+  sideEffects: None
 {{- end }}

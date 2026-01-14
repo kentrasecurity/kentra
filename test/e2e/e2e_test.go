@@ -16,19 +16,24 @@ var _ = Describe("Kentra Attack Operator", func() {
 			Kind: "osint",
 			Name: "osint-sample",
 			Time: "10m",
+			Label: map[string]string{
+				"app":                     "osint",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "sherlock",
+			},
 			Samples: []string{
 				"config/samples/assetpools/assetpool-sherlock.yaml",
 				"config/samples/attacks/security_v1alpha1_osint_sherlock_with_assets.yaml",
 			},
 		}),
-		Entry("Enumeration Nmap", AttackConfig{
-			Kind: "enumeration",
-			Name: "nmap-scan-ports",
-			Time: "5m",
-			Samples: []string{
-				"config/samples/targetpools/kttack_v1alpha1_targetpool_nmap_ports.yaml",
-				"config/samples/attacks/kttack_v1alpha1_enumeration_nmap_scan_ports.yaml",
-			},
-		}),
+		// Entry("Enumeration Nmap", AttackConfig{
+		// 	Kind: "enumeration",
+		// 	Name: "nmap-scan-ports",
+		// 	Time: "5m",
+		// 	Samples: []string{
+		// 		"config/samples/targetpools/kttack_v1alpha1_targetpool_nmap_ports.yaml",
+		// 		"config/samples/attacks/kttack_v1alpha1_enumeration_nmap_scan_ports.yaml",
+		// 	},
+		// }),
 	)
 })

@@ -22,6 +22,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - batch
   resources:
@@ -40,6 +41,7 @@ rules:
   resources:
   - assetpools
   - enumerations
+  - exploits
   - livenesses
   - osints
   - securityattacks
@@ -58,6 +60,7 @@ rules:
   resources:
   - assetpools/finalizers
   - enumerations/finalizers
+  - exploits/finalizers
   - livenesses/finalizers
   - osints/finalizers
   - securityattacks/finalizers
@@ -70,6 +73,7 @@ rules:
   resources:
   - assetpools/status
   - enumerations/status
+  - exploits/status
   - livenesses/status
   - osints/status
   - securityattacks/status

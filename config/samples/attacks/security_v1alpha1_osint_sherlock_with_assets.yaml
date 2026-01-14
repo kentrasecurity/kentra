@@ -5,7 +5,7 @@ metadata:
   namespace: kentra-system
 spec:
   tool: sherlock
-  assetPool: username-targets
+  assetPool: contacts
   category: username-enumeration
   periodic: false
   debug: true
