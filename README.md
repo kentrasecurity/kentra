@@ -6,6 +6,11 @@ A comprehensive Kubernetes Operator for orchestrating and managing security test
 
 Kentra provides a declarative way to define and execute security operations as native Kubernetes resources. Instead of manually managing security testing tools and scripts, you define your security tests as YAML manifests and let Kentra's Kubernetes Operator handle orchestration, scheduling, logging, and resource management.
 
+
+## Demo
+This is a view-only demo. To explore all Kentra features, please spin up the project and have fun :)
+#### Kentra URL: [https://demo.kentrasecurity.sh](https://demo.kentrasecurity.sh)
+
 ### Key Features
 
 - **Custom Resource Definitions (CRDs)**: Define security tests declaratively using Kubernetes-native resources
