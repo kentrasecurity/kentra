@@ -142,18 +142,47 @@ make all-crd-run #with make run
 ```
 
 ## 5. Test the new CRD
-- if needed, create the targetpool under `config/samples/targetpools`
-- create the new attack under `config/samples/attacks`
-- create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kentra_v1alpha1_targetpool_<resource>.yaml` , `kubectl apply -f config/samples/attacks/kentra_v1alpha1_<resource>.yaml`  
-- add in the configmap `config/default/kentra-tool-specs.yaml` the new tool in `data.tools` like:
-  ```yaml
-    <tool>:
-      type: "<resource>"
-      image: "<tool_image>"
-      commandTemplate: "<tool> {{.Args}} {{.Target}}"
-      capabilities:
-        add: []
-  ```
+1. Manually:
+   - if needed, create the targetpool under `config/samples/targetpools`
+   - create the new attack under `config/samples/attacks`
+   - create the targetpool and the attack in the cluster: `kubectl apply -f config/samples/targetpools/kentra_v1alpha1_targetpool_<resource>.yaml` , `kubectl apply -f config/samples/attacks/kentra_v1alpha1_<resource>.yaml`  
+   - add in the configmap `config/default/kentra-tool-specs.yaml` the new tool in `data.tools` like:
+     ```yaml
+       <tool>:
+         type: "<resource>"
+         image: "<tool_image>"
+         commandTemplate: "<tool> {{.Args}} {{.Target}}"
+         capabilities:
+           add: []
+     ```
+2. Using Gingko tests
+   - add you test. You can find how to do that at [How to add a new Test](./TEST.md)
+   - execute the test with `make test-e2e-kind`
+
+## 6. Put your CRD in Helm
+1) Copy paste your CRD under `config/crd/bases/` in a new file under `helm/crds/`. Name it `<ATTACK>-crd.yaml`.
+2) Add your attack to RBAC. In `helm/manager-rbac.yaml`:
+   - add resource to the apiGroup (with and ending 's'. E.g. if the attack is "osint", put "osints"):
+   ```yaml
+   - apiGroups:
+     - ...
+     resources:
+     - <NEW_ATTACK>s
+   ```
+   - add resource to the finalizers (with and ending 's'. E.g. if the attack is "osint", put "osints"):
+   ```yaml
+   - apiGroups:
+     - ...
+     resources:
+     - <NEW_ATTACK>s/finalizers
+   ```
+   - add resource to the status (with and ending 's'. E.g. if the attack is "osint", put "osints"):
+   ```yaml
+   - apiGroups:
+     - ...
+     resources:
+     - <NEW_ATTACK>s/status
+   ```
 
 
 # Case Study: OSINT Resource
@@ -251,3 +280,28 @@ spec:
       capabilities:
         add: []
   ```
+
+Put the CRD in Helm
+
+In `helm/manager-rbac.yaml`:
+
+```yaml
+- apiGroups:
+  - ...
+  resources:
+  - osints
+```
+
+```yaml
+- apiGroups:
+  - ...
+  resources:
+  - osints/finalizers
+```
+
+```yaml
+- apiGroups:
+  - ...
+  resources:
+  - osints/status
+```
