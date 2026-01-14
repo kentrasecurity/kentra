@@ -191,16 +191,6 @@ func (r *OsintReconciler) createJobForGroup(
 	return nil
 }
 
-func (r *OsintReconciler) reconcileSingleJob(ctx context.Context, osint *securityv1alpha1.Osint, items []securityv1alpha1.AssetItem, resolvedFiles []string) (ctrl.Result, error) {
-	c, e := 0, 0
-	err := r.createJobForGroup(ctx, osint, osint.Name, resolvedFiles, items, &c, &e)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	osint.Status.ResolvedAssets = items
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, r.Status().Update(ctx, osint)
-}
-
 func (r *OsintReconciler) reconcileSingleJobWithTarget(ctx context.Context, osint *securityv1alpha1.Osint, resolvedFiles []string) (ctrl.Result, error) {
 	c, e := 0, 0
 	_ = r.createJobForGroup(ctx, osint, osint.Name, resolvedFiles, []securityv1alpha1.AssetItem{}, &c, &e)

