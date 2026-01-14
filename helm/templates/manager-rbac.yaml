@@ -22,6 +22,15 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - list
+  - watch
 - apiGroups:
   - ""
   resources:
