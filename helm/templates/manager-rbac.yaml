@@ -53,6 +53,7 @@ rules:
   - securityattacks
   - storagepools
   - targetpools
+  - exploits
   verbs:
   - create
   - delete
@@ -71,6 +72,7 @@ rules:
   - securityattacks/finalizers
   - storagepools/finalizers
   - targetpools/finalizers
+  - exploits/finalizers
   verbs:
   - update
 - apiGroups:
@@ -83,6 +85,7 @@ rules:
   - securityattacks/status
   - storagepools/status
   - targetpools/status
+  - exploits/status
   verbs:
   - get
   - patch
