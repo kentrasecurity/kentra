@@ -183,6 +183,7 @@ make all-crd-run #with make run
      resources:
      - <NEW_ATTACK>s/status
    ```
+3) edit the tool-specs configmap in `helm/templates/kentra-tool-specs.yaml` in order to include the new tools that you set for the attack.
 
 ## 7. (Optional) Enable webhooks
 
