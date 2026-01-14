@@ -45,14 +45,11 @@ type AssetPoolReconciler struct {
 func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Fetch the AssetPool resource
 	ap := &securityv1alpha1.AssetPool{}
 	if err := r.Get(ctx, req.NamespacedName, ap); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("AssetPool resource not found, ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Failed to get AssetPool")
 		return ctrl.Result{}, err
 	}
 
@@ -68,35 +65,28 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Ensure labels are set
+	// Label management
 	if ap.Labels == nil {
 		ap.Labels = make(map[string]string)
 	}
-	needsUpdate := false
 	if ap.Labels["kentra.sh/resource-type"] != "asset" {
 		ap.Labels["kentra.sh/resource-type"] = "asset"
-		needsUpdate = true
-	}
-
-	if needsUpdate {
 		if err := r.Update(ctx, ap); err != nil {
-			log.Error(err, "Failed to update AssetPool labels")
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Calcolo dei conteggi con la nuova struttura piatta
-	itemCount := len(ap.Spec.Items)
-	groupCount := len(ap.Spec.Groups)
-
-	// Calcoliamo il totale degli asset individuali presenti in tutti i gruppi
+	// Calculation logic based on the "pool" field
+	groupCount := len(ap.Spec.Pool)
 	totalAssets := 0
-	for _, group := range ap.Spec.Groups {
-		totalAssets += len(group.Assets)
+	for _, item := range ap.Spec.Pool {
+		totalAssets += len(item.Assets)
 	}
 
-	// Aggiornamento status
-	ap.Status.ItemCount = itemCount
+	// Update status
 	ap.Status.GroupCount = groupCount
+	ap.Status.TotalAssets = totalAssets
 	ap.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	ap.Status.ObservedGeneration = ap.Generation
 
@@ -105,11 +95,7 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	log.Info("AssetPool reconciled successfully",
-		"AssetPool", ap.Name,
-		"Groups", groupCount,
-		"TotalAssets", totalAssets)
-
+	log.Info("AssetPool reconciled", "groups", groupCount, "totalAssets", totalAssets)
 	return ctrl.Result{}, nil
 }
 

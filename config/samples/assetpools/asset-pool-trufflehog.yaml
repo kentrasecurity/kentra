@@ -2,10 +2,10 @@ apiVersion: kttack.io/v1alpha1
 kind: AssetPool
 metadata:
   name: trufflehog-targets
-  namespace: kttack-system
+  namespace: kentra-system
 spec:
   description: Git repositories to scan
-  groups:
+  pool:
     - assets:
         - type: subcommand
           value: git

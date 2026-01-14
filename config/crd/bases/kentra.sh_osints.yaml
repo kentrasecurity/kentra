@@ -125,13 +125,10 @@ spec:
               resolvedAssets:
                 description: ResolvedAssets contains all resolved assets from AssetPool
                 items:
-                  description: AssetItem defines a single asset in the pool
                   properties:
                     type:
-                      description: 'Type es: "username", "email", "phone"'
                       type: string
                     value:
-                      description: Value deve essere una stringa singola
                       type: string
                   required:
                   - type

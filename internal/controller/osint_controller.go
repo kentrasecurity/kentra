@@ -81,12 +81,11 @@ func (r *OsintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 		}
 
-		if len(ap.Spec.Groups) > 0 {
+		// Updated logic: if pool has items, we reconcile multiple jobs (one per group/person)
+		if len(ap.Spec.Pool) > 0 {
 			return r.reconcileMultipleJobs(ctx, osint, ap, resolvedFiles)
-		} else if len(ap.Spec.Items) > 0 {
-			return r.reconcileSingleJob(ctx, osint, ap.Spec.Items, resolvedFiles)
 		}
-		return ctrl.Result{}, fmt.Errorf("assetPool %s has no items or groups", osint.Spec.AssetPool)
+		return ctrl.Result{}, fmt.Errorf("assetPool %s has no pool items", osint.Spec.AssetPool)
 	}
 
 	if osint.Spec.TargetPool != "" {
@@ -111,30 +110,24 @@ func (r *OsintReconciler) reconcileMultipleJobs(ctx context.Context, osint *secu
 	log := log.FromContext(ctx)
 	createdJobs, existingJobs := 0, 0
 
-	for groupIndex, group := range ap.Spec.Groups {
-		if len(group.Assets) == 0 {
+	// Iterate over the corrected .Spec.Pool field
+	for i, item := range ap.Spec.Pool {
+		if len(item.Assets) == 0 {
 			continue
 		}
-		jobName := generateJobName(osint.Name, group.Name, groupIndex)
-		if err := r.createJobForGroup(ctx, osint, jobName, resolvedFiles, group.Assets, &createdJobs, &existingJobs); err != nil {
-			log.Error(err, "Failed to create job for group", "group", group.Name)
+
+		// Generate job name based on the person's name (e.g., osintname-john)
+		jobName := generateJobName(osint.Name, item.Name, i)
+
+		if err := r.createJobForGroup(ctx, osint, jobName, resolvedFiles, item.Assets, &createdJobs, &existingJobs); err != nil {
+			log.Error(err, "Failed to create job for group", "group", item.Name)
 			continue
 		}
 	}
 
-	var allAssets []securityv1alpha1.AssetItem
-	for _, g := range ap.Spec.Groups {
-		allAssets = append(allAssets, g.Assets...)
-	}
-
+	// Update Status
 	osint.Status.State = "Running"
-	osint.Status.JobName = fmt.Sprintf("%d jobs created", createdJobs+existingJobs)
-	osint.Status.ResolvedAssets = allAssets
-
-	if len(allAssets) > 0 {
-		osint.Status.ResolvedAsset = allAssets[0].Value
-		osint.Status.ResolvedAssetType = allAssets[0].Type
-	}
+	osint.Status.JobName = fmt.Sprintf("%d jobs managed", createdJobs+existingJobs)
 
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, r.Status().Update(ctx, osint)
 }

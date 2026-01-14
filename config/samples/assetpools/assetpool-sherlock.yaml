@@ -1,21 +1,21 @@
 apiVersion: kentra.sh/v1alpha1
 kind: AssetPool
 metadata:
-  name: grouped-contacts
+  name: contacts
   namespace: kentra-system
 spec:
-  description: Grouped assets - fully dynamic structure
-  group:
-    # - assets:
-    #     - type: username
-    #       value: john
-    #     - type: username
-    #       value: doe
-    #     - type: email
-    #       value: john@gmail.com
-    #     - type: phone
-    #       value: '+1234567890'
-    #   name: john
+  description: Pool of assets
+  pool:
+    - assets:
+        - type: username
+          value: john
+        - type: username
+          value: doe
+        - type: email
+          value: john@gmail.com
+        - type: phone
+          value: '+1234567890'
+      name: john
     - assets:
         - type: username
           value: jane

@@ -6,7 +6,7 @@ metadata:
   name: sherlock-multi-asset
   namespace: kentra-system
 spec:
-  assetPool: grouped-contacts
+  assetPool: contacts
   category: username-enumeration
   debug: true
   tool: sherlock
@@ -16,7 +16,7 @@ kind: AssetPool
 metadata:
   labels:
     kentra-resource-type: asset
-  name: grouped-contacts
+  name: contacts
   namespace: kentra-system
 spec:
   description: Grouped assets - fully dynamic structure

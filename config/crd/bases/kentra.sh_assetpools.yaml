@@ -17,19 +17,18 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.itemCount
-      name: Items
+    - jsonPath: .status.groupCount
+      name: Groups
       type: integer
-    - jsonPath: .spec.description
-      name: Description
-      type: string
+    - jsonPath: .status.totalAssets
+      name: Assets
+      type: integer
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: AssetPool is the Schema for the assetpools API
         properties:
           apiVersion:
             description: |-
@@ -49,25 +48,19 @@ spec:
           metadata:
             type: object
           spec:
-            description: AssetPoolSpec defines the desired state of AssetPool
             properties:
               description:
                 type: string
-              group:
+              pool:
+                description: This matches the 'pool:' key in your YAML
                 items:
-                  description: |-
-                    AssetGroup represents a logical grouping of multiple asset sets
-                    For example: a person with their primary and secondary contact info
                   properties:
                     assets:
                       items:
-                        description: AssetItem defines a single asset in the pool
                         properties:
                           type:
-                            description: 'Type es: "username", "email", "phone"'
                             type: string
                           value:
-                            description: Value deve essere una stringa singola
                             type: string
                         required:
                         - type
@@ -76,37 +69,24 @@ spec:
                       type: array
                     name:
                       type: string
-                  type: object
-                type: array
-              items:
-                description: Manteniamo Items per compatibilità se lo usi ancora all'esterno
-                  dei gruppi
-                items:
-                  description: AssetItem defines a single asset in the pool
-                  properties:
-                    type:
-                      description: 'Type es: "username", "email", "phone"'
-                      type: string
-                    value:
-                      description: Value deve essere una stringa singola
-                      type: string
                   required:
-                  - type
-                  - value
+                  - assets
+                  - name
                   type: object
                 type: array
             type: object
           status:
-            description: AssetPoolStatus defines the observed state of AssetPool
             properties:
               groupCount:
-                type: integer
-              itemCount:
+                description: Total number of groups (AssetPoolItems)
                 type: integer
               lastUpdated:
                 type: string
               observedGeneration:
                 format: int64
+                type: integer
+              totalAssets:
+                description: Total number of individual assets across all groups
                 type: integer
             type: object
         type: object
