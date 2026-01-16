@@ -17,8 +17,8 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.target
-      name: Target
+    - jsonPath: .spec.targets
+      name: Targets
       type: string
     - jsonPath: .spec.port
       name: Port
@@ -62,11 +62,15 @@ spec:
                 description: Port is the port or port range to target (e.g., '22',
                   '80,443', '8000-8100')
                 type: string
-              target:
-                description: Target is the IP address, CIDR, or hostname to target
-                type: string
+              targets:
+                description: Targets is a list of IP addresses, CIDRs, or hostnames
+                  to target
+                items:
+                  type: string
+                minItems: 1
+                type: array
             required:
-            - target
+            - targets
             type: object
           status:
             description: TargetPoolStatus defines the observed state of TargetPool

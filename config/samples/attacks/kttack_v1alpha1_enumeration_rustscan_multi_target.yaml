@@ -2,15 +2,14 @@
 apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
-  name: netcat-banner-grab
+  name: rustscan-multi-target
   namespace: kentra-system
 spec:
   args:
-    - '-v'
-    - '-w'
-    - '5'
+    - '--ulimit'
+    - '5000'
   category: Reconnaissance
   debug: true
   periodic: false
   targetPool: multi-host-pool
-  tool: netcat
+  tool: rustscan

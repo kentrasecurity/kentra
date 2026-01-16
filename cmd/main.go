@@ -17,334 +17,66 @@ limitations under the License.
 package main
 
 import (
-	"crypto/tls"
-	"flag"
 	"os"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
-	"github.com/kentrasecurity/kentra/internal/controller"
-	// +kubebuilder:scaffold:imports
 )
 
+// package-level variables that are initialized when the package loads
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme   = runtime.NewScheme()        //Creates a new Kubernetes Scheme object that maps Go types to Kubernetes API Group-Version-Kinds (GVK)
+	setupLog = ctrl.Log.WithName("setup") // Creates a logger specifically for setup/initialization code
 )
 
+// init() runs before `main()` executes
+// Must() panics if the function passed to it returns an error
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(securityv1alpha1.AddToScheme(scheme))
-	// +kubebuilder:scaffold:scheme
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))   // Registers all built-in Kubernetes types with the scheme
+	utilruntime.Must(securityv1alpha1.AddToScheme(scheme)) // Registers all custom securityv1alpha1 types with the scheme (our CRDs)
 }
 
-// nolint:gocyclo
 func main() {
-	var metricsAddr string
-	var metricsCertPath, metricsCertName, metricsCertKey string
-	var webhookCertPath, webhookCertName, webhookCertKey string
-	var enableLeaderElection bool
-	var probeAddr string
-	var secureMetrics bool
-	var enableHTTP2 bool
-	var tlsOpts []func(*tls.Config)
-	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
-		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&secureMetrics, "metrics-secure", true,
-		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
-	flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate.")
-	flag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "The name of the webhook certificate file.")
-	flag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "The name of the webhook key file.")
-	flag.StringVar(&metricsCertPath, "metrics-cert-path", "",
-		"The directory that contains the metrics server certificate.")
-	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
-	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
-	flag.BoolVar(&enableHTTP2, "enable-http2", false,
-		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
+	// Parse command-line flags and set up logger
+	cfg := parseFlags()
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&cfg.zapOpts)))
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	// Create the controller manager
+	mgr := createManager(cfg, scheme)
+	controllerNamespace := getControllerNamespace() //reads POD_NAMESPACE variable (this variable is set in the deployment manifest and it is loaded into the pod's controller env when deployed)
 
-	// if the enable-http2 flag is false (the default), http/2 should be disabled
-	// due to its vulnerabilities. More specifically, disabling http/2 will
-	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
-	// Rapid Reset CVEs. For more information see:
-	// - https://github.com/advisories/GHSA-qppj-fm5r-hxr3
-	// - https://github.com/advisories/GHSA-4374-p667-p6c8
-	disableHTTP2 := func(c *tls.Config) {
-		setupLog.Info("disabling http/2")
-		c.NextProtos = []string{"http/1.1"}
-	}
+	// Register all controllers
+	registerControllers(mgr, controllerNamespace)
 
-	if !enableHTTP2 {
-		tlsOpts = append(tlsOpts, disableHTTP2)
-	}
-
-	// Initial webhook TLS options
-	webhookTLSOpts := tlsOpts
-	webhookServerOptions := webhook.Options{
-		TLSOpts: webhookTLSOpts,
-	}
-
-	if len(webhookCertPath) > 0 {
-		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
-			"webhook-cert-path", webhookCertPath, "webhook-cert-name", webhookCertName, "webhook-cert-key", webhookCertKey)
-
-		webhookServerOptions.CertDir = webhookCertPath
-		webhookServerOptions.CertName = webhookCertName
-		webhookServerOptions.KeyName = webhookCertKey
-	}
-
-	webhookServer := webhook.NewServer(webhookServerOptions)
-
-	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
-	// More info:
-	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.1/pkg/metrics/server
-	// - https://book.kubebuilder.io/reference/metrics.html
-	metricsServerOptions := metricsserver.Options{
-		BindAddress:   metricsAddr,
-		SecureServing: secureMetrics,
-		TLSOpts:       tlsOpts,
-	}
-
-	if secureMetrics {
-		// FilterProvider is used to protect the metrics endpoint with authn/authz.
-		// These configurations ensure that only authorized users and service accounts
-		// can access the metrics endpoint. The RBAC are configured in 'config/rbac/kustomization.yaml'. More info:
-		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.1/pkg/metrics/filters#WithAuthenticationAndAuthorization
-		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
-	}
-
-	// If the certificate is not specified, controller-runtime will automatically
-	// generate self-signed certificates for the metrics server. While convenient for development and testing,
-	// this setup is not recommended for production.
-	//
-	// TODO(user): If you enable certManager, uncomment the following lines:
-	// - [METRICS-WITH-CERTS] at config/default/kustomization.yaml to generate and use certificates
-	// managed by cert-manager for the metrics server.
-	// - [PROMETHEUS-WITH-CERTS] at config/prometheus/kustomization.yaml for TLS certification.
-	if len(metricsCertPath) > 0 {
-		setupLog.Info("Initializing metrics certificate watcher using provided certificates",
-			"metrics-cert-path", metricsCertPath, "metrics-cert-name", metricsCertName, "metrics-cert-key", metricsCertKey)
-
-		metricsServerOptions.CertDir = metricsCertPath
-		metricsServerOptions.CertName = metricsCertName
-		metricsServerOptions.KeyName = metricsCertKey
-	}
-
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		Metrics:                metricsServerOptions,
-		WebhookServer:          webhookServer,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "6e50745b.example.com",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
-	})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-
-	// Get the namespace where the controller is running
-	// Falls back to "kentra-system" if POD_NAMESPACE is not set
-	controllerNamespace := os.Getenv("POD_NAMESPACE")
-	if controllerNamespace == "" {
-		controllerNamespace = "kentra-system"
-		setupLog.Info("POD_NAMESPACE not set, using default namespace", "namespace", controllerNamespace)
-	} else {
-		setupLog.Info("Using controller namespace for toolspecs", "namespace", controllerNamespace)
-	}
-
-	// Create ToolsConfigurator for Enumeration controller
-	toolsConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
-	setupLog.Info("ToolsConfigurator created for Enumeration controller")
-
-	// Create ToolsConfigurator for Osint controller
-	osintConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
-	setupLog.Info("ToolsConfigurator created for Osint controller")
-
-	// Setup OsintReconciler
-	if err := (&controller.OsintReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		Configurator:        osintConfigurator,
-		ControllerNamespace: controllerNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Osint")
-		os.Exit(1)
-	}
-
-	// Create ToolsConfigurator for Exploit controller
-	exploitConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
-	setupLog.Info("ToolsConfigurator created for Exploit controller")
-
-	// Setup ExploitReconciler
-	if err := (&controller.ExploitReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		Configurator:        exploitConfigurator,
-		ControllerNamespace: controllerNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Exploit")
-		os.Exit(1)
-	}
-
-	// Setup EnumerationReconciler
-	if err := (&controller.EnumerationReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		Configurator:        toolsConfigurator,
-		ControllerNamespace: controllerNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Enumeration")
-		os.Exit(1)
-	}
-
-	// Create ToolsConfigurator for Liveness controller
-	livenessConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
-	setupLog.Info("ToolsConfigurator created for Liveness controller")
-
-	// Setup LivenessReconciler
-	if err := (&controller.LivenessReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		Configurator:        livenessConfigurator,
-		ControllerNamespace: controllerNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Liveness")
-		os.Exit(1)
-	}
-
-	// Create ToolsConfigurator for SecurityAttack controller
-	securityAttackConfigurator := controller.NewToolsConfigurator(mgr.GetClient(), controllerNamespace)
-	setupLog.Info("ToolsConfigurator created for SecurityAttack controller")
-
-	if err := (&controller.SecurityAttackReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		Configurator:        securityAttackConfigurator,
-		ControllerNamespace: controllerNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "SecurityAttack")
-		os.Exit(1)
-	}
-
-	// Setup TargetPoolReconciler
-	if err := (&controller.TargetPoolReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "TargetPool")
-		os.Exit(1)
-	}
-
-	// Setup StoragePoolReconciler
-	if err := (&controller.StoragePoolReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "StoragePool")
-		os.Exit(1)
-	}
-
-	// Setup AssetPoolReconciler
-	if err := (&controller.AssetPoolReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AssetPool")
-		os.Exit(1)
-	}
-
-	// +kubebuilder:scaffold:builder
-
-	// CustomAttackReconciler - TODO: implement if needed
-	// if err = (&controller.CustomAttackReconciler{
-	//	Client: mgr.GetClient(),
-	//	Scheme: mgr.GetScheme(),
-	// }).SetupWithManager(mgr); err != nil {
-	//	setupLog.Error(err, "unable to create controller", "controller", "CustomAttack")
-	//	os.Exit(1)
-	// }
-
-	// Setup webhooks
+	// Register webhooks if enabled
 	if os.Getenv("ENABLE_WEBHOOKS") == "true" {
-		if err = (&securityv1alpha1.Enumeration{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Enumeration")
-			os.Exit(1)
-		}
-		if err = (&securityv1alpha1.Liveness{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Liveness")
-			os.Exit(1)
-		}
-		if err = (&securityv1alpha1.SecurityAttack{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "SecurityAttack")
-			os.Exit(1)
-		}
-		if err = (&securityv1alpha1.Osint{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Osint")
-			os.Exit(1)
-		}
-		if err = (&securityv1alpha1.StoragePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "StoragePool")
-			os.Exit(1)
-		}
-		if err = (&securityv1alpha1.TargetPool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "TargetPool")
-			os.Exit(1)
-		}
-		if err = (&securityv1alpha1.AssetPool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AssetPool")
-			os.Exit(1)
-		}
-		setupLog.Info("Webhooks registered successfully")
+		registerWebhooks(mgr)
 	}
 
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
-	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
-	}
+	// Setup health checks
+	setupHealthChecks(mgr)
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func getControllerNamespace() string {
+	ns := os.Getenv("POD_NAMESPACE")
+	if ns == "" {
+		ns = "kentra-system"
+		setupLog.Info("POD_NAMESPACE not set, using default", "namespace", ns)
+	} else {
+		setupLog.Info("Using controller namespace", "namespace", ns)
+	}
+	return ns
 }

@@ -73,8 +73,8 @@ test-e2e-kind: generate manifests docker-build setup-test-e2e ## Run the e2e tes
 	@echo "Starting E2E tests..."
 	# Pass the image name to the test suite via environment variable if supported by your suite
 	-IMG=controller:test KIND_CLUSTER=$(KIND_CLUSTER) ginkgo run \
-		-p --procs=2 -tags=e2e -v ./test/e2e/
-	@$(MAKE) cleanup-test-e2e
+		-p --procs=2 -tags=e2e -v --trace ./test/e2e/
+# 	@$(MAKE) cleanup-test-e2e
 
 .PHONY: test-e2e
 test-e2e: manifests generate fmt vet ## Run the e2e tests.
@@ -112,7 +112,7 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager cmd/main.go
+	go build -o bin/manager cmd
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.

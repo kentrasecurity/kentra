@@ -121,15 +121,17 @@ spec:
                 description: StoragePool is the name of a StoragePool resource to
                   reference for files to download from S3
                 type: string
-              target:
-                description: |-
-                  Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetPool name.
-                  If TargetPool is specified, this field may be empty.
-                type: string
               targetPool:
                 description: TargetPool is the name of a TargetPool resource to reference
                   for target and port information
                 type: string
+              targets:
+                description: |-
+                  Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetPool name.
+                  If TargetPool is specified, this field may be empty.
+                items:
+                  type: string
+                type: array
               tool:
                 description: Tool is the enumeration tool to use (ex nmap)
                 type: string

@@ -22,7 +22,7 @@ import (
 
 // LivenessSpec defines the desired state of Liveness
 type LivenessSpec struct {
-	// Target is the primary target for liveness check (IP, CIDR, or hostname). Can be either a direct target or a reference to a TargetPool name.
+	// Target is the primary target for liveness check (IP, CIDR, or hostname) (deprecated, use Targets)
 	// +optional
 	Target string `json:"target,omitempty"`
 
@@ -30,7 +30,7 @@ type LivenessSpec struct {
 	// +optional
 	TargetPool string `json:"targetPool,omitempty"`
 
-	// Targets are additional targets for liveness checks
+	// Targets are list of targets for liveness checks
 	// +optional
 	Targets []string `json:"targets,omitempty"`
 
@@ -98,7 +98,7 @@ type LivenessStatus struct {
 	// +optional
 	ResultsLocation string `json:"resultsLocation,omitempty"`
 
-	// ResolvedTarget is the resolved target after TargetPool reference is applied
+	// ResolvedTarget is the resolved target(s) after TargetPool reference is applied
 	// +optional
 	ResolvedTarget string `json:"resolvedTarget,omitempty"`
 }

@@ -113,13 +113,19 @@ spec:
                   is true)
                 type: string
               target:
-                description: Target is the IP, CIDR, or hostname to attack. Can be
-                  either a direct target or a reference to a TargetPool name.
+                description: Target is the IP, CIDR, or hostname to attack (deprecated,
+                  use Targets)
                 type: string
               targetPool:
                 description: TargetPool is the name of a TargetPool resource to reference
                   for target and port information
                 type: string
+              targets:
+                description: Targets is a list of IP addresses, CIDRs, or hostnames
+                  to attack
+                items:
+                  type: string
+                type: array
               tool:
                 description: Tool is the security tool to use
                 type: string
@@ -137,7 +143,7 @@ spec:
                 description: LastExecuted is the timestamp of last execution
                 type: string
               resolvedTarget:
-                description: ResolvedTarget is the resolved target after TargetPool
+                description: ResolvedTarget is the resolved target(s) after TargetPool
                   reference is applied
                 type: string
               state:

@@ -12,28 +12,47 @@ var _ = Describe("Kentra Attack Operator", func() {
 		func(conf AttackConfig) {
 			RunAttackFlow(ns, conf)
 		},
-		Entry("OSINT Sherlock", AttackConfig{
-			Kind: "osint",
-			Name: "osint-sample",
-			Time: "10m",
-			Label: map[string]string{
-				"app":                     "osint",
-				"kentra.sh/resource-type": "attack",
-				"tool":                    "sherlock",
-			},
-			Samples: []string{
-				"config/samples/assetpools/assetpool-sherlock.yaml",
-				"config/samples/attacks/security_v1alpha1_osint_sherlock_with_assets.yaml",
-			},
-		}),
-		// Entry("Enumeration Nmap", AttackConfig{
-		// 	Kind: "enumeration",
-		// 	Name: "nmap-scan-ports",
-		// 	Time: "5m",
+		// Entry("OSINT Sherlock", AttackConfig{
+		// 	Kind: "osint",
+		// 	Name: "osint-sample",
+		// 	Time: "10m",
+		// 	Label: map[string]string{
+		// 		"app":                     "osint",
+		// 		"kentra.sh/resource-type": "attack",
+		// 		"tool":                    "sherlock",
+		// 	},
 		// 	Samples: []string{
-		// 		"config/samples/targetpools/kttack_v1alpha1_targetpool_nmap_ports.yaml",
-		// 		"config/samples/attacks/kttack_v1alpha1_enumeration_nmap_scan_ports.yaml",
+		// 		"config/samples/assetpools/assetpool-sherlock.yaml",
+		// 		"config/samples/attacks/security_v1alpha1_osint_sherlock_with_assets.yaml",
 		// 	},
 		// }),
+		// Entry("Enumeration Rustscan", AttackConfig{
+		// 	Kind: "enumeration",
+		// 	Name: "rustscan-multi-target",
+		// 	Time: "5m",
+		// 	Label: map[string]string{
+		// 		"app":                     "enumeration",
+		// 		"kentra.sh/resource-type": "attack",
+		// 		"tool":                    "rustscan",
+		// 	},
+		// 	Samples: []string{
+		// 		"config/samples/targetpools/kttack_v1alpha1_targetpool_rustscan.yaml",
+		// 		"config/samples/attacks/kttack_v1alpha1_enumeration_rustscan_multi_target.yaml",
+		// 	},
+		// }),
+		Entry("Enumeration Netcat", AttackConfig{
+			Kind: "enumeration",
+			Name: "netcat-multi-target",
+			Time: "5m",
+			Label: map[string]string{
+				"app":                     "enumeration",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "netcat",
+			},
+			Samples: []string{
+				"config/samples/targetpools/kttack_v1alpha1_targetpool_rustscan.yaml",
+				"config/samples/attacks/kttack_v1alpha1_enumeration_with_targetpool.yaml",
+			},
+		}),
 	)
 })

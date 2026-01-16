@@ -14,20 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package pools
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
+	"github.com/kentrasecurity/kentra/internal/controller/base"
 )
 
 // AssetPoolReconciler reconciles an AssetPool object
@@ -41,43 +39,28 @@ type AssetPoolReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 
-// Reconcile implements reconciliation for AssetPool resources
 func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-
-	ap := &securityv1alpha1.AssetPool{}
-	if err := r.Get(ctx, req.NamespacedName, ap); err != nil {
-		if errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-		return ctrl.Result{}, err
+	baseReconciler := &base.BasePoolReconciler{
+		Client:       r.Client,
+		Scheme:       r.Scheme,
+		ResourceType: "asset",
 	}
 
-	// Check if namespace is managed by Kentra
-	isManaged, err := isNamespaceManagedByKentra(ctx, r.Client, ap.Namespace)
-	if err != nil {
-		log.Error(err, "Failed to check if namespace is managed by Kentra", "namespace", ap.Namespace)
-		return ctrl.Result{}, err
-	}
-	if !isManaged {
-		log.Error(fmt.Errorf("namespace not managed by Kentra"), "Cannot create AssetPool in namespace without 'managed-by-kentra' annotation", "namespace", ap.Namespace)
-		return ctrl.Result{}, fmt.Errorf("namespace %s is not managed by Kentra (missing 'managed-by-kentra' annotation)", ap.Namespace)
-	}
+	assetPool := &securityv1alpha1.AssetPool{}
+	updater := &AssetPoolStatusUpdater{client: r.Client}
 
-	// Ensure labels are set
-	// Label management
-	if ap.Labels == nil {
-		ap.Labels = make(map[string]string)
-	}
-	if ap.Labels["kentra.sh/resource-type"] != "asset" {
-		ap.Labels["kentra.sh/resource-type"] = "asset"
-		if err := r.Update(ctx, ap); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
-	}
+	return baseReconciler.ReconcilePool(ctx, req, assetPool, updater)
+}
 
-	// Calculation logic based on the "pool" field
+// AssetPoolStatusUpdater updates AssetPool-specific status
+type AssetPoolStatusUpdater struct {
+	client client.Client
+}
+
+func (u *AssetPoolStatusUpdater) UpdateStatus(ctx context.Context, resource base.PoolResource) error {
+	ap := resource.(*securityv1alpha1.AssetPool)
+
+	// Calculate statistics
 	groupCount := len(ap.Spec.Pool)
 	totalAssets := 0
 	for _, item := range ap.Spec.Pool {
@@ -90,16 +73,9 @@ func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ap.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	ap.Status.ObservedGeneration = ap.Generation
 
-	if err := r.Status().Update(ctx, ap); err != nil {
-		log.Error(err, "Failed to update AssetPool status")
-		return ctrl.Result{}, err
-	}
-
-	log.Info("AssetPool reconciled", "groups", groupCount, "totalAssets", totalAssets)
-	return ctrl.Result{}, nil
+	return u.client.Status().Update(ctx, ap)
 }
 
-// SetupWithManager sets up the controller with the Manager.
 func (r *AssetPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&securityv1alpha1.AssetPool{}).

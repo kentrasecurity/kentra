@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package config
 
 import (
 	"bytes"
@@ -30,6 +30,12 @@ import (
 	"sigs.k8s.io/yaml"
 
 	securityv1alpha1 "github.com/kentrasecurity/kentra/api/v1alpha1"
+)
+
+const (
+	toolSpecsLabel = "kentra.sh/resource-type"
+	toolSpecsValue = "tool-specs"
+	toolsDataKey   = "tools"
 )
 
 // ToolConfig represents the configuration for a single tool
@@ -50,7 +56,7 @@ type ToolsConfigurator struct {
 	configMapNS string
 }
 
-// NewToolsConfigurator creates a new ToolsConfigurator instance
+// constructor for a new ToolsConfigurator instance
 func NewToolsConfigurator(c client.Client, configMapNS string) *ToolsConfigurator {
 	return &ToolsConfigurator{
 		tools:       make(map[string]*ToolConfig),
@@ -67,26 +73,43 @@ func (tc *ToolsConfigurator) LoadConfig(ctx context.Context) error {
 	cmList := &corev1.ConfigMapList{}
 	if err := tc.client.List(ctx, cmList,
 		client.InNamespace(tc.configMapNS),
-		client.MatchingLabels{"kentra.sh/resource-type": "tool-specs"},
+		client.MatchingLabels{toolSpecsLabel: toolSpecsValue},
 	); err != nil {
 		log.Error(err, "Failed to list tool-specs ConfigMaps", "Namespace", tc.configMapNS)
 		return err
 	}
 
 	if len(cmList.Items) == 0 {
-		log.Info("No ConfigMaps found with label kentra.sh/resource-type: tool-specs", "Namespace", tc.configMapNS)
+		log.Info("No ConfigMaps found with label", "label", fmt.Sprintf("%s: %s", toolSpecsLabel, toolSpecsValue), "Namespace", tc.configMapNS)
 		return fmt.Errorf("no tool-specs ConfigMaps found in namespace %s", tc.configMapNS)
 	}
 
 	log.Info("Found tool-specs ConfigMaps", "Count", len(cmList.Items), "Namespace", tc.configMapNS)
 
 	// Merge tools from all ConfigMaps
+	mergedTools, err := tc.mergeToolsFromConfigMaps(ctx, cmList.Items)
+	if err != nil {
+		return err
+	}
+
+	// Update tools with lock
+	tc.mu.Lock()
+	tc.tools = mergedTools
+	tc.mu.Unlock()
+
+	log.Info("Successfully loaded all tool configurations", "TotalToolCount", len(mergedTools))
+	return nil
+}
+
+// mergeToolsFromConfigMaps merges tools from multiple ConfigMaps
+func (tc *ToolsConfigurator) mergeToolsFromConfigMaps(ctx context.Context, configMaps []corev1.ConfigMap) (map[string]*ToolConfig, error) {
+	log := log.FromContext(ctx)
 	mergedTools := make(map[string]*ToolConfig)
 
-	for _, cm := range cmList.Items {
-		toolsYAML, ok := cm.Data["tools"]
+	for _, cm := range configMaps {
+		toolsYAML, ok := cm.Data[toolsDataKey]
 		if !ok {
-			log.Info("Skipping ConfigMap without 'tools' key", "ConfigMap", cm.Name)
+			log.Info("Skipping ConfigMap without tools key", "ConfigMap", cm.Name, "Key", toolsDataKey)
 			continue
 		}
 
@@ -108,13 +131,7 @@ func (tc *ToolsConfigurator) LoadConfig(ctx context.Context) error {
 		log.Info("Loaded tools from ConfigMap", "ConfigMap", cm.Name, "ToolCount", len(toolsMap))
 	}
 
-	// Update tools with lock
-	tc.mu.Lock()
-	tc.tools = mergedTools
-	tc.mu.Unlock()
-
-	log.Info("Successfully loaded all tool configurations", "TotalToolCount", len(mergedTools))
-	return nil
+	return mergedTools, nil
 }
 
 // GetToolConfig retrieves the configuration for a specific tool
@@ -135,13 +152,9 @@ func (tc *ToolsConfigurator) GetToolsByType(toolType string) map[string]*ToolCon
 	tc.mu.RLock()
 	defer tc.mu.RUnlock()
 
-	result := make(map[string]*ToolConfig)
-	for name, config := range tc.tools {
-		if config.Type == toolType {
-			result[name] = config
-		}
-	}
-	return result
+	return tc.filterTools(func(config *ToolConfig) bool {
+		return config.Type == toolType
+	})
 }
 
 // GetAllTools returns all configured tools
@@ -149,9 +162,18 @@ func (tc *ToolsConfigurator) GetAllTools() map[string]*ToolConfig {
 	tc.mu.RLock()
 	defer tc.mu.RUnlock()
 
+	return tc.filterTools(func(config *ToolConfig) bool {
+		return true // Return all tools
+	})
+}
+
+// filterTools is a helper that filters tools based on a predicate
+func (tc *ToolsConfigurator) filterTools(predicate func(*ToolConfig) bool) map[string]*ToolConfig {
 	result := make(map[string]*ToolConfig)
 	for name, config := range tc.tools {
-		result[name] = config
+		if predicate(config) {
+			result[name] = config
+		}
 	}
 	return result
 }
@@ -165,88 +187,87 @@ func (tc *ToolsConfigurator) IsToolAvailable(toolName string) bool {
 	return ok
 }
 
+// templateData represents common template data structure
+type templateData map[string]interface{}
+
 // BuildCommand builds the command from the template using Go's text/template
-// This replaces the simple string replacement approach with proper template handling
 func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, port string, args []string) ([]string, error) {
-	tc.mu.RLock()
-	config, ok := tc.tools[toolName]
-	tc.mu.RUnlock()
-
-	if !ok {
-		return nil, fmt.Errorf("tool %q not found in configuration", toolName)
-	}
-
-	tmpl, err := template.New("cmd").Parse(config.CommandTemplate)
+	config, err := tc.getConfigSafe(toolName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse command template: %w", err)
+		return nil, err
 	}
 
-	data := map[string]interface{}{
-		"Target": target,
-		"Port":   port,
-		"Args":   strings.Join(args, " "),
-		"Item":   target, // Alias for Target, used by AssetPool-based commands
+	// Get separator with default
+	separator := config.Separator
+	if separator == "" {
+		separator = " "
 	}
 
-	var out bytes.Buffer
-	if err := tmpl.Execute(&out, data); err != nil {
-		return nil, fmt.Errorf("failed to execute command template: %w", err)
+	data := templateData{
+		"Target":    target,
+		"Port":      port,
+		"Args":      strings.Join(args, " "),
+		"Item":      target,
+		"Separator": separator,
 	}
 
-	cmd := strings.Fields(out.String())
-	return cmd, nil
+	return tc.executeTemplate(toolName, data)
 }
 
 // BuildCommandWithModule builds command with Module and Payload for exploit resources
 func (tc *ToolsConfigurator) BuildCommandWithModule(toolName string, target string, port string, module string, payload string, args []string) ([]string, error) {
-	tc.mu.RLock()
-	config, ok := tc.tools[toolName]
-	tc.mu.RUnlock()
-
-	if !ok {
-		return nil, fmt.Errorf("tool %q not found in configuration", toolName)
-	}
-
-	tmpl, err := template.New("cmd").Parse(config.CommandTemplate)
+	config, err := tc.getConfigSafe(toolName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse command template: %w", err)
+		return nil, err
 	}
 
-	data := map[string]interface{}{
-		"Target":  target,
-		"Port":    port,
-		"Module":  module,
-		"Payload": payload,
-		"Args":    strings.Join(args, " "),
-		"Item":    target,
+	// Get separator with default
+	separator := config.Separator
+	if separator == "" {
+		separator = " "
 	}
 
-	var out bytes.Buffer
-	if err := tmpl.Execute(&out, data); err != nil {
-		return nil, fmt.Errorf("failed to execute command template: %w", err)
+	data := templateData{
+		"Target":    target,
+		"Port":      port,
+		"Module":    module,
+		"Payload":   payload,
+		"Args":      strings.Join(args, " "),
+		"Item":      target,
+		"Separator": separator,
 	}
 
-	cmd := strings.Fields(out.String())
-	return cmd, nil
+	return tc.executeTemplate(toolName, data)
 }
 
 // BuildCommandWithAssets builds command with assets as individual or grouped template variables
 func (tc *ToolsConfigurator) BuildCommandWithAssets(toolName string, assets []securityv1alpha1.AssetItem, args []string) ([]string, error) {
-	tc.mu.RLock()
-	config, ok := tc.tools[toolName]
-	tc.mu.RUnlock()
-
-	if !ok {
-		return nil, fmt.Errorf("tool %q not found in configuration", toolName)
+	config, err := tc.getConfigSafe(toolName)
+	if err != nil {
+		return nil, err
 	}
 
 	// Determine separator (default to space if not specified)
-	separator := " "
-	if config.Separator != "" {
-		separator = config.Separator
+	separator := config.Separator
+	if separator == "" {
+		separator = " "
 	}
 
-	// Build asset maps - supports multiple values per type
+	// Build asset maps
+	assetMap, assetArrayMap := tc.buildAssetMaps(assets, separator)
+
+	data := templateData{
+		"Args":      strings.Join(args, " "),
+		"Item":      assetMap,
+		"ItemArray": assetArrayMap,
+		"Separator": separator,
+	}
+
+	return tc.executeTemplate(toolName, data)
+}
+
+// buildAssetMaps creates both string and array representations of assets
+func (tc *ToolsConfigurator) buildAssetMaps(assets []securityv1alpha1.AssetItem, separator string) (map[string]string, map[string][]string) {
 	assetMap := make(map[string]string)
 	assetArrayMap := make(map[string][]string)
 
@@ -262,33 +283,11 @@ func (tc *ToolsConfigurator) BuildCommandWithAssets(toolName string, assets []se
 		assetArrayMap[asset.Type] = append(assetArrayMap[asset.Type], asset.Value)
 	}
 
-	tmpl, err := template.New("cmd").Parse(config.CommandTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse command template: %w", err)
-	}
-
-	data := map[string]interface{}{
-		"Args":      strings.Join(args, " "),
-		"Item":      assetMap,
-		"ItemArray": assetArrayMap,
-		"Separator": separator,
-	}
-
-	var out bytes.Buffer
-	if err := tmpl.Execute(&out, data); err != nil {
-		return nil, fmt.Errorf("failed to execute command template: %w", err)
-	}
-
-	resultString := out.String()
-	resultString = strings.ReplaceAll(resultString, "<no value>", "")
-	resultString = strings.Join(strings.Fields(resultString), " ")
-
-	cmd := strings.Fields(resultString)
-	return cmd, nil
+	return assetMap, assetArrayMap
 }
 
-// GetCapabilities extracts and returns capabilities for a tool
-func (tc *ToolsConfigurator) GetCapabilities(toolName string) ([]string, error) {
+// getConfigSafe safely retrieves a tool config with read lock
+func (tc *ToolsConfigurator) getConfigSafe(toolName string) (*ToolConfig, error) {
 	tc.mu.RLock()
 	defer tc.mu.RUnlock()
 
@@ -297,19 +296,56 @@ func (tc *ToolsConfigurator) GetCapabilities(toolName string) ([]string, error) 
 		return nil, fmt.Errorf("tool %q not found in configuration", toolName)
 	}
 
+	return config, nil
+}
+
+// executeTemplate executes the command template with the given data
+func (tc *ToolsConfigurator) executeTemplate(toolName string, data templateData) ([]string, error) {
+	config, err := tc.getConfigSafe(toolName)
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl, err := template.New("cmd").Parse(config.CommandTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse command template: %w", err)
+	}
+
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, data); err != nil {
+		return nil, fmt.Errorf("failed to execute command template: %w", err)
+	}
+
+	// Clean up the output
+	resultString := out.String()
+	resultString = strings.ReplaceAll(resultString, "<no value>", "")
+	resultString = strings.Join(strings.Fields(resultString), " ")
+
+	return strings.Fields(resultString), nil
+}
+
+// GetCapabilities extracts and returns capabilities for a tool
+func (tc *ToolsConfigurator) GetCapabilities(toolName string) ([]string, error) {
+	config, err := tc.getConfigSafe(toolName)
+	if err != nil {
+		return nil, err
+	}
+
 	if config.Capabilities == nil {
 		return []string{}, nil
 	}
 
-	if add, ok := config.Capabilities["add"].([]interface{}); ok {
-		capabilities := make([]string, 0, len(add))
-		for _, cap := range add {
-			if capStr, ok := cap.(string); ok {
-				capabilities = append(capabilities, capStr)
-			}
-		}
-		return capabilities, nil
+	add, ok := config.Capabilities["add"].([]interface{})
+	if !ok {
+		return []string{}, nil
 	}
 
-	return []string{}, nil
+	capabilities := make([]string, 0, len(add))
+	for _, cap := range add {
+		if capStr, ok := cap.(string); ok {
+			capabilities = append(capabilities, capStr)
+		}
+	}
+
+	return capabilities, nil
 }

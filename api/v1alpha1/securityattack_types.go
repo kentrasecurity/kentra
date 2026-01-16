@@ -10,13 +10,17 @@ type SecurityAttackSpec struct {
 	// +kubebuilder:validation:Enum=Enumeration;Vulnerability;Exploitation
 	AttackType string `json:"attackType"`
 
-	// Target is the IP, CIDR, or hostname to attack. Can be either a direct target or a reference to a TargetPool name.
+	// Target is the IP, CIDR, or hostname to attack (deprecated, use Targets)
 	// +optional
 	Target string `json:"target,omitempty"`
 
 	// TargetPool is the name of a TargetPool resource to reference for target and port information
 	// +optional
 	TargetPool string `json:"targetPool,omitempty"`
+
+	// Targets is a list of IP addresses, CIDRs, or hostnames to attack
+	// +optional
+	Targets []string `json:"targets,omitempty"`
 
 	// Tool is the security tool to use
 	// +kubebuilder:validation:Required
@@ -66,7 +70,7 @@ type SecurityAttackStatus struct {
 	// +kubebuilder:validation:Enum=Pending;Running;Completed;Failed
 	State string `json:"state,omitempty"`
 
-	// ResolvedTarget is the resolved target after TargetPool reference is applied
+	// ResolvedTarget is the resolved target(s) after TargetPool reference is applied
 	// +optional
 	ResolvedTarget string `json:"resolvedTarget,omitempty"`
 }

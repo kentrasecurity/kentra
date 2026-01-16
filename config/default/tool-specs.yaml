@@ -112,6 +112,7 @@ data:
       type: "enumeration"
       image: "subfuzion/netcat"
       commandTemplate: "nc {{.Args}} {{.Target}} {{.Port}}"
+      separator: " "
       capabilities:
         add:
           - NET_RAW 
@@ -138,6 +139,7 @@ data:
       category: "network"
       image: "rustscan/rustscan:latest"
       commandTemplate: "rustscan {{.Args}} --addresses {{.Target}}"
+      separator: ","
       capabilities:
         add:
           - NET_RAW

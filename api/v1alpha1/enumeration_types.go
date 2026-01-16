@@ -33,7 +33,7 @@ type EnumerationSpec struct {
 	// Target is the IP, CIDR, or hostname to enumerate. Can be either a direct target or a reference to a TargetPool name.
 	// If TargetPool is specified, this field may be empty.
 	// +optional
-	Target string `json:"target,omitempty"`
+	Targets []string `json:"targets,omitempty"`
 
 	// TargetPool is the name of a TargetPool resource to reference for target and port information
 	// +optional
