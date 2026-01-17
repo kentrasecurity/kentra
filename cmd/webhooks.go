@@ -19,7 +19,6 @@ func registerWebhooks(mgr ctrl.Manager) {
 	}{
 		{"Enumeration", &securityv1alpha1.Enumeration{}},
 		{"Liveness", &securityv1alpha1.Liveness{}},
-		{"SecurityAttack", &securityv1alpha1.SecurityAttack{}},
 		{"Osint", &securityv1alpha1.Osint{}},
 		{"StoragePool", &securityv1alpha1.StoragePool{}},
 		{"TargetPool", &securityv1alpha1.TargetPool{}},

@@ -38,7 +38,6 @@ rules:
   - exploits
   - livenesses
   - osints
-  - securityattacks
   - storagepools
   - targetpools
   verbs:
@@ -65,7 +64,6 @@ rules:
   - exploits/status
   - livenesses/status
   - osints/status
-  - securityattacks/status
   - storagepools/status
   - targetpools/status
   verbs:

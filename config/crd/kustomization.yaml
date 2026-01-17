@@ -4,7 +4,6 @@
 resources:
 - bases/kentra.sh_enumerations.yaml
 - bases/kentra.sh_livenesses.yaml
-- bases/kentra.sh_securityattacks.yaml
 - bases/kentra.sh_targetpools.yaml
 - bases/kentra.sh_storagepools.yaml
 - bases/kentra.sh_osints.yaml

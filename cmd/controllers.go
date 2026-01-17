@@ -70,19 +70,6 @@ func registerControllers(mgr ctrl.Manager, namespace string) {
 			},
 		},
 		{
-			Name: "SecurityAttack",
-			ReconcilerFactory: func(mgr ctrl.Manager, ns string) Reconciler {
-				configurator := config.NewToolsConfigurator(mgr.GetClient(), ns)
-				setupLog.Info("ToolsConfigurator created", "controller", "SecurityAttack")
-				return &attacks.SecurityAttackReconciler{
-					Client:              mgr.GetClient(),
-					Scheme:              mgr.GetScheme(),
-					Configurator:        configurator,
-					ControllerNamespace: ns,
-				}
-			},
-		},
-		{
 			Name: "TargetPool",
 			ReconcilerFactory: func(mgr ctrl.Manager, ns string) Reconciler {
 				return &pools.TargetPoolReconciler{

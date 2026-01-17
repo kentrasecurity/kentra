@@ -1,5 +1,5 @@
 # Examples of Kentra Custom Resources
-# These examples show how to use Enumeration, Liveness, and SecurityAttack resources
+# These examples show how to use Enumeration, Liveness
 
 ---
 # Example 1: Simple one-time Enumeration with nmap
@@ -88,67 +88,6 @@ spec:
   schedule: "*/5 * * * *"
   http_proxy: ""
   debug: false
-
----
-# Example 6: Simple one-time SecurityAttack
-apiVersion: kentra.sh/v1alpha1
-kind: SecurityAttack
-metadata:
-  name: sqlmap-check
-  namespace: default
-spec:
-  attackType: "Exploitation"
-  target: "http://vulnerable-app.local/login"
-  tool: "sqlmap"
-  args:
-    - "-p"
-    - "username"
-    - "--batch"
-  periodic: false
-  debug: false
-
----
-# Example 7: Periodic SecurityAttack (weekly vulnerability scan)
-apiVersion: kentra.sh/v1alpha1
-kind: SecurityAttack
-metadata:
-  name: gobuster-weekly-scan
-  namespace: default
-spec:
-  attackType: "Enumeration"
-  target: "http://api.example.com"
-  tool: "gobuster"
-  args:
-    - "dir"
-    - "-w"
-    - "/usr/share/wordlists/common.txt"
-  periodic: true
-  schedule: "0 3 * * 0"  # Sunday at 3 AM
-  http_proxy: ""
-  debug: false
-
----
-# Example 8: SecurityAttack with environment variables and proxy
-apiVersion: kentra.sh/v1alpha1
-kind: SecurityAttack
-metadata:
-  name: custom-attack
-  namespace: default
-spec:
-  attackType: "Vulnerability"
-  target: "https://webapp.example.com"
-  tool: "custom-tool"
-  args:
-    - "--output"
-    - "/tmp/results"
-  http_proxy: "http://proxy.corp.local:3128"
-  additional_env:
-    - name: "API_KEY"
-      value: "secret-key"
-    - name: "TIMEOUT"
-      value: "300"
-  periodic: false
-  debug: true  # Enable debug mode for stdout output
 
 ---
 # Example 9: Enumeration in debug mode (output to stdout)

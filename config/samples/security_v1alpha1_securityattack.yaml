@@ -1,9 +1,0 @@
-apiVersion: kentra.sh/v1alpha1
-kind: SecurityAttack
-metadata:
-  labels:
-    app.kubernetes.io/name: kentra
-    app.kubernetes.io/managed-by: kustomize
-  name: securityattack-sample
-spec:
-  # TODO(user): Add fields here
