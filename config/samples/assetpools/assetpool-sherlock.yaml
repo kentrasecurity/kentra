@@ -22,3 +22,25 @@ spec:
         - type: email
           value: jane@company.com
       name: jane
+
+
+
+
+apiVersion: kentra.sh/v1alpha1
+kind: AssetPool
+metadata:
+  name: contacts
+  namespace: kentra-system
+spec:
+  description: Pool of assets
+  asset:
+    usernames:
+      - john
+      - doe
+    email:
+      - john@gmail.com
+    phones:
+      - '+1234567890'
+  description: john
+
+---

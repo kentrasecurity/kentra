@@ -1,67 +1,45 @@
+# ---
+# apiVersion: kentra.sh/v1alpha1
+# kind: Osint
+# metadata:
+#   name: osint-sample
+#   namespace: kentra-system
+# spec:
+#   tool: sherlock
+#   assetPool: contacts
+#   category: username-enumeration
+#   periodic: false
+#   debug: true
+---
 apiVersion: kentra.sh/v1alpha1
 kind: Osint
 metadata:
-  labels:
-    kentra-resource-type: attack
-  name: sherlock-multi-asset
+  name: osint-sample
   namespace: kentra-system
 spec:
+  tool: trufflehog
   assetPool: contacts
   category: username-enumeration
+  periodic: false
   debug: true
-  tool: sherlock
 ---
 apiVersion: kentra.sh/v1alpha1
 kind: AssetPool
 metadata:
-  labels:
-    kentra-resource-type: asset
   name: contacts
   namespace: kentra-system
 spec:
-  description: Grouped assets - fully dynamic structure
-  groups:
-    - assetSets:
-        - assets:
-            - type: username
-              value: john
-            - type: username
-              value: doe
-            - type: email
-              value: johndoe@gmail.com
-            - type: phone
-              value: '+1234567890'
-          name: primary
-        - assets:
-            - type: username
-              value: jhondoe
-            - type: email
-              value: johndoe@company.com
-          name: secondary
-      name: john-doe
-    - assetSets:
-        - assets:
-            - type: username
-              value: jane
-          name: university
-        - assets:
-            - type: username
-              value: janelove
-            - type: email
-              value: jane@personal.com
-          name: personal
-      name: jane-doe
+  description: Pool of assets
+  asset:
+    username:
+      - john
+      - doe
+    email:
+      - john@gmail.com
+    phone:
+      - '+1234567890'
+    uri:
+      - 'https://github.com/trufflesecurity/trufflehog.git'
+      - 'https://github.com/megadose/holehe.git'
+    description: john
 ---
-apiVersion: kentra.sh/v1alpha1
-kind: TargetGroup
-metadata:
-  labels:
-    kentra-resource-type: target
-  name: opnsense
-  namespace: kentra-system
-spec:
-  description: >-
-    Target group for nmap scanning on ports 22 (SSH) and 80 (HTTP) e altre porte
-    pelate
-  port: 22,80,443,53
-  target: 192.168.1.14

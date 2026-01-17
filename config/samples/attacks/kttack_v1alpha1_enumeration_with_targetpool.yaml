@@ -12,5 +12,5 @@ spec:
   category: Reconnaissance
   debug: true
   periodic: false
-  targetPool: multi-host-pool
+  targetPool: multi-host-pool1
   tool: netcat
