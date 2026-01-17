@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"text/template"
@@ -348,4 +349,35 @@ func (tc *ToolsConfigurator) GetCapabilities(toolName string) ([]string, error) 
 	}
 
 	return capabilities, nil
+}
+
+// GetRequiredAssetTypes parses the command template and extracts required asset types
+func (tc *ToolsConfigurator) GetRequiredAssetTypes(toolName string) ([]string, error) {
+	config, err := tc.getConfigSafe(toolName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the template to find all {{.Item.xxx}} references
+	assetTypes := make(map[string]bool)
+
+	// Use regex to find all {{.Item.xxx}} patterns
+	// Match patterns like {{.Item.username}}, {{.Item.email}}, etc.
+	re := regexp.MustCompile(`\{\{\.Item\.(\w+)\}\}`)
+	matches := re.FindAllStringSubmatch(config.CommandTemplate, -1)
+
+	for _, match := range matches {
+		if len(match) > 1 {
+			assetType := match[1] // Extract the asset type (e.g., "username", "email")
+			assetTypes[assetType] = true
+		}
+	}
+
+	// Convert map to slice
+	result := make([]string, 0, len(assetTypes))
+	for assetType := range assetTypes {
+		result = append(result, assetType)
+	}
+
+	return result, nil
 }

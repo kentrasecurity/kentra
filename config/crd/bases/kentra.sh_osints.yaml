@@ -95,19 +95,9 @@ spec:
                 description: StoragePool references a StoragePool resource for file
                   inputs
                 type: string
-              target:
-                description: Target specifies the target username(s) for OSINT operations
-                  (deprecated, use Targets)
-                type: string
               targetPool:
                 description: TargetPool references a TargetPool resource
                 type: string
-              targets:
-                description: Targets specifies a list of target usernames for OSINT
-                  operations
-                items:
-                  type: string
-                type: array
               tool:
                 description: Tool specifies which OSINT tool to use (e.g., sherlock)
                 type: string
@@ -132,6 +122,7 @@ spec:
               resolvedAssets:
                 description: ResolvedAssets contains all resolved assets from AssetPool
                 items:
+                  description: AssetItem represents a single asset with its type
                   properties:
                     type:
                       type: string

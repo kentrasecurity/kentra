@@ -60,12 +60,12 @@ type StoragePoolStatusUpdater struct {
 func (u *StoragePoolStatusUpdater) UpdateStatus(ctx context.Context, resource base.PoolResource) error {
 	sp := resource.(*securityv1alpha1.StoragePool)
 
-	// Update status fields
-	sp.Status.FileCount = len(sp.Spec.Files)
-	sp.Status.LastSyncTime = time.Now().Format(time.RFC3339)
+	// Update common fields
+	sp.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	sp.Status.ObservedGeneration = sp.Generation
+	sp.Status.ItemCount = len(sp.Spec.Files)
 
-	return u.client.Status().Update(ctx, sp)
+	return nil
 }
 
 func (r *StoragePoolReconciler) SetupWithManager(mgr ctrl.Manager) error {

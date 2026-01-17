@@ -67,22 +67,23 @@ func (f *EnumerationJobFactory) ReconcileJobs(ctx context.Context, resource base
 	resolver := resolvers.New(f.Client)
 	files, _ := resolver.ResolveStoragePool(ctx, enum.Spec.StoragePool, enum.Namespace)
 
-	// Resolve targets from pool or use direct targets
-	var targets []string
-	var port string
-	if enum.Spec.TargetPool != "" {
-		var directTarget string
-		if len(enum.Spec.Targets) > 0 {
-			directTarget = enum.Spec.Targets[0]
-		}
-		targets, port = resolver.ResolveTargetWithPort(ctx, enum.Spec.TargetPool, directTarget, enum.Spec.Port, enum.Namespace)
-	} else {
-		targets = enum.Spec.Targets
-		port = enum.Spec.Port
+	// Resolve targets from TargetPool (required)
+	if enum.Spec.TargetPool == "" {
+		return ctrl.Result{}, fmt.Errorf("targetPool is required")
+	}
+
+	targets, port, err := resolver.ResolveTargetPool(ctx, enum.Spec.TargetPool, enum.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to resolve targetPool: %w", err)
 	}
 
 	if len(targets) == 0 {
-		return ctrl.Result{}, fmt.Errorf("no targets specified")
+		return ctrl.Result{}, fmt.Errorf("no targets found in targetPool %s", enum.Spec.TargetPool)
+	}
+
+	// Override port if specified directly
+	if enum.Spec.Port != "" {
+		port = enum.Spec.Port
 	}
 
 	// Store resolved targets in status

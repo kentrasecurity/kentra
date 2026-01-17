@@ -8,6 +8,8 @@ metadata:
 spec:
   group: kentra.sh
   names:
+    categories:
+    - pool
     kind: TargetPool
     listKind: TargetPoolList
     plural: targetpools
@@ -17,9 +19,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.targets
+    - jsonPath: .status.itemCount
       name: Targets
-      type: string
+      type: integer
     - jsonPath: .spec.port
       name: Port
       type: string
@@ -56,25 +58,40 @@ spec:
             properties:
               description:
                 description: Description is an optional description of the target
-                  group
+                  pool
                 type: string
               port:
                 description: Port is the port or port range to target (e.g., '22',
                   '80,443', '8000-8100')
                 type: string
-              targets:
-                description: Targets is a list of IP addresses, CIDRs, or hostnames
-                  to target
-                items:
-                  type: string
-                minItems: 1
-                type: array
+              target:
+                description: Target contains categorized targets
+                properties:
+                  hostname:
+                    description: Hostnames or domains
+                    items:
+                      type: string
+                    type: array
+                  ip:
+                    description: IP addresses or CIDRs
+                    items:
+                      type: string
+                    type: array
+                  url:
+                    description: URLs
+                    items:
+                      type: string
+                    type: array
+                type: object
             required:
-            - targets
+            - target
             type: object
           status:
             description: TargetPoolStatus defines the observed state of TargetPool
             properties:
+              itemCount:
+                description: ItemCount is the total number of targets
+                type: integer
               lastUpdated:
                 description: LastUpdated is the timestamp of last update
                 type: string

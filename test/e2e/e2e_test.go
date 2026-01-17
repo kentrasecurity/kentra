@@ -40,19 +40,57 @@ var _ = Describe("Kentra Attack Operator", func() {
 		// 		"config/samples/attacks/kttack_v1alpha1_enumeration_rustscan_multi_target.yaml",
 		// 	},
 		// }),
+		// Entry("Enumeration Netcat", AttackConfig{
+		// 	Kind: "enumeration",
+		// 	Name: "netcat-multi-target-ips",
+		// 	Time: "5m",
+		// 	Label: map[string]string{
+		// 		"app":                     "enumeration",
+		// 		"kentra.sh/resource-type": "attack",
+		// 		"tool":                    "netcat",
+		// 	},
+		// 	Samples: []string{
+		// 		"examples/enumeration_1.yaml",
+		// 	},
+		// }),
 		Entry("Enumeration Netcat", AttackConfig{
 			Kind: "enumeration",
-			Name: "netcat-multi-target",
+			Name: "rustscan-multi-test",
 			Time: "5m",
 			Label: map[string]string{
 				"app":                     "enumeration",
 				"kentra.sh/resource-type": "attack",
-				"tool":                    "netcat",
+				"tool":                    "rustscan",
 			},
 			Samples: []string{
-				"config/samples/targetpools/kttack_v1alpha1_targetpool_rustscan.yaml",
-				"config/samples/attacks/kttack_v1alpha1_enumeration_with_targetpool.yaml",
+				"examples/enumeration_1.yaml",
 			},
 		}),
+		// Entry("OSINT Sherlock", AttackConfig{
+		// 	Kind: "osint",
+		// 	Name: "osint-sample",
+		// 	Time: "10m",
+		// 	Label: map[string]string{
+		// 		"app":                     "osint",
+		// 		"kentra.sh/resource-type": "attack",
+		// 		"tool":                    "sherlock",
+		// 	},
+		// 	Samples: []string{
+		// 		"examples/osints-example.yaml",
+		// 	},
+		// }),
+		// Entry("OSINT Sherlock", AttackConfig{
+		// 	Kind: "osint",
+		// 	Name: "osint-sample",
+		// 	Time: "10m",
+		// 	Label: map[string]string{
+		// 		"app":                     "osint",
+		// 		"kentra.sh/resource-type": "attack",
+		// 		"tool":                    "trufflehog",
+		// 	},
+		// 	Samples: []string{
+		// 		"examples/osints-example.yaml",
+		// 	},
+		// }),
 	)
 })

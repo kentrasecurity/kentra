@@ -192,12 +192,19 @@ func (jb *JobBuilder) buildJob(
 	jobName string,
 	spec *AttackSpec,
 ) (*batchv1.Job, error) {
-	// Join targets for display/annotation purposes
-	// Use space as separator for most security tools (nmap, rustscan, etc.)
-	targetStr := strings.Join(spec.Targets, " ")
+	// Get separator from tool config
+	toolConfig, err := jb.Configurator.GetToolConfig(spec.Tool)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tool config: %w", err)
+	}
 
-	// Pass ALL targets to BuildPodSpec
-	target := strings.Join(spec.Targets, " ")
+	separator := toolConfig.Separator
+	if separator == "" {
+		separator = " " // Default to space
+	}
+
+	// Join targets with the tool-specific separator
+	target := strings.Join(spec.Targets, separator)
 
 	podSpec, err := pods.BuildPodSpec(ctx, jb.Client, spec.Tool, target, spec.Port,
 		spec.Args, spec.HTTPProxy, spec.AdditionalEnv, spec.Debug, spec.Files, spec.Assets,
@@ -218,7 +225,7 @@ func (jb *JobBuilder) buildJob(
 			Namespace: owner.GetNamespace(),
 			Labels:    labels,
 			Annotations: map[string]string{
-				"kentra.sh/target":            targetStr,
+				"kentra.sh/target":            target,
 				"kentra.sh/tool":              spec.Tool,
 				"kentra.sh/category":          spec.Category,
 				"kentra.sh/parent-generation": fmt.Sprintf("%d", owner.GetGeneration()),
@@ -246,12 +253,19 @@ func (jb *JobBuilder) buildCronJob(
 	jobName string,
 	spec *AttackSpec,
 ) (*batchv1.CronJob, error) {
-	// Join targets for display/annotation purposes
-	// Use space as separator for most security tools
-	targetStr := strings.Join(spec.Targets, " ")
+	// Get separator from tool config
+	toolConfig, err := jb.Configurator.GetToolConfig(spec.Tool)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tool config: %w", err)
+	}
 
-	// Pass ALL targets to BuildPodSpec
-	target := strings.Join(spec.Targets, " ")
+	separator := toolConfig.Separator
+	if separator == "" {
+		separator = " " // Default to space
+	}
+
+	// Join targets with the tool-specific separator
+	target := strings.Join(spec.Targets, separator)
 
 	podSpec, err := pods.BuildPodSpec(ctx, jb.Client, spec.Tool, target, spec.Port,
 		spec.Args, spec.HTTPProxy, spec.AdditionalEnv, spec.Debug, spec.Files, spec.Assets,
@@ -272,7 +286,7 @@ func (jb *JobBuilder) buildCronJob(
 			Namespace: owner.GetNamespace(),
 			Labels:    labels,
 			Annotations: map[string]string{
-				"kentra.sh/target":            targetStr,
+				"kentra.sh/target":            target,
 				"kentra.sh/tool":              spec.Tool,
 				"kentra.sh/category":          spec.Category,
 				"kentra.sh/parent-generation": fmt.Sprintf("%d", owner.GetGeneration()),

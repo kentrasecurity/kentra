@@ -37,7 +37,7 @@ type AssetPoolReconciler struct {
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kentra.sh,resources=assetpools/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list
 
 func (r *AssetPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	baseReconciler := &base.BasePoolReconciler{
@@ -60,20 +60,14 @@ type AssetPoolStatusUpdater struct {
 func (u *AssetPoolStatusUpdater) UpdateStatus(ctx context.Context, resource base.PoolResource) error {
 	ap := resource.(*securityv1alpha1.AssetPool)
 
-	// Calculate statistics
-	groupCount := len(ap.Spec.Pool)
-	totalAssets := 0
-	for _, item := range ap.Spec.Pool {
-		totalAssets += len(item.Assets)
-	}
-
-	// Update status
-	ap.Status.GroupCount = groupCount
-	ap.Status.TotalAssets = totalAssets
+	// Update common fields
 	ap.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	ap.Status.ObservedGeneration = ap.Generation
 
-	return u.client.Status().Update(ctx, ap)
+	// Calculate total assets using the helper method
+	ap.Status.ItemCount = len(ap.GetAllAssets())
+
+	return nil
 }
 
 func (r *AssetPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {

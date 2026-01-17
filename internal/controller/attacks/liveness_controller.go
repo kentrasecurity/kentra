@@ -79,32 +79,18 @@ func (f *LivenessJobFactory) ReconcileJobs(ctx context.Context, resource base.At
 	liveness := resource.(*securityv1alpha1.Liveness)
 	resolver := resolvers.New(f.Client)
 
-	// Resolve targets from pool or use direct targets
-	var targets []string
-	var err error
-	if liveness.Spec.TargetPool != "" {
-		// Get targets from pool
-		var directTarget string
-		if liveness.Spec.Target != "" {
-			directTarget = liveness.Spec.Target
-		} else if len(liveness.Spec.Targets) > 0 {
-			directTarget = liveness.Spec.Targets[0]
-		}
-		targets, err = resolver.ResolveTarget(ctx, liveness.Spec.TargetPool, directTarget, liveness.Namespace)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		// Use direct targets (with fallback to deprecated Target field)
-		if len(liveness.Spec.Targets) > 0 {
-			targets = liveness.Spec.Targets
-		} else if liveness.Spec.Target != "" {
-			targets = []string{liveness.Spec.Target}
-		}
+	// Resolve targets from TargetPool (required)
+	if liveness.Spec.TargetPool == "" {
+		return ctrl.Result{}, fmt.Errorf("targetPool is required")
+	}
+
+	targets, _, err := resolver.ResolveTargetPool(ctx, liveness.Spec.TargetPool, liveness.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to resolve targetPool: %w", err)
 	}
 
 	if len(targets) == 0 {
-		return ctrl.Result{}, fmt.Errorf("neither target nor targetPool specified")
+		return ctrl.Result{}, fmt.Errorf("no targets found in targetPool %s", liveness.Spec.TargetPool)
 	}
 
 	liveness.Status.ResolvedTarget = strings.Join(targets, ",")
@@ -125,6 +111,7 @@ func (f *LivenessJobFactory) ReconcileJobs(ctx context.Context, resource base.At
 		Debug:         liveness.Spec.Debug,
 		Periodic:      liveness.Spec.Periodic,
 		Schedule:      liveness.Spec.Schedule,
+		Port:          "",
 		Files:         []string{},
 	}
 

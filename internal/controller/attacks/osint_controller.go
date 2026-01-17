@@ -3,7 +3,6 @@ package attacks
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -67,51 +66,7 @@ func (f *OsintJobFactory) ReconcileJobs(ctx context.Context, resource base.Attac
 	// Resolve storage files
 	files, _ := resolver.ResolveStoragePool(ctx, osint.Spec.StoragePool, osint.Namespace)
 
-	// AssetPool mode: multiple jobs
-	if osint.Spec.AssetPool != "" {
-		return f.handleAssetPoolMode(ctx, osint, resolver, files)
-	}
-
-	// Target mode: single job
-	return f.handleTargetMode(ctx, osint, resolver, files)
-}
-
-func (f *OsintJobFactory) handleTargetMode(
-	ctx context.Context,
-	osint *securityv1alpha1.Osint,
-	resolver *resolvers.PoolResolver,
-	files []string,
-) (ctrl.Result, error) {
-	// Resolve targets from pool or use direct targets
-	var targets []string
-	if osint.Spec.TargetPool != "" {
-		// Get targets from pool
-		var directTarget string
-		if osint.Spec.Target != "" {
-			directTarget = osint.Spec.Target
-		} else if len(osint.Spec.Targets) > 0 {
-			directTarget = osint.Spec.Targets[0]
-		}
-		var err error
-		targets, err = resolver.ResolveTarget(ctx, osint.Spec.TargetPool, directTarget, osint.Namespace)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		// Use direct targets (with fallback to deprecated Target field)
-		if len(osint.Spec.Targets) > 0 {
-			targets = osint.Spec.Targets
-		} else if osint.Spec.Target != "" {
-			targets = []string{osint.Spec.Target}
-		}
-	}
-
-	if len(targets) == 0 {
-		return ctrl.Result{}, fmt.Errorf("no target specified")
-	}
-
-	osint.Status.ResolvedTarget = strings.Join(targets, ",")
-	return f.createJob(ctx, osint, osint.Name, targets, files, nil)
+	return f.handleAssetPoolMode(ctx, osint, resolver, files)
 }
 
 func (f *OsintJobFactory) handleAssetPoolMode(
@@ -122,33 +77,42 @@ func (f *OsintJobFactory) handleAssetPoolMode(
 ) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	assetPoolItems, err := resolver.ResolveAssetPool(ctx, osint.Spec.AssetPool, osint.Namespace)
+	// Resolve AssetPool
+	assetItems, err := resolver.ResolveAssetPool(ctx, osint.Spec.AssetPool, osint.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to resolve AssetPool: %w", err)
 	}
-	if len(assetPoolItems) == 0 {
+	if len(assetItems) == 0 {
 		return ctrl.Result{}, fmt.Errorf("assetPool %s has no items", osint.Spec.AssetPool)
 	}
 
-	// Get targets for asset pool mode
-	var targets []string
-	if osint.Spec.Target != "" {
-		targets = []string{osint.Spec.Target}
-	} else if len(osint.Spec.Targets) > 0 {
-		targets = osint.Spec.Targets
+	// Get required asset types from the tool's command template
+	requiredAssetTypes, err := f.Configurator.GetRequiredAssetTypes(osint.Spec.Tool)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to get required asset types for tool %s: %w", osint.Spec.Tool, err)
 	}
 
-	// Create one job per group
-	createdCount := 0
-	for i, item := range assetPoolItems {
-		if len(item.Assets) == 0 {
-			continue
-		}
+	// Filter assets based on what the template requires
+	filteredAssets := filterAssetsByTypes(assetItems, requiredAssetTypes)
+	if len(filteredAssets) == 0 {
+		return ctrl.Result{}, fmt.Errorf("no assets of required types %v found in assetPool for tool %s",
+			requiredAssetTypes, osint.Spec.Tool)
+	}
 
-		jobName := utils.GenerateJobName(osint.Name, item.Name, i)
-		_, err := f.createJob(ctx, osint, jobName, targets, files, item.Assets)
+	log.Info("Filtered assets for tool",
+		"tool", osint.Spec.Tool,
+		"requiredTypes", requiredAssetTypes,
+		"totalAssets", len(assetItems),
+		"filteredAssets", len(filteredAssets))
+
+	// Create one job per asset
+	createdCount := 0
+	for i, asset := range filteredAssets {
+		jobName := fmt.Sprintf("%s-%d", osint.Name, i)
+
+		_, err = f.createJob(ctx, osint, jobName, []string{}, files, []securityv1alpha1.AssetItem{asset})
 		if err != nil {
-			log.Error(err, "Failed to create job for group", "group", item.Name)
+			log.Error(err, "Failed to create job for asset", "type", asset.Type, "value", asset.Value)
 			continue
 		}
 		createdCount++
@@ -160,6 +124,30 @@ func (f *OsintJobFactory) handleAssetPoolMode(
 	osint.Status.LastExecuted = time.Now().Format(time.RFC3339)
 
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+}
+
+// filterAssetsByTypes filters assets to only include specified types
+func filterAssetsByTypes(assets []securityv1alpha1.AssetItem, types []string) []securityv1alpha1.AssetItem {
+	if len(types) == 0 {
+		// If no types specified, include all
+		return assets
+	}
+
+	// Create a map for quick lookup
+	typeMap := make(map[string]bool)
+	for _, t := range types {
+		typeMap[t] = true
+	}
+
+	// Filter assets
+	var filtered []securityv1alpha1.AssetItem
+	for _, asset := range assets {
+		if typeMap[asset.Type] {
+			filtered = append(filtered, asset)
+		}
+	}
+
+	return filtered
 }
 
 func (f *OsintJobFactory) createJob(
@@ -180,7 +168,7 @@ func (f *OsintJobFactory) createJob(
 		Debug:         osint.Spec.Debug,
 		Periodic:      osint.Spec.Periodic,
 		Schedule:      osint.Spec.Schedule,
-		Port:          osint.Spec.Port,
+		Port:          "",
 		Files:         files,
 		Assets:        assets,
 	}
