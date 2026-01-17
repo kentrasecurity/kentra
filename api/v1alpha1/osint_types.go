@@ -6,14 +6,6 @@ import (
 
 // OsintSpec defines the desired state of Osint
 type OsintSpec struct {
-	// Target specifies the target username(s) for OSINT operations (deprecated, use Targets)
-	// +optional
-	Target string `json:"target,omitempty"`
-
-	// Targets specifies a list of target usernames for OSINT operations
-	// +optional
-	Targets []string `json:"targets,omitempty"`
-
 	// TargetPool references a TargetPool resource
 	// +optional
 	TargetPool string `json:"targetPool,omitempty"`

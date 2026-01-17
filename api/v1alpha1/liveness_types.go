@@ -22,17 +22,9 @@ import (
 
 // LivenessSpec defines the desired state of Liveness
 type LivenessSpec struct {
-	// Target is the primary target for liveness check (IP, CIDR, or hostname) (deprecated, use Targets)
-	// +optional
-	Target string `json:"target,omitempty"`
-
 	// TargetPool is the name of a TargetPool resource to reference for target and port information
 	// +optional
 	TargetPool string `json:"targetPool,omitempty"`
-
-	// Targets are list of targets for liveness checks
-	// +optional
-	Targets []string `json:"targets,omitempty"`
 
 	// Tool is the liveness check tool to use (ex ping)
 	// +kubebuilder:validation:Required
