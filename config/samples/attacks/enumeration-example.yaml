@@ -1,0 +1,44 @@
+---
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: nmap-scan-subnet
+  namespace: kentra-system
+spec:
+  tool: nmap
+  targetPool: client1-subnet
+  category: Reconnaissance
+  debug: true
+  periodic: false
+---
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: client1-subnet
+  namespace: kentra-system
+spec:
+  target: "192.168.1.0/24"
+  port: "22,80"
+  description: "Target group for nmap scanning on ports 22 (SSH) and 80 (HTTP)"
+---
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: nmap-scan-target
+  namespace: kentra-system
+spec:
+  tool: nmap
+  targetPool: client1-target
+  category: Reconnaissance
+  debug: true
+  periodic: false
+---
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: client1-target
+  namespace: kentra-system
+spec:
+  target: "192.168.1.1"
+  port: "1-1000"
+  description: "Target group for nmap scanning on ports 22 (SSH) and 80 (HTTP)"
