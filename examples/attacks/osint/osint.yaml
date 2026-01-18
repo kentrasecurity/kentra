@@ -1,0 +1,44 @@
+apiVersion: kentra.sh/v1alpha1
+kind: AssetPool
+metadata:
+  name: contacts
+  namespace: kentra-system
+spec:
+  description: Pool of assets
+  asset:
+    username:
+      - john
+      - doe
+    email:
+      - john@gmail.com
+    phone:
+      - '+1234567890'
+    uri:
+      - 'https://github.com/trufflesecurity/trufflehog.git'
+      - 'https://github.com/megadose/holehe.git'
+    description: john
+---
+apiVersion: kentra.sh/v1alpha1
+kind: Osint
+metadata:
+  name: sherlock-sample  
+  namespace: kentra-system
+spec:
+  tool: sherlock
+  assetPool: contacts
+  category: username-enumeration
+  periodic: false
+  debug: true
+---
+apiVersion: kentra.sh/v1alpha1
+kind: Osint
+metadata:
+  name: trufflehog-sample
+  namespace: kentra-system
+spec:
+  tool: trufflehog
+  assetPool: contacts
+  category: username-enumeration
+  periodic: false
+  debug: true
+---

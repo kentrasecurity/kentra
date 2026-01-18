@@ -24,11 +24,10 @@ spec:
   port: "1-10000"
   description: "Three specific hosts for comprehensive port scanning"
 ---
----
 apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
 metadata:
-  name: netcat-multi-target-ips
+  name: netcat-banner-grab
   namespace: kentra-system
 spec:
   args:
@@ -41,37 +40,20 @@ spec:
   targetPool: multi-host-pool-ips
   tool: netcat
 ---
----
-apiVersion: kentra.sh/v1alpha1
-kind: Enumeration
-metadata:
-  name: netcat-multi-target-subnet
-  namespace: kentra-system
-spec:
-  args:
-    - '-v'
-    - '-w'
-    - '5'
-  category: Reconnaissance
-  debug: true
-  periodic: false
-  targetPool: multi-host-pool-subnet
-  tool: netcat
----
-apiVersion: kentra.sh/v1alpha1
-kind: Enumeration
-metadata:
-  name: rustscan-multi-test
-  namespace: kentra-system
-spec:
-  tool: rustscan
-  targetPool: multi-host-pool-ips
-  category: network
-  args:
-    - "--ulimit"
-    - "5000"
-  debug: true
----
-
-
-
+# THIS CANNOT WORK FOR THE MOMENT
+# apiVersion: kentra.sh/v1alpha1
+# kind: Enumeration
+# metadata:
+#   name: netcat-banner-grab
+#   namespace: kentra-system
+# spec:
+#   args:
+#     - '-v'
+#     - '-w'
+#     - '5'
+#   category: Reconnaissance
+#   debug: true
+#   periodic: false
+#   targetPool: multi-host-pool-subnet
+#   tool: netcat
+# ---

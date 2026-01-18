@@ -1,0 +1,177 @@
+# Examples of Kentra Custom Resources
+# These examples show how to use Enumeration, Liveness with TargetPools
+---
+# TargetPool 1: Single subnet for nmap
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: local-subnet
+  namespace: default
+spec:
+  target:
+    ip:
+      - "192.168.1.0/24"
+  port: "22,80,443"
+  description: "Local subnet for quick scanning"
+---
+# Example 1: Simple one-time Enumeration with nmap
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: nmap-quick-scan
+  namespace: default
+spec:
+  tool: "nmap"
+  targetPool: local-subnet
+  category: "network-scan"
+  args:
+    - "-sV"
+  periodic: false
+  debug: false
+---
+# TargetPool 2: Large internal network
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: internal-network
+  namespace: default
+spec:
+  target:
+    ip:
+      - "10.0.0.0/8"
+  port: "0-65535"
+  description: "Internal network for comprehensive scanning"
+---
+# Example 2: Periodic Enumeration with masscan (runs daily at 2 AM)
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: masscan-daily
+  namespace: default
+spec:
+  tool: "masscan"
+  targetPool: internal-network
+  category: "network-scan"
+  args:
+    - "--rate=10000"
+  periodic: true
+  schedule: "0 2 * * *"
+  debug: false
+---
+# TargetPool 3: Web target
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: web-target
+  namespace: default
+spec:
+  target:
+    url:
+      - "http://example.com"
+  description: "Web application target"
+---
+# Example 3: Enumeration with HTTP proxy and additional environment variables
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: nikto-with-proxy
+  namespace: default
+spec:
+  tool: "nikto"
+  targetPool: web-target
+  category: "web-scan"
+  args:
+    - "-o"
+    - "/tmp/nikto-results.html"
+  httpProxy: "http://proxy.example.com:8080"
+  additionalEnv:
+    - name: "NIKTO_PLUGINS"
+      value: "default"
+  periodic: false
+  debug: false
+---
+# TargetPool 4: DNS servers
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: dns-servers
+  namespace: default
+spec:
+  target:
+    ip:
+      - "8.8.8.8"
+      - "1.1.1.1"
+  description: "Public DNS servers for liveness checks"
+---
+# Example 4: One-time Liveness check with ping
+apiVersion: kentra.sh/v1alpha1
+kind: Liveness
+metadata:
+  name: ping-dns-check
+  namespace: default
+spec:
+  tool: "ping"
+  targetPool: dns-servers
+  category: "connectivity-check"
+  args:
+    - "-c"
+    - "4"
+  periodic: false
+  debug: false
+---
+# TargetPool 5: Gateway
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: gateway
+  namespace: default
+spec:
+  target:
+    hostname:
+      - "gateway.example.com"
+  description: "Network gateway"
+---
+# Example 5: Periodic Liveness check (every 5 minutes)
+apiVersion: kentra.sh/v1alpha1
+kind: Liveness
+metadata:
+  name: ping-continuous
+  namespace: default
+spec:
+  tool: "ping"
+  targetPool: gateway
+  category: "continuous-monitoring"
+  args:
+    - "-c"
+    - "2"
+  periodic: true
+  schedule: "*/5 * * * *"
+  debug: false
+---
+# TargetPool 6: Localhost
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: localhost
+  namespace: default
+spec:
+  target:
+    ip:
+      - "127.0.0.1"
+  port: "1-1000"
+  description: "Local machine for debugging"
+---
+# Example 6: Enumeration in debug mode (output to stdout)
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: nmap-debug
+  namespace: default
+spec:
+  tool: "nmap"
+  targetPool: localhost
+  category: "debug-scan"
+  args:
+    - "-v"
+  periodic: false
+  debug: true

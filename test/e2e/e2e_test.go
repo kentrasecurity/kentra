@@ -12,48 +12,33 @@ var _ = Describe("Kentra Attack Operator", func() {
 		func(conf AttackConfig) {
 			RunAttackFlow(ns, conf)
 		},
-		// Entry("OSINT Sherlock", AttackConfig{
-		// 	Kind: "osint",
-		// 	Name: "osint-sample",
-		// 	Time: "10m",
-		// 	Label: map[string]string{
-		// 		"app":                     "osint",
-		// 		"kentra.sh/resource-type": "attack",
-		// 		"tool":                    "sherlock",
-		// 	},
-		// 	Samples: []string{
-		// 		"config/samples/assetpools/assetpool-sherlock.yaml",
-		// 		"config/samples/attacks/security_v1alpha1_osint_sherlock_with_assets.yaml",
-		// 	},
-		// }),
-		// Entry("Enumeration Rustscan", AttackConfig{
-		// 	Kind: "enumeration",
-		// 	Name: "rustscan-multi-target",
-		// 	Time: "5m",
-		// 	Label: map[string]string{
-		// 		"app":                     "enumeration",
-		// 		"kentra.sh/resource-type": "attack",
-		// 		"tool":                    "rustscan",
-		// 	},
-		// 	Samples: []string{
-		// 		"config/samples/targetpools/kttack_v1alpha1_targetpool_rustscan.yaml",
-		// 		"config/samples/attacks/kttack_v1alpha1_enumeration_rustscan_multi_target.yaml",
-		// 	},
-		// }),
-		// Entry("Enumeration Netcat", AttackConfig{
-		// 	Kind: "enumeration",
-		// 	Name: "netcat-multi-target-ips",
-		// 	Time: "5m",
-		// 	Label: map[string]string{
-		// 		"app":                     "enumeration",
-		// 		"kentra.sh/resource-type": "attack",
-		// 		"tool":                    "netcat",
-		// 	},
-		// 	Samples: []string{
-		// 		"examples/enumeration_1.yaml",
-		// 	},
-		// }),
-		Entry("Enumeration Netcat", AttackConfig{
+		Entry("OSINT Sherlock", AttackConfig{
+			Kind: "osint",
+			Name: "sherlock-sample",
+			Time: "10m",
+			Label: map[string]string{
+				"app":                     "osint",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "sherlock",
+			},
+			Samples: []string{
+				"examples/attacks/osint/",
+			},
+		}),
+		Entry("OSINT Trufflehog", AttackConfig{
+			Kind: "osint",
+			Name: "trufflehog-sample",
+			Time: "10m",
+			Label: map[string]string{
+				"app":                     "osint",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "trufflehog",
+			},
+			Samples: []string{
+				"examples/attacks/osint/",
+			},
+		}),
+		Entry("ENUMERATION Rustscan", AttackConfig{
 			Kind: "enumeration",
 			Name: "rustscan-multi-test",
 			Time: "5m",
@@ -63,34 +48,34 @@ var _ = Describe("Kentra Attack Operator", func() {
 				"tool":                    "rustscan",
 			},
 			Samples: []string{
-				"examples/enumeration_1.yaml",
+				"examples/attacks/enumeration/",
 			},
 		}),
-		// Entry("OSINT Sherlock", AttackConfig{
-		// 	Kind: "osint",
-		// 	Name: "osint-sample",
-		// 	Time: "10m",
-		// 	Label: map[string]string{
-		// 		"app":                     "osint",
-		// 		"kentra.sh/resource-type": "attack",
-		// 		"tool":                    "sherlock",
-		// 	},
-		// 	Samples: []string{
-		// 		"examples/osints-example.yaml",
-		// 	},
-		// }),
-		// Entry("OSINT Sherlock", AttackConfig{
-		// 	Kind: "osint",
-		// 	Name: "osint-sample",
-		// 	Time: "10m",
-		// 	Label: map[string]string{
-		// 		"app":                     "osint",
-		// 		"kentra.sh/resource-type": "attack",
-		// 		"tool":                    "trufflehog",
-		// 	},
-		// 	Samples: []string{
-		// 		"examples/osints-example.yaml",
-		// 	},
-		// }),
+		Entry("Enumeration Netcat", AttackConfig{
+			Kind: "enumeration",
+			Name: "netcat-banner-grab",
+			Time: "5m",
+			Label: map[string]string{
+				"app":                     "enumeration",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "netcat",
+			},
+			Samples: []string{
+				"examples/attacks/enumeration/",
+			},
+		}),
+		Entry("Exploit", AttackConfig{
+			Kind: "exploit",
+			Name: "metasploit-exploit",
+			Time: "10m",
+			Label: map[string]string{
+				"app":                     "exploit",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "metasploit",
+			},
+			Samples: []string{
+				"examples/attacks/exploit/",
+			},
+		}),
 	)
 })
