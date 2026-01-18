@@ -209,7 +209,7 @@ data:
     trufflehog:
       type: "osint"
       image: "trufflesecurity/trufflehog:3.91.2"
-      commandTemplate: "trufflehog git {{.Args}} {{.Item.uri}}"
+      commandTemplate: "trufflehog {{.Args}} {{.Item.uri}}"
       capabilities:
         add: []
 

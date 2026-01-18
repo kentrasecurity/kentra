@@ -36,6 +36,8 @@ metadata:
   name: trufflehog-sample
   namespace: kentra-system
 spec:
+  args:
+    - "git"
   tool: trufflehog
   assetPool: contacts
   category: username-enumeration
