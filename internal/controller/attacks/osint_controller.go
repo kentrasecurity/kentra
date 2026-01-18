@@ -86,6 +86,12 @@ func (f *OsintJobFactory) handleAssetPoolMode(
 		return ctrl.Result{}, fmt.Errorf("assetPool %s has no items", osint.Spec.AssetPool)
 	}
 
+	// Get tool config to check for separator
+	toolConfig, err := f.Configurator.GetToolConfig(osint.Spec.Tool)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to get tool config: %w", err)
+	}
+
 	// Get required asset types from the tool's command template
 	requiredAssetTypes, err := f.Configurator.GetRequiredAssetTypes(osint.Spec.Tool)
 	if err != nil {
@@ -105,17 +111,24 @@ func (f *OsintJobFactory) handleAssetPoolMode(
 		"totalAssets", len(assetItems),
 		"filteredAssets", len(filteredAssets))
 
-	// Create one job per asset
-	createdCount := 0
-	for i, asset := range filteredAssets {
-		jobName := fmt.Sprintf("%s-%d", osint.Name, i)
+	// Determine if we should batch assets
+	batchAssets := toolConfig.Separator != ""
 
-		_, err = f.createJob(ctx, osint, jobName, []string{}, files, []securityv1alpha1.AssetItem{asset})
+	var createdCount int
+	if batchAssets {
+		// Create single job with all assets batched
+		log.Info("Batching assets with separator", "separator", toolConfig.Separator, "assetCount", len(filteredAssets))
+		createdCount, err = f.createBatchedJob(ctx, osint, filteredAssets, files)
 		if err != nil {
-			log.Error(err, "Failed to create job for asset", "type", asset.Type, "value", asset.Value)
-			continue
+			return ctrl.Result{}, err
 		}
-		createdCount++
+	} else {
+		// Create one job per asset
+		log.Info("Creating individual jobs per asset", "assetCount", len(filteredAssets))
+		createdCount, err = f.createIndividualJobs(ctx, osint, filteredAssets, files)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Update status
@@ -124,6 +137,50 @@ func (f *OsintJobFactory) handleAssetPoolMode(
 	osint.Status.LastExecuted = time.Now().Format(time.RFC3339)
 
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+}
+
+// createBatchedJob creates a single job with all assets
+func (f *OsintJobFactory) createBatchedJob(
+	ctx context.Context,
+	osint *securityv1alpha1.Osint,
+	assets []securityv1alpha1.AssetItem,
+	files []string,
+) (int, error) {
+	log := log.FromContext(ctx)
+
+	jobName := fmt.Sprintf("%s-batch", osint.Name)
+
+	_, err := f.createJob(ctx, osint, jobName, []string{}, files, assets)
+	if err != nil {
+		log.Error(err, "Failed to create batched job")
+		return 0, err
+	}
+
+	return 1, nil
+}
+
+// createIndividualJobs creates one job per asset
+func (f *OsintJobFactory) createIndividualJobs(
+	ctx context.Context,
+	osint *securityv1alpha1.Osint,
+	assets []securityv1alpha1.AssetItem,
+	files []string,
+) (int, error) {
+	log := log.FromContext(ctx)
+	createdCount := 0
+
+	for i, asset := range assets {
+		jobName := fmt.Sprintf("%s-%d", osint.Name, i)
+
+		_, err := f.createJob(ctx, osint, jobName, []string{}, files, []securityv1alpha1.AssetItem{asset})
+		if err != nil {
+			log.Error(err, "Failed to create job for asset", "type", asset.Type, "value", asset.Value)
+			continue
+		}
+		createdCount++
+	}
+
+	return createdCount, nil
 }
 
 // filterAssetsByTypes filters assets to only include specified types

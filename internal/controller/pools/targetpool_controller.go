@@ -60,6 +60,13 @@ type TargetPoolStatusUpdater struct {
 func (u *TargetPoolStatusUpdater) UpdateStatus(ctx context.Context, resource base.PoolResource) error {
 	tp := resource.(*securityv1alpha1.TargetPool)
 
+	// Count total targets
+	totalTargets := 0
+	for _, target := range tp.Spec.Targets {
+		totalTargets += len(target.Endpoint) * len(target.Port)
+	}
+	tp.Status.TotalTargets = totalTargets
+
 	// Update timestamp and generation
 	tp.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	tp.Status.ObservedGeneration = tp.Generation

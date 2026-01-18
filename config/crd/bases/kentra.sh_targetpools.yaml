@@ -8,30 +8,13 @@ metadata:
 spec:
   group: kentra.sh
   names:
-    categories:
-    - pool
     kind: TargetPool
     listKind: TargetPoolList
     plural: targetpools
-    shortNames:
-    - tp
     singular: targetpool
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .status.itemCount
-      name: Targets
-      type: integer
-    - jsonPath: .spec.port
-      name: Port
-      type: string
-    - jsonPath: .spec.description
-      name: Description
-      type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: TargetPool is the Schema for the targetpools API
@@ -57,48 +40,47 @@ spec:
             description: TargetPoolSpec defines the desired state of TargetPool
             properties:
               description:
-                description: Description is an optional description of the target
-                  pool
                 type: string
-              port:
-                description: Port is the port or port range to target (e.g., '22',
-                  '80,443', '8000-8100')
-                type: string
-              target:
-                description: Target contains categorized targets
-                properties:
-                  hostname:
-                    description: Hostnames or domains
-                    items:
+              targets:
+                items:
+                  description: TargetSpec defines a named target with endpoints and
+                    ports
+                  properties:
+                    endpoint:
+                      description: Endpoint can be a single value or array of IPs,
+                        CIDRs, or domains
+                      items:
+                        type: string
+                      minItems: 1
+                      type: array
+                    name:
+                      description: Name is the identifier for this target
                       type: string
-                    type: array
-                  ip:
-                    description: IP addresses or CIDRs
-                    items:
-                      type: string
-                    type: array
-                  url:
-                    description: URLs
-                    items:
-                      type: string
-                    type: array
-                type: object
+                    port:
+                      description: Port can be a single value or array of ports or
+                        port ranges (e.g., "22", "80", "22-443")
+                      items:
+                        type: string
+                      minItems: 1
+                      type: array
+                  required:
+                  - endpoint
+                  - name
+                  - port
+                  type: object
+                type: array
             required:
-            - target
+            - targets
             type: object
           status:
             description: TargetPoolStatus defines the observed state of TargetPool
             properties:
-              itemCount:
-                description: ItemCount is the total number of targets
-                type: integer
               lastUpdated:
-                description: LastUpdated is the timestamp of last update
                 type: string
               observedGeneration:
-                description: ObservedGeneration is the generation observed by the
-                  controller
                 format: int64
+                type: integer
+              totalTargets:
                 type: integer
             type: object
         type: object

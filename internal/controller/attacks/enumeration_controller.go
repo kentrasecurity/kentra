@@ -72,32 +72,41 @@ func (f *EnumerationJobFactory) ReconcileJobs(ctx context.Context, resource base
 		return ctrl.Result{}, fmt.Errorf("targetPool is required")
 	}
 
-	targets, port, err := resolver.ResolveTargetPool(ctx, enum.Spec.TargetPool, enum.Namespace)
+	resolvedTargets, err := resolver.ResolveTargetPool(ctx, enum.Spec.TargetPool, enum.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to resolve targetPool: %w", err)
 	}
 
-	if len(targets) == 0 {
+	if len(resolvedTargets) == 0 {
 		return ctrl.Result{}, fmt.Errorf("no targets found in targetPool %s", enum.Spec.TargetPool)
 	}
 
-	// Override port if specified directly
-	if enum.Spec.Port != "" {
-		port = enum.Spec.Port
+	// Get tool config to check for separators
+	toolConfig, err := f.Configurator.GetToolConfig(enum.Spec.Tool)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to get tool config: %w", err)
 	}
 
-	// Store resolved targets in status
-	enum.Status.ResolvedTarget = strings.Join(targets, ",")
-	enum.Status.ResolvedPort = port
+	// Determine if we should batch targets
+	batchTargets := toolConfig.EndpointSeparator != "" && toolConfig.PortSeparator != ""
 
-	// Create one job per target
+	var jobSpecs []jobSpec
+	if batchTargets {
+		// Single job with all targets batched
+		jobSpecs = []jobSpec{f.createBatchedJobSpec(resolvedTargets, toolConfig)}
+	} else {
+		// One job per target+port combination
+		jobSpecs = f.createIndividualJobSpecs(resolvedTargets)
+	}
+
+	// Create jobs
 	createdCount := 0
-	for i, target := range targets {
+	for i, spec := range jobSpecs {
 		jobName := fmt.Sprintf("%s-%d", enum.Name, i)
 
-		spec := &jobs.AttackSpec{
+		attackSpec := &jobs.AttackSpec{
 			Tool:          enum.Spec.Tool,
-			Targets:       []string{target}, // Single target per job
+			Targets:       spec.Targets,
 			Category:      enum.Spec.Category,
 			Args:          enum.Spec.Args,
 			HTTPProxy:     enum.Spec.HTTPProxy,
@@ -105,7 +114,7 @@ func (f *EnumerationJobFactory) ReconcileJobs(ctx context.Context, resource base
 			Debug:         enum.Spec.Debug,
 			Periodic:      enum.Spec.Periodic,
 			Schedule:      enum.Spec.Schedule,
-			Port:          port,
+			Port:          spec.Port,
 			Files:         files,
 		}
 
@@ -117,8 +126,7 @@ func (f *EnumerationJobFactory) ReconcileJobs(ctx context.Context, resource base
 			ResourceType:        "enumeration",
 		}
 
-		_, err := builder.ReconcileJob(ctx, enum, jobName, spec, func(status *jobs.AttackStatus) {
-			// Update status for the first job only to avoid conflicts
+		_, err := builder.ReconcileJob(ctx, enum, jobName, attackSpec, func(status *jobs.AttackStatus) {
 			if i == 0 {
 				enum.Status.State = status.State
 				enum.Status.LastExecuted = status.LastExecuted
@@ -126,7 +134,7 @@ func (f *EnumerationJobFactory) ReconcileJobs(ctx context.Context, resource base
 		})
 
 		if err != nil {
-			log.Error(err, "Failed to create job for target", "target", target)
+			log.Error(err, "Failed to create job", "jobName", jobName)
 			continue
 		}
 		createdCount++
@@ -135,8 +143,62 @@ func (f *EnumerationJobFactory) ReconcileJobs(ctx context.Context, resource base
 	// Update overall status
 	enum.Status.State = "Running"
 	enum.Status.JobName = fmt.Sprintf("%d jobs", createdCount)
+	enum.Status.ResolvedTarget = fmt.Sprintf("%d targets", len(resolvedTargets))
 
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+}
+
+type jobSpec struct {
+	Targets []string
+	Port    string
+}
+
+func (f *EnumerationJobFactory) createBatchedJobSpec(targets []resolvers.ResolvedTarget, toolConfig *config.ToolConfig) jobSpec {
+	// Group all endpoints
+	endpoints := make([]string, 0, len(targets))
+	portsMap := make(map[string]bool)
+
+	for _, t := range targets {
+		endpoints = append(endpoints, t.Endpoint)
+		portsMap[t.Port] = true
+	}
+
+	// Remove duplicates
+	endpoints = removeDuplicates(endpoints)
+
+	// Collect unique ports
+	var ports []string
+	for port := range portsMap {
+		ports = append(ports, port)
+	}
+
+	return jobSpec{
+		Targets: endpoints,
+		Port:    strings.Join(ports, toolConfig.PortSeparator),
+	}
+}
+
+func (f *EnumerationJobFactory) createIndividualJobSpecs(targets []resolvers.ResolvedTarget) []jobSpec {
+	specs := make([]jobSpec, len(targets))
+	for i, t := range targets {
+		specs[i] = jobSpec{
+			Targets: []string{t.Endpoint},
+			Port:    t.Port,
+		}
+	}
+	return specs
+}
+
+func removeDuplicates(slice []string) []string {
+	seen := make(map[string]bool)
+	var result []string
+	for _, item := range slice {
+		if !seen[item] {
+			seen[item] = true
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func (r *EnumerationReconciler) SetupWithManager(mgr ctrl.Manager) error {

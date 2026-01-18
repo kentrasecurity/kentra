@@ -84,49 +84,67 @@ func (f *LivenessJobFactory) ReconcileJobs(ctx context.Context, resource base.At
 		return ctrl.Result{}, fmt.Errorf("targetPool is required")
 	}
 
-	targets, _, err := resolver.ResolveTargetPool(ctx, liveness.Spec.TargetPool, liveness.Namespace)
+	// ResolveTargetPool now returns []ResolvedTarget, error
+	resolvedTargets, err := resolver.ResolveTargetPool(ctx, liveness.Spec.TargetPool, liveness.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to resolve targetPool: %w", err)
 	}
 
-	if len(targets) == 0 {
+	if len(resolvedTargets) == 0 {
 		return ctrl.Result{}, fmt.Errorf("no targets found in targetPool %s", liveness.Spec.TargetPool)
 	}
 
-	liveness.Status.ResolvedTarget = strings.Join(targets, ",")
+	// Extract endpoints for display
+	endpoints := make([]string, len(resolvedTargets))
+	for i, t := range resolvedTargets {
+		endpoints[i] = t.Endpoint
+	}
+	liveness.Status.ResolvedTarget = strings.Join(endpoints, ",")
 
-	// Generate unique job name for one-time jobs
-	jobName := liveness.Name
-	if !liveness.Spec.Periodic {
-		jobName = fmt.Sprintf("%s-job-%d", liveness.Name, time.Now().Unix())
+	// For liveness checks, create one job per target
+	createdCount := 0
+	for i, target := range resolvedTargets {
+		jobName := fmt.Sprintf("%s-%d", liveness.Name, i)
+
+		spec := &jobs.AttackSpec{
+			Tool:          liveness.Spec.Tool,
+			Targets:       []string{target.Endpoint},
+			Category:      liveness.Spec.Category,
+			Args:          liveness.Spec.Args,
+			HTTPProxy:     liveness.Spec.HTTPProxy,
+			AdditionalEnv: utils.ConvertEnvVars(liveness.Spec.AdditionalEnv),
+			Debug:         liveness.Spec.Debug,
+			Periodic:      liveness.Spec.Periodic,
+			Schedule:      liveness.Spec.Schedule,
+			Port:          target.Port,
+			Files:         []string{},
+		}
+
+		builder := &jobs.JobBuilder{
+			Client:              f.Client,
+			Scheme:              f.Scheme,
+			Configurator:        f.Configurator,
+			ControllerNamespace: f.ControllerNamespace,
+			ResourceType:        "liveness",
+		}
+
+		_, err := builder.ReconcileJob(ctx, liveness, jobName, spec, func(status *jobs.AttackStatus) {
+			if i == 0 {
+				liveness.Status.State = status.State
+				liveness.Status.LastExecuted = status.LastExecuted
+			}
+		})
+
+		if err != nil {
+			continue
+		}
+		createdCount++
 	}
 
-	spec := &jobs.AttackSpec{
-		Tool:          liveness.Spec.Tool,
-		Targets:       targets,
-		Category:      liveness.Spec.Category,
-		Args:          liveness.Spec.Args,
-		HTTPProxy:     liveness.Spec.HTTPProxy,
-		AdditionalEnv: utils.ConvertEnvVars(liveness.Spec.AdditionalEnv),
-		Debug:         liveness.Spec.Debug,
-		Periodic:      liveness.Spec.Periodic,
-		Schedule:      liveness.Spec.Schedule,
-		Port:          "",
-		Files:         []string{},
-	}
+	liveness.Status.State = "Running"
+	liveness.Status.JobName = fmt.Sprintf("%d jobs", createdCount)
 
-	builder := &jobs.JobBuilder{
-		Client:              f.Client,
-		Scheme:              f.Scheme,
-		Configurator:        f.Configurator,
-		ControllerNamespace: f.ControllerNamespace,
-		ResourceType:        "liveness",
-	}
-
-	return builder.ReconcileJob(ctx, liveness, jobName, spec, func(status *jobs.AttackStatus) {
-		liveness.Status.State = status.State
-		liveness.Status.LastExecuted = status.LastExecuted
-	})
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
 func (r *LivenessReconciler) SetupWithManager(mgr ctrl.Manager) error {

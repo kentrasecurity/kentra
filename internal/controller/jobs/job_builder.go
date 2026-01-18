@@ -192,18 +192,19 @@ func (jb *JobBuilder) buildJob(
 	jobName string,
 	spec *AttackSpec,
 ) (*batchv1.Job, error) {
-	// Get separator from tool config
+	// Get tool config
 	toolConfig, err := jb.Configurator.GetToolConfig(spec.Tool)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tool config: %w", err)
 	}
 
-	separator := toolConfig.Separator
+	// Use endpointSeparator if available, otherwise default to space
+	separator := toolConfig.EndpointSeparator
 	if separator == "" {
-		separator = " " // Default to space
+		separator = " "
 	}
 
-	// Join targets with the tool-specific separator
+	// Join targets with the tool-specific endpoint separator
 	target := strings.Join(spec.Targets, separator)
 
 	podSpec, err := pods.BuildPodSpec(ctx, jb.Client, spec.Tool, target, spec.Port,

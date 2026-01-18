@@ -41,12 +41,14 @@ const (
 
 // ToolConfig represents the configuration for a single tool
 type ToolConfig struct {
-	Type            string                 `yaml:"type"`
-	Image           string                 `yaml:"image"`
-	CommandTemplate string                 `yaml:"commandTemplate"`
-	AssetTypeFlags  map[string]string      `yaml:"assetTypeFlags"`
-	Separator       string                 `yaml:"separator"`
-	Capabilities    map[string]interface{} `yaml:"capabilities"`
+	Type              string                 `yaml:"type"`
+	Image             string                 `yaml:"image"`
+	CommandTemplate   string                 `yaml:"commandTemplate"`
+	AssetTypeFlags    map[string]string      `yaml:"assetTypeFlags"`
+	Separator         string                 `yaml:"separator"`
+	EndpointSeparator string                 `yaml:"endpointSeparator"`
+	PortSeparator     string                 `yaml:"portSeparator"`
+	Capabilities      map[string]interface{} `yaml:"capabilities"`
 }
 
 // ToolsConfigurator manages tool configurations loaded from ConfigMaps
@@ -254,7 +256,7 @@ func (tc *ToolsConfigurator) BuildCommandWithAssets(toolName string, assets []se
 		separator = " "
 	}
 
-	// Build asset maps
+	// Build asset maps with separator support
 	assetMap, assetArrayMap := tc.buildAssetMaps(assets, separator)
 
 	data := templateData{

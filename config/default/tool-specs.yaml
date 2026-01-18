@@ -112,10 +112,9 @@ data:
       type: "enumeration"
       image: "subfuzion/netcat"
       commandTemplate: "nc {{.Args}} {{.Target}} {{.Port}}"
-      separator: " "
       capabilities:
         add:
-          - NET_RAW 
+          - NET_RAW
 
     nikto:
       type: "enumeration"
@@ -130,6 +129,8 @@ data:
       category: "network"
       image: "instrumentisto/nmap:latest"
       commandTemplate: "nmap {{.Args}} -p {{.Port}} {{.Target}}"
+      endpointSeparator: " "
+      portSeparator: ","
       capabilities:
         add:
           - NET_RAW

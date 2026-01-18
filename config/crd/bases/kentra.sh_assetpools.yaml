@@ -8,27 +8,13 @@ metadata:
 spec:
   group: kentra.sh
   names:
-    categories:
-    - pool
     kind: AssetPool
     listKind: AssetPoolList
     plural: assetpools
-    shortNames:
-    - ap
     singular: assetpool
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .status.itemCount
-      name: Assets
-      type: integer
-    - jsonPath: .spec.description
-      name: Description
-      type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: AssetPool is the Schema for the assetpools API
@@ -54,44 +40,15 @@ spec:
             description: AssetPoolSpec defines the desired state of AssetPool
             properties:
               asset:
-                description: Asset contains categorized assets
-                properties:
-                  company:
-                    description: Company names
-                    items:
-                      type: string
-                    type: array
-                  description:
-                    description: Description or notes
+                additionalProperties:
+                  items:
                     type: string
-                  email:
-                    description: Email addresses
-                    items:
-                      type: string
-                    type: array
-                  phone:
-                    description: Phone numbers
-                    items:
-                      type: string
-                    type: array
-                  socialMedia:
-                    description: Social media handles
-                    items:
-                      type: string
-                    type: array
-                  uri:
-                    description: URIs (for git repos, APIs, etc.)
-                    items:
-                      type: string
-                    type: array
-                  username:
-                    description: Usernames
-                    items:
-                      type: string
-                    type: array
+                  type: array
+                description: |-
+                  Asset is a map where keys are asset types (username, email, etc.)
+                  and values are arrays of strings
                 type: object
               description:
-                description: Description is an optional description of the asset pool
                 type: string
             required:
             - asset
@@ -99,16 +56,12 @@ spec:
           status:
             description: AssetPoolStatus defines the observed state of AssetPool
             properties:
-              itemCount:
-                description: ItemCount is the total number of assets
-                type: integer
               lastUpdated:
-                description: LastUpdated is the timestamp of last update
                 type: string
               observedGeneration:
-                description: ObservedGeneration is the generation observed by the
-                  controller
                 format: int64
+                type: integer
+              totalAssets:
                 type: integer
             type: object
         type: object

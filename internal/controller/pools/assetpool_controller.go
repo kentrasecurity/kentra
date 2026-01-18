@@ -60,14 +60,19 @@ type AssetPoolStatusUpdater struct {
 func (u *AssetPoolStatusUpdater) UpdateStatus(ctx context.Context, resource base.PoolResource) error {
 	ap := resource.(*securityv1alpha1.AssetPool)
 
-	// Update common fields
+	// Calculate total assets
+	totalAssets := 0
+	for _, values := range ap.Spec.Asset {
+		totalAssets += len(values)
+	}
+
+	// Update status fields
+	ap.Status.TotalAssets = totalAssets
 	ap.Status.LastUpdated = time.Now().Format(time.RFC3339)
 	ap.Status.ObservedGeneration = ap.Generation
 
-	// Calculate total assets using the helper method
-	ap.Status.ItemCount = len(ap.GetAllAssets())
-
-	return nil
+	// Actually update the status in the cluster
+	return u.client.Status().Update(ctx, ap)
 }
 
 func (r *AssetPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
