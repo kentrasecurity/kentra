@@ -2,14 +2,16 @@
 apiVersion: kentra.sh/v1alpha1
 kind: TargetPool
 metadata:
-  name: web-targets
+  name: targetpool-test
   namespace: kentra-system
 spec:
-  target:
-    url:  # Use nested structure with 'url' for HTTP targets
-      - "http://192.168.1.100"
-  port: "80"
   description: "Target group for web application security testing with feroxbuster and dirbuster"
+  targets:  
+    - name: test1
+      endpoint: 
+        - "http://192.168.1.100"
+      port:
+        - "80"
 ---
 apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
@@ -18,7 +20,7 @@ metadata:
   namespace: kentra-system
 spec:
   tool: feroxbuster
-  targetPool: web-targets
+  targetPool: targetpool-test
   storagePool: web-wordlists
   category: "Web Application Security"
   args:

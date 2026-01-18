@@ -2,14 +2,23 @@
 apiVersion: kentra.sh/v1alpha1
 kind: TargetPool
 metadata:
-  name: nmap-direct-target
+  name: targetpool-test
   namespace: kentra-system
 spec:
-  target:
-    ip:
-      - "192.168.1.0/24"
-  port: "22,80,443"
   description: "Direct target for nmap"
+  targets:  
+    - name: test1
+      endpoint: 
+        - "192.168.1.0/24"
+        - "192.168.2.0"
+      port:
+        - "22"
+        - "80"
+    - name: test2
+      endpoint: 
+        - "192.168.3.1"
+      port:
+        - "22-443"
 ---
 apiVersion: kentra.sh/v1alpha1
 kind: Enumeration
@@ -18,9 +27,9 @@ metadata:
   namespace: kentra-system
 spec:
   tool: "nmap"
-  targetPool: nmap-direct-target
+  targetPool: targetpool-test
   category: "network-scan"
   args:
     - "-sV"
-  debug: false
+  debug: true
   periodic: false

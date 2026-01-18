@@ -16,7 +16,6 @@ spec:
     uri:
       - 'https://github.com/trufflesecurity/trufflehog.git'
       - 'https://github.com/megadose/holehe.git'
-    description: john
 ---
 apiVersion: kentra.sh/v1alpha1
 kind: Osint
