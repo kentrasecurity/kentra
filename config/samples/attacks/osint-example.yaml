@@ -1,0 +1,28 @@
+apiVersion: kentra.sh/v1alpha1
+kind: AssetPool
+metadata:
+  name: username-targets
+  namespace: kentra-system
+spec:
+  description: "Pool of username targets for OSINT"
+  items:
+    - type: username
+      value: "patrickdifazio"
+    - type: email
+      value: "johndoe@email.com"
+    - type: phone
+      value: "+1234567890"
+    - type: year
+      value: "2014"
+---
+apiVersion: kentra.sh/v1alpha1
+kind: Osint
+metadata:
+  name: sherlock-multi-asset
+  namespace: kentra-system
+spec:
+  tool: sherlock
+  assetPool: username-targets
+  category: username-enumeration
+  periodic: false
+  debug: true
