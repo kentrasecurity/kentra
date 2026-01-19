@@ -1,0 +1,34 @@
+---
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: targetpool-test
+  namespace: kentra-system
+spec:
+  description: "Direct target for ping"
+  targets:  
+    - name: test1
+      endpoint: 
+        - "192.168.1.1"
+        - "192.168.1.2"
+        - "192.168.1.3"
+      port:
+        - "22"
+        - "80"
+    - name: test2
+      endpoint: 
+        - "192.168.3.1"
+      port:
+        - "1-10"
+---
+apiVersion: kentra.sh/v1alpha1
+kind: Liveness
+metadata:
+  name: ping-liveness
+  namespace: kentra-system
+spec:
+  tool: "ping"
+  targetPool: targetpool-test
+  category: "liveness"
+  debug: true
+  periodic: false

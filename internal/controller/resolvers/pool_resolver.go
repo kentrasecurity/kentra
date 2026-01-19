@@ -31,6 +31,12 @@ type TargetGroup struct {
 	Ports     []string
 }
 
+// TargetResolutionOptions defines what to resolve from the TargetPool
+type TargetResolutionOptions struct {
+	ResolveEndpoints bool // If true, expand endpoints (CIDRs, etc.)
+	ResolvePorts     bool // If true, expand port ranges
+}
+
 // ResolveTargetPool resolves a TargetPool and returns expanded targets (flat list)
 func (r *PoolResolver) ResolveTargetPool(ctx context.Context, poolName, namespace string) ([]ResolvedTarget, error) {
 	if poolName == "" {
@@ -79,7 +85,8 @@ func (r *PoolResolver) ResolveTargetPool(ctx context.Context, poolName, namespac
 }
 
 // ResolveTargetPoolGrouped resolves a TargetPool and returns targets grouped by target name
-func (r *PoolResolver) ResolveTargetPoolGrouped(ctx context.Context, poolName, namespace string) ([]TargetGroup, error) {
+// with options to control what gets resolved
+func (r *PoolResolver) ResolveTargetPoolGrouped(ctx context.Context, poolName, namespace string, opts TargetResolutionOptions) ([]TargetGroup, error) {
 	if poolName == "" {
 		return nil, fmt.Errorf("targetPool name cannot be empty")
 	}
@@ -99,16 +106,30 @@ func (r *PoolResolver) ResolveTargetPoolGrouped(ctx context.Context, poolName, n
 	var groups []TargetGroup
 
 	for _, target := range pool.Spec.Targets {
-		// Expand endpoints (CIDRs to IPs)
-		expandedEndpoints, err := utils.ExpandEndpoints(target.Endpoint)
-		if err != nil {
-			return nil, fmt.Errorf("failed to expand endpoints for target %s: %w", target.Name, err)
+		var expandedEndpoints []string
+		var expandedPorts []string
+		var err error
+
+		// Conditionally expand endpoints based on options
+		if opts.ResolveEndpoints {
+			expandedEndpoints, err = utils.ExpandEndpoints(target.Endpoint)
+			if err != nil {
+				return nil, fmt.Errorf("failed to expand endpoints for target %s: %w", target.Name, err)
+			}
+		} else {
+			// Don't expand, use placeholder
+			expandedEndpoints = []string{""}
 		}
 
-		// Expand ports (ranges to individual ports)
-		expandedPorts, err := utils.ExpandPorts(target.Port)
-		if err != nil {
-			return nil, fmt.Errorf("failed to expand ports for target %s: %w", target.Name, err)
+		// Conditionally expand ports based on options
+		if opts.ResolvePorts {
+			expandedPorts, err = utils.ExpandPorts(target.Port)
+			if err != nil {
+				return nil, fmt.Errorf("failed to expand ports for target %s: %w", target.Name, err)
+			}
+		} else {
+			// Don't expand, use placeholder
+			expandedPorts = []string{""}
 		}
 
 		groups = append(groups, TargetGroup{

@@ -206,11 +206,15 @@ func (tc *ToolsConfigurator) BuildCommand(toolName string, target string, port s
 		separator = " "
 	}
 
+	// Create structured Target object (ONLY structured syntax supported)
+	targetObj := map[string]string{
+		"endpoint": target,
+		"port":     port,
+	}
+
 	data := templateData{
-		"Target":    target,
-		"Port":      port,
+		"Target":    targetObj, // Structured object with .endpoint and .port
 		"Args":      strings.Join(args, " "),
-		"Item":      target,
 		"Separator": separator,
 	}
 
@@ -382,4 +386,46 @@ func (tc *ToolsConfigurator) GetRequiredAssetTypes(toolName string) ([]string, e
 	}
 
 	return result, nil
+}
+
+// GetTemplateVariables extracts all template variables from a tool's command template
+// Returns a map of variable names (e.g., "Port", "Target", "Target.endpoint")
+func (tc *ToolsConfigurator) GetTemplateVariables(toolName string) (map[string]bool, error) {
+	config, err := tc.getConfigSafe(toolName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Regex to match {{.VariableName}} and {{.VariableName.field}} patterns
+	re := regexp.MustCompile(`\{\{\.(\w+(?:\.\w+)?)\}\}`)
+	matches := re.FindAllStringSubmatch(config.CommandTemplate, -1)
+
+	variables := make(map[string]bool)
+	for _, match := range matches {
+		if len(match) > 1 {
+			// Extract the full variable path (e.g., "Port", "Target.endpoint", "Target.port")
+			varPath := match[1]
+			variables[varPath] = true
+		}
+	}
+
+	return variables, nil
+}
+
+// UsesVariable checks if a tool's template uses a specific variable or nested field
+func (tc *ToolsConfigurator) UsesVariable(toolName, variableName string) (bool, error) {
+	variables, err := tc.GetTemplateVariables(toolName)
+	if err != nil {
+		return false, err
+	}
+
+	// Check exact match or prefix match for nested fields
+	// e.g., "Target.endpoint" matches when checking "Target"
+	for varPath := range variables {
+		if varPath == variableName || strings.HasPrefix(varPath, variableName+".") {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

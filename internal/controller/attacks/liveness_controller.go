@@ -86,20 +86,33 @@ func (f *LivenessJobFactory) ReconcileJobs(ctx context.Context, resource base.At
 		return ctrl.Result{}, fmt.Errorf("targetPool is required")
 	}
 
-	// Get grouped targets by target name
-	targetGroups, err := resolver.ResolveTargetPoolGrouped(ctx, liveness.Spec.TargetPool, liveness.Namespace)
+	// Get tool config
+	toolConfig, err := f.Configurator.GetToolConfig(liveness.Spec.Tool)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to get tool config: %w", err)
+	}
+	// Get all template variables
+	// Get all template variables
+	templateVars, err := f.Configurator.GetTemplateVariables(liveness.Spec.Tool)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to analyze tool template: %w", err)
+	}
+
+	// Check ONLY for new structured syntax
+	usesEndpoint := templateVars["Target.endpoint"]
+	usesPort := templateVars["Target.port"]
+
+	// Resolve based on what the tool actually uses
+	targetGroups, err := resolver.ResolveTargetPoolGrouped(ctx, liveness.Spec.TargetPool, liveness.Namespace, resolvers.TargetResolutionOptions{
+		ResolveEndpoints: usesEndpoint,
+		ResolvePorts:     usesPort,
+	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to resolve targetPool: %w", err)
 	}
 
 	if len(targetGroups) == 0 {
 		return ctrl.Result{}, fmt.Errorf("no targets found in targetPool %s", liveness.Spec.TargetPool)
-	}
-
-	// Get tool config to check for separators
-	toolConfig, err := f.Configurator.GetToolConfig(liveness.Spec.Tool)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to get tool config: %w", err)
 	}
 
 	// Determine if we should batch targets
@@ -111,15 +124,15 @@ func (f *LivenessJobFactory) ReconcileJobs(ctx context.Context, resource base.At
 	jobIndex := 0
 
 	for _, group := range targetGroups {
-		if hasEndpointSeparator && hasPortSeparator {
-			// Batch all endpoints and ports into single job per target group
+		if hasEndpointSeparator && (hasPortSeparator || !usesPort) {
+			// Batch all endpoints (and ports if needed) into single job per target group
 			jobName := fmt.Sprintf("%s-%s", liveness.Name, group.Name)
 			if err := f.createBatchedJob(ctx, liveness, jobName, group, toolConfig); err != nil {
 				log.Error(err, "Failed to create batched job", "target", group.Name)
 				continue
 			}
 			createdCount++
-		} else if hasEndpointSeparator && !hasPortSeparator {
+		} else if hasEndpointSeparator && !hasPortSeparator && usesPort {
 			// Batch endpoints, separate jobs per port
 			for portIdx, port := range group.Ports {
 				jobName := fmt.Sprintf("%s-%s-port%d", liveness.Name, group.Name, portIdx)
@@ -134,8 +147,8 @@ func (f *LivenessJobFactory) ReconcileJobs(ctx context.Context, resource base.At
 				}
 				createdCount++
 			}
-		} else if !hasEndpointSeparator && hasPortSeparator {
-			// Batch ports, separate jobs per endpoint
+		} else if !hasEndpointSeparator && (hasPortSeparator || !usesPort) {
+			// Batch ports (if needed), separate jobs per endpoint
 			for endpointIdx, endpoint := range group.Endpoints {
 				jobName := fmt.Sprintf("%s-%s-ep%d", liveness.Name, group.Name, endpointIdx)
 				singleEndpointGroup := resolvers.TargetGroup{
@@ -150,19 +163,37 @@ func (f *LivenessJobFactory) ReconcileJobs(ctx context.Context, resource base.At
 				createdCount++
 			}
 		} else {
-			// No separators: create individual job per endpoint+port combination
+			// No separators: create individual jobs
 			for _, endpoint := range group.Endpoints {
-				for _, port := range group.Ports {
+				if usesPort {
+					// Create job per endpoint+port combination
+					for _, port := range group.Ports {
+						jobName := fmt.Sprintf("%s-%d", liveness.Name, jobIndex)
+						jobIndex++
+
+						singleTargetGroup := resolvers.TargetGroup{
+							Name:      group.Name,
+							Endpoints: []string{endpoint},
+							Ports:     []string{port},
+						}
+						if err := f.createBatchedJob(ctx, liveness, jobName, singleTargetGroup, toolConfig); err != nil {
+							log.Error(err, "Failed to create job", "endpoint", endpoint, "port", port)
+							continue
+						}
+						createdCount++
+					}
+				} else {
+					// Create job per endpoint only
 					jobName := fmt.Sprintf("%s-%d", liveness.Name, jobIndex)
 					jobIndex++
 
 					singleTargetGroup := resolvers.TargetGroup{
 						Name:      group.Name,
 						Endpoints: []string{endpoint},
-						Ports:     []string{port},
+						Ports:     []string{""}, // Empty port
 					}
 					if err := f.createBatchedJob(ctx, liveness, jobName, singleTargetGroup, toolConfig); err != nil {
-						log.Error(err, "Failed to create job", "endpoint", endpoint, "port", port)
+						log.Error(err, "Failed to create job", "endpoint", endpoint)
 						continue
 					}
 					createdCount++
@@ -197,9 +228,23 @@ func (f *LivenessJobFactory) createBatchedJob(
 		portSep = ","
 	}
 
-	// Join endpoints and ports with separators
-	targetString := strings.Join(group.Endpoints, endpointSep)
-	portString := strings.Join(group.Ports, portSep)
+	// Filter out empty strings and join
+	var validEndpoints []string
+	for _, ep := range group.Endpoints {
+		if ep != "" {
+			validEndpoints = append(validEndpoints, ep)
+		}
+	}
+
+	var validPorts []string
+	for _, p := range group.Ports {
+		if p != "" {
+			validPorts = append(validPorts, p)
+		}
+	}
+
+	targetString := strings.Join(validEndpoints, endpointSep)
+	portString := strings.Join(validPorts, portSep)
 
 	spec := &jobs.AttackSpec{
 		Tool:          liveness.Spec.Tool,

@@ -111,7 +111,7 @@ data:
     netcat:
       type: "enumeration"
       image: "subfuzion/netcat"
-      commandTemplate: "nc {{.Args}} {{.Target}} {{.Port}}"
+      commandTemplate: "nc {{.Args}} {{.Target.endpoint}} {{.Target.port}}"
       capabilities:
         add:
           - NET_RAW
@@ -120,7 +120,7 @@ data:
       type: "enumeration"
       category: "network"
       image: "alpine/nikto:2.1.6"
-      commandTemplate: "nikto.pl -h {{.Args}} {{.Target}}"
+      commandTemplate: "nikto.pl -h {{.Args}} {{.Target.endpoint}}"
       capabilities:
         add: []
 
@@ -128,7 +128,7 @@ data:
       type: "enumeration"
       category: "network"
       image: "instrumentisto/nmap:latest"
-      commandTemplate: "nmap {{.Args}} -p {{.Port}} {{.Target}}"
+      commandTemplate: "nmap {{.Args}} -p {{.Target.port}} {{.Target.endpoint}}"
       endpointSeparator: " "
       portSeparator: ","
       capabilities:
@@ -188,7 +188,7 @@ data:
     ping:
       type: "liveness"
       image: "giantswarm/ping:3.3.5"
-      commandTemplate: "ping {{.Args}} {{.Target}}"
+      commandTemplate: "ping {{.Args}} {{.Target.endpoint}}"
       capabilities:
         add: []
 
