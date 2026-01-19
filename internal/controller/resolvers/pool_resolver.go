@@ -24,8 +24,14 @@ type ResolvedTarget struct {
 	Port     string
 }
 
-// ResolveTargetPool resolves a TargetPool and returns expanded targets
-// Returns: targets (endpoints), ports (comma-separated if multiple), or error
+// TargetGroup represents a named group of endpoints and ports
+type TargetGroup struct {
+	Name      string
+	Endpoints []string
+	Ports     []string
+}
+
+// ResolveTargetPool resolves a TargetPool and returns expanded targets (flat list)
 func (r *PoolResolver) ResolveTargetPool(ctx context.Context, poolName, namespace string) ([]ResolvedTarget, error) {
 	if poolName == "" {
 		return nil, fmt.Errorf("targetPool name cannot be empty")
@@ -72,8 +78,50 @@ func (r *PoolResolver) ResolveTargetPool(ctx context.Context, poolName, namespac
 	return allTargets, nil
 }
 
+// ResolveTargetPoolGrouped resolves a TargetPool and returns targets grouped by target name
+func (r *PoolResolver) ResolveTargetPoolGrouped(ctx context.Context, poolName, namespace string) ([]TargetGroup, error) {
+	if poolName == "" {
+		return nil, fmt.Errorf("targetPool name cannot be empty")
+	}
+
+	pool := &securityv1alpha1.TargetPool{}
+	if err := r.client.Get(ctx, types.NamespacedName{
+		Name:      poolName,
+		Namespace: namespace,
+	}, pool); err != nil {
+		return nil, fmt.Errorf("failed to get TargetPool: %w", err)
+	}
+
+	if len(pool.Spec.Targets) == 0 {
+		return nil, fmt.Errorf("targetPool %s has no targets", poolName)
+	}
+
+	var groups []TargetGroup
+
+	for _, target := range pool.Spec.Targets {
+		// Expand endpoints (CIDRs to IPs)
+		expandedEndpoints, err := utils.ExpandEndpoints(target.Endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to expand endpoints for target %s: %w", target.Name, err)
+		}
+
+		// Expand ports (ranges to individual ports)
+		expandedPorts, err := utils.ExpandPorts(target.Port)
+		if err != nil {
+			return nil, fmt.Errorf("failed to expand ports for target %s: %w", target.Name, err)
+		}
+
+		groups = append(groups, TargetGroup{
+			Name:      target.Name,
+			Endpoints: expandedEndpoints,
+			Ports:     expandedPorts,
+		})
+	}
+
+	return groups, nil
+}
+
 // ResolveAssetPool resolves an AssetPool and returns all assets
-// This dynamically handles any asset type defined by the user
 func (r *PoolResolver) ResolveAssetPool(ctx context.Context, poolName, namespace string) ([]securityv1alpha1.AssetItem, error) {
 	if poolName == "" {
 		return nil, fmt.Errorf("assetPool name cannot be empty")

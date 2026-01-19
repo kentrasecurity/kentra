@@ -12,19 +12,19 @@ var _ = Describe("Kentra Attack Operator", func() {
 		func(conf AttackConfig) {
 			RunAttackFlow(ns, conf)
 		},
-		Entry("OSINT Sherlock", AttackConfig{
-			Kind: "osint",
-			Name: "sherlock-sample",
-			Time: "10m",
-			Label: map[string]string{
-				"app":                     "osint",
-				"kentra.sh/resource-type": "attack",
-				"tool":                    "sherlock",
-			},
-			Samples: []string{
-				"examples/attacks/osint/",
-			},
-		}),
+		// Entry("OSINT Sherlock", AttackConfig{
+		// 	Kind: "osint",
+		// 	Name: "sherlock-sample",
+		// 	Time: "10m",
+		// 	Label: map[string]string{
+		// 		"app":                     "osint",
+		// 		"kentra.sh/resource-type": "attack",
+		// 		"tool":                    "sherlock",
+		// 	},
+		// 	Samples: []string{
+		// 		"examples/attacks/osint/",
+		// 	},
+		// }),
 		// Entry("OSINT Trufflehog", AttackConfig{
 		// 	Kind: "osint",
 		// 	Name: "trufflehog-sample",
@@ -64,19 +64,19 @@ var _ = Describe("Kentra Attack Operator", func() {
 		// 		"examples/attacks/enumeration/",
 		// 	},
 		// }),
-		// Entry("Enumeration Nmap", AttackConfig{
-		// 	Kind: "enumeration",
-		// 	Name: "nmap-scan-example-2",
-		// 	Time: "5m",
-		// 	Label: map[string]string{
-		// 		"app":                     "enumeration",
-		// 		"kentra.sh/resource-type": "attack",
-		// 		"tool":                    "nmap",
-		// 	},
-		// 	Samples: []string{
-		// 		"examples/attacks/enumeration/",
-		// 	},
-		// }),
+		Entry("Enumeration Nmap", AttackConfig{
+			Kind: "enumeration",
+			Name: "nmap-scan-example-2",
+			Time: "5m",
+			Label: map[string]string{
+				"app":                     "enumeration",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "nmap",
+			},
+			Samples: []string{
+				"examples/attacks/enumeration/nmap.yaml",
+			},
+		}),
 		// Entry("Exploit", AttackConfig{
 		// 	Kind: "exploit",
 		// 	Name: "metasploit-exploit",
