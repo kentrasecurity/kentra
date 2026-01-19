@@ -1,4 +1,0 @@
-## Append samples of your project ##
-resources:
-- security_v1alpha1_securityattack.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples

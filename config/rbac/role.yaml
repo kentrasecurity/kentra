@@ -8,18 +8,12 @@ rules:
   - ""
   resources:
   - configmaps
+  - namespaces
   - pods
   - secrets
+  - services
   verbs:
   - create
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  verbs:
   - get
   - list
   - watch
@@ -44,7 +38,6 @@ rules:
   - exploits
   - livenesses
   - osints
-  - securityattacks
   - storagepools
   - targetpools
   verbs:
@@ -59,11 +52,6 @@ rules:
   - kentra.sh
   resources:
   - assetpools/finalizers
-  - enumerations/finalizers
-  - exploits/finalizers
-  - livenesses/finalizers
-  - osints/finalizers
-  - securityattacks/finalizers
   - storagepools/finalizers
   - targetpools/finalizers
   verbs:
@@ -76,7 +64,6 @@ rules:
   - exploits/status
   - livenesses/status
   - osints/status
-  - securityattacks/status
   - storagepools/status
   - targetpools/status
   verbs:

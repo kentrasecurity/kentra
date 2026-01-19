@@ -8,6 +8,8 @@ metadata:
 spec:
   group: kentra.sh
   names:
+    categories:
+    - pool
     kind: StoragePool
     listKind: StoragePoolList
     plural: storagepools
@@ -17,15 +19,12 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.files
+    - jsonPath: .status.itemCount
       name: Files
-      type: string
+      type: integer
     - jsonPath: .spec.description
       name: Description
       type: string
-    - jsonPath: .status.lastSyncTime
-      name: LastSync
-      type: date
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -55,8 +54,7 @@ spec:
             description: StoragePoolSpec defines the desired state of StoragePool
             properties:
               description:
-                description: Description is a human-readable description of this storage
-                  group
+                description: Description is an optional description
                 type: string
               files:
                 description: Files is a list of files to download from S3 bucket (s3://configs)
@@ -67,16 +65,15 @@ spec:
           status:
             description: StoragePoolStatus defines the observed state of StoragePool
             properties:
-              fileCount:
-                description: FileCount is the number of files in this storage group
+              itemCount:
+                description: ItemCount is the total number of files
                 type: integer
-              lastSyncTime:
-                description: LastSyncTime is the timestamp of the last successful
-                  sync
+              lastUpdated:
+                description: LastUpdated is the timestamp of last update
                 type: string
               observedGeneration:
-                description: ObservedGeneration reflects the generation of the most
-                  recently observed StoragePool
+                description: ObservedGeneration is the generation observed by the
+                  controller
                 format: int64
                 type: integer
             type: object

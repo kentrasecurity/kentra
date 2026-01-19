@@ -11,24 +11,13 @@ spec:
     kind: AssetPool
     listKind: AssetPoolList
     plural: assetpools
-    shortNames:
-    - ap
     singular: assetpool
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .status.groupCount
-      name: Groups
-      type: integer
-    - jsonPath: .status.totalAssets
-      name: Assets
-      type: integer
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: AssetPool is the Schema for the assetpools API
         properties:
           apiVersion:
             description: |-
@@ -48,45 +37,31 @@ spec:
           metadata:
             type: object
           spec:
+            description: AssetPoolSpec defines the desired state of AssetPool
             properties:
+              asset:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: |-
+                  Asset is a map where keys are asset types (username, email, etc.)
+                  and values are arrays of strings
+                type: object
               description:
                 type: string
-              pool:
-                description: This matches the 'pool:' key in your YAML
-                items:
-                  properties:
-                    assets:
-                      items:
-                        properties:
-                          type:
-                            type: string
-                          value:
-                            type: string
-                        required:
-                        - type
-                        - value
-                        type: object
-                      type: array
-                    name:
-                      type: string
-                  required:
-                  - assets
-                  - name
-                  type: object
-                type: array
+            required:
+            - asset
             type: object
           status:
+            description: AssetPoolStatus defines the observed state of AssetPool
             properties:
-              groupCount:
-                description: Total number of groups (AssetPoolItems)
-                type: integer
               lastUpdated:
                 type: string
               observedGeneration:
                 format: int64
                 type: integer
               totalAssets:
-                description: Total number of individual assets across all groups
                 type: integer
             type: object
         type: object

@@ -1,0 +1,30 @@
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: internal-network
+  namespace: default
+spec:
+  target:
+    ip:
+      - "10.0.0.0/8"
+      - "172.16.0.0/12"
+      - "192.168.0.0/16"
+  port: "0-65535"
+  description: "Internal networks for continuous scanning"
+---
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: masscan-continuous
+  namespace: default
+spec:
+  tool: "masscan"
+  targetPool: internal-network  # Reference the TargetPool
+  args:
+    - "--rate"
+    - "1000"
+    - "--wait"
+    - "0"
+  periodic: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  category: "network-scan"

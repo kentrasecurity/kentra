@@ -14,7 +14,7 @@ var _ = Describe("Kentra Attack Operator", func() {
 		},
 		Entry("OSINT Sherlock", AttackConfig{
 			Kind: "osint",
-			Name: "osint-sample",
+			Name: "sherlock-sample",
 			Time: "10m",
 			Label: map[string]string{
 				"app":                     "osint",
@@ -22,18 +22,86 @@ var _ = Describe("Kentra Attack Operator", func() {
 				"tool":                    "sherlock",
 			},
 			Samples: []string{
-				"config/samples/assetpools/assetpool-sherlock.yaml",
-				"config/samples/attacks/security_v1alpha1_osint_sherlock_with_assets.yaml",
+				"examples/attacks/osint/",
 			},
 		}),
-		// Entry("Enumeration Nmap", AttackConfig{
-		// 	Kind: "enumeration",
-		// 	Name: "nmap-scan-ports",
-		// 	Time: "5m",
-		// 	Samples: []string{
-		// 		"config/samples/targetpools/kttack_v1alpha1_targetpool_nmap_ports.yaml",
-		// 		"config/samples/attacks/kttack_v1alpha1_enumeration_nmap_scan_ports.yaml",
-		// 	},
-		// }),
+		Entry("OSINT Trufflehog", AttackConfig{
+			Kind: "osint",
+			Name: "trufflehog-sample",
+			Time: "10m",
+			Label: map[string]string{
+				"app":                     "osint",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "trufflehog",
+			},
+			Samples: []string{
+				"examples/attacks/osint/",
+			},
+		}),
+		Entry("ENUMERATION Rustscan", AttackConfig{
+			Kind: "enumeration",
+			Name: "rustscan-multi-test",
+			Time: "5m",
+			Label: map[string]string{
+				"app":                     "enumeration",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "rustscan",
+			},
+			Samples: []string{
+				"examples/attacks/enumeration/",
+			},
+		}),
+		Entry("Enumeration Netcat", AttackConfig{
+			Kind: "enumeration",
+			Name: "netcat-banner-grab",
+			Time: "5m",
+			Label: map[string]string{
+				"app":                     "enumeration",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "netcat",
+			},
+			Samples: []string{
+				"examples/attacks/enumeration/",
+			},
+		}),
+		Entry("Enumeration Nmap", AttackConfig{
+			Kind: "enumeration",
+			Name: "nmap-scan-example-2",
+			Time: "5m",
+			Label: map[string]string{
+				"app":                     "enumeration",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "nmap",
+			},
+			Samples: []string{
+				"examples/attacks/enumeration/nmap.yaml",
+			},
+		}),
+		Entry("Exploit", AttackConfig{
+			Kind: "exploit",
+			Name: "metasploit-exploit",
+			Time: "10m",
+			Label: map[string]string{
+				"app":                     "exploit",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "metasploit",
+			},
+			Samples: []string{
+				"examples/attacks/exploit/",
+			},
+		}),
+		Entry("Liveness Ping", AttackConfig{
+			Kind: "liveness",
+			Name: "ping",
+			Time: "5m",
+			Label: map[string]string{
+				"app":                     "liveness",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "ping",
+			},
+			Samples: []string{
+				"examples/attacks/liveness/ping.yaml",
+			},
+		}),
 	)
 })

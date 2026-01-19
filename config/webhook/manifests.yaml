@@ -110,26 +110,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-kentra-sh-v1alpha1-securityattack
-  failurePolicy: Fail
-  name: vsecurityattack.kb.io
-  rules:
-  - apiGroups:
-    - kentra.sh
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - securityattacks
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /validate-kentra-sh-v1alpha1-storagepool
   failurePolicy: Fail
   name: vstoragepool.kb.io

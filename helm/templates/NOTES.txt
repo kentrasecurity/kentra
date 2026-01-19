@@ -13,7 +13,6 @@ The Kentra controller is now running and ready to manage security testing resour
 
 Available Custom Resources:
   - Enumeration (enum)       - Network and service enumeration tasks
-  - SecurityAttack           - Security testing and attack simulations
   - OSINT                    - Open Source Intelligence gathering
   - Liveness                 - Service availability checks
   - TargetPool               - Target management
