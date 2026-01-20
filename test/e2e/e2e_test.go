@@ -77,6 +77,19 @@ var _ = Describe("Kentra Attack Operator", func() {
 				"examples/attacks/enumeration/nmap.yaml",
 			},
 		}),
+		Entry("Enumeration Feroxbuster", AttackConfig{
+			Kind: "enumeration",
+			Name: "feroxbuster-web-scan",
+			Time: "5m",
+			Label: map[string]string{
+				"app":                     "enumeration",
+				"kentra.sh/resource-type": "attack",
+				"tool":                    "feroxbuster",
+			},
+			Samples: []string{
+				"examples/attacks/enumeration/feroxbuster.yaml",
+			},
+		}),
 		Entry("Exploit", AttackConfig{
 			Kind: "exploit",
 			Name: "metasploit-exploit",

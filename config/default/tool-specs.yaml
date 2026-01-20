@@ -69,7 +69,7 @@ data:
       type: "enumeration"
       category: "web"
       image: "epi052/feroxbuster"
-      commandTemplate: "feroxbuster {{.Args}} -u {{.Target}}"
+      commandTemplate: "feroxbuster {{.Args}} -u http://{{.Target.endpoint}}"
       capabilities:
         add:
           - NET_RAW
