@@ -1,4 +1,5 @@
 {{- if .Values.crds.install }}
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -14,23 +15,7 @@ spec:
     singular: osint
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .spec.tool
-      name: Tool
-      type: string
-    - jsonPath: .spec.assetPool
-      name: AssetPool
-      type: string
-    - jsonPath: .spec.category
-      name: Category
-      type: string
-    - jsonPath: .status.state
-      name: State
-      type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Osint is the Schema for the osints API
@@ -56,7 +41,6 @@ spec:
             description: OsintSpec defines the desired state of Osint
             properties:
               additionalEnv:
-                description: AdditionalEnv specifies additional environment variables
                 items:
                   description: EnvVar represents an environment variable
                   properties:
@@ -72,53 +56,24 @@ spec:
                   type: object
                 type: array
               args:
-                description: Args specifies additional command-line arguments
                 items:
                   type: string
                 type: array
               assetPool:
-                description: AssetPool references an AssetPool resource for OSINT
-                  targets
                 type: string
-              capabilities:
-                description: Capabilities specifies additional Linux capabilities
-                items:
-                  type: string
-                type: array
               category:
-                description: Category classifies the type of OSINT operation
                 type: string
               debug:
-                description: Debug enables debug mode
                 type: boolean
-              fileName:
-                description: FileName specifies the output file name
-                type: string
               httpProxy:
-                description: HTTPProxy specifies an HTTP proxy to use
                 type: string
               periodic:
-                description: Periodic indicates if this should run as a CronJob
                 type: boolean
-              port:
-                description: Port specifies a port (if applicable)
-                type: string
               schedule:
-                description: Schedule defines the cron schedule (required if Periodic
-                  is true)
                 type: string
               storagePool:
-                description: StoragePool references a StoragePool resource for file
-                  inputs
-                type: string
-              target:
-                description: Target specifies the target username(s) for OSINT operations
-                type: string
-              targetPool:
-                description: TargetPool references a TargetPool resource
                 type: string
               tool:
-                description: Tool specifies which OSINT tool to use (e.g., sherlock)
                 type: string
             required:
             - tool
@@ -127,46 +82,10 @@ spec:
             description: OsintStatus defines the observed state of Osint
             properties:
               jobName:
-                description: JobName is the name of the created Job or CronJob
                 type: string
               lastExecuted:
-                description: LastExecuted timestamp of the last execution
-                type: string
-              resolvedAsset:
-                description: ResolvedAsset is the resolved asset value from AssetPool
-                type: string
-              resolvedAssetType:
-                description: ResolvedAssetType is the type of the resolved asset
-                type: string
-              resolvedAssets:
-                description: ResolvedAssets contains all resolved assets from AssetPool
-                items:
-                  description: AssetItem defines a single asset in the pool
-                  properties:
-                    type:
-                      description: Type specifies the type of asset (e.g., username,
-                        email, domain, ip)
-                      type: string
-                    value:
-                      description: Value is the actual value of the asset
-                      type: string
-                  required:
-                  - type
-                  - value
-                  type: object
-                type: array
-              resolvedPort:
-                description: ResolvedPort is the actual port after TargetPool resolution
-                type: string
-              resolvedTarget:
-                description: ResolvedTarget is the actual target after TargetPool
-                  resolution
-                type: string
-              resultsLocation:
-                description: ResultsLocation indicates where results are stored
                 type: string
               state:
-                description: State represents the current state of the attack
                 type: string
             type: object
         type: object
