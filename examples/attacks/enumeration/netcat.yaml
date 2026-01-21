@@ -1,0 +1,55 @@
+---
+apiVersion: kentra.sh/v1alpha1
+kind: TargetPool
+metadata:
+  name: targetpool-test
+  namespace: kentra-system
+spec:
+  description: "Direct target for nmap"
+  targets:  
+    - name: test1
+      endpoint: 
+        - "192.168.1.0/32"
+        - "192.168.2.0"
+      port:
+        - "22"
+        - "80"
+    - name: test2
+      endpoint: 
+        - "192.168.3.1"
+      port:
+        - "22-24"
+---
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: netcat-banner-grab
+  namespace: kentra-system
+spec:
+  args:
+    - '-v'
+    - '-w'
+    - '5'
+  category: Reconnaissance
+  debug: true
+  periodic: false
+  targetPool: targetpool-test
+  tool: netcat
+---
+# THIS CANNOT WORK FOR THE MOMENT
+apiVersion: kentra.sh/v1alpha1
+kind: Enumeration
+metadata:
+  name: netcat-banner-grab
+  namespace: kentra-system
+spec:
+  args:
+    - '-v'
+    - '-w'
+    - '5'
+  category: Reconnaissance
+  debug: true
+  periodic: false
+  targetPool: targetpool-test
+  tool: netcat
+---

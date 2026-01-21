@@ -22,45 +22,43 @@ import (
 
 // StoragePoolSpec defines the desired state of StoragePool
 type StoragePoolSpec struct {
+	// Description is an optional description
+	// +optional
+	Description string `json:"description,omitempty"`
+
 	// Files is a list of files to download from S3 bucket (s3://configs)
 	// +optional
 	Files []string `json:"files,omitempty"`
-
-	// Description is a human-readable description of this storage group
-	// +optional
-	Description string `json:"description,omitempty"`
 }
 
 // StoragePoolStatus defines the observed state of StoragePool
 type StoragePoolStatus struct {
-	// LastSyncTime is the timestamp of the last successful sync
+	// LastUpdated is the timestamp of last update
 	// +optional
-	LastSyncTime string `json:"lastSyncTime,omitempty"`
+	LastUpdated string `json:"lastUpdated,omitempty"`
 
-	// FileCount is the number of files in this storage group
-	// +optional
-	FileCount int `json:"fileCount,omitempty"`
-
-	// ObservedGeneration reflects the generation of the most recently observed StoragePool
+	// ObservedGeneration is the generation observed by the controller
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// ItemCount is the total number of files
+	// +optional
+	ItemCount int `json:"itemCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=sp,singular=storagepool
-//+kubebuilder:printcolumn:name="Files",type=string,JSONPath=`.spec.files`
+//+kubebuilder:resource:shortName=sp,singular=storagepool,categories=pool
+//+kubebuilder:printcolumn:name="Files",type=integer,JSONPath=`.status.itemCount`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
-//+kubebuilder:printcolumn:name="LastSync",type=date,JSONPath=`.status.lastSyncTime`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // StoragePool is the Schema for the storagepools API
 type StoragePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   StoragePoolSpec   `json:"spec,omitempty"`
-	Status StoragePoolStatus `json:"status,omitempty"`
+	Spec              StoragePoolSpec   `json:"spec,omitempty"`
+	Status            StoragePoolStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -1,9 +1,0 @@
----
-apiVersion: kentra.sh/v1alpha1
-kind: TargetPool
-metadata:
-  name: osint-targets
-  namespace: kentra-system
-spec:
-  target: "patrickdifazio"
-  description: "Target group for osint Patrick Di Fazio"
