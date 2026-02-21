@@ -4,526 +4,68 @@ This document provides a comprehensive overview of the Kentra Kubernetes Operato
 
 ## Table of Contents
 
-1. [High-Level Architecture](#high-level-architecture)
-2. [Core Components](#core-components)
-3. [Custom Resource Definitions (CRDs)](#custom-resource-definitions-crds)
-4. [Controller Reconciliation Flow](#controller-reconciliation-flow)
-5. [Job and CronJob Management](#job-and-cronjob-management)
-6. [Tool Integration](#tool-integration)
-7. [Logging and Monitoring](#logging-and-monitoring)
-8. [Security and RBAC](#security-and-rbac)
+- [Kentra Architecture](#kentra-architecture)
+  - [Table of Contents](#table-of-contents)
+  - [High-Level Architecture](#high-level-architecture)
+  - [List of CRDs](#list-of-crds)
+    - [Attacks](#attacks)
+    - [Pools](#pools)
+  - [Flow Example with nmap scan](#flow-example-with-nmap-scan)
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                   Kubernetes Cluster                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │         Kentra System Namespace                    │    │
-│  │  (kentra-system)                                   │    │
-│  │                                                    │    │
-│  │  ┌──────────────────────────────────────────┐    │    │
-│  │  │  Manager Pod (Controller Runtime)        │    │    │
-│  │  │  - SecurityAttackReconciler              │    │    │
-│  │  │  - EnumerationReconciler                 │    │    │
-│  │  │  - LivenessReconciler                    │    │    │
-│  │  │  - ToolsConfigurator                     │    │    │
-│  │  └──────────────────────────────────────────┘    │    │
-│  │                                                    │    │
-│  │  ┌──────────────────────────────────────────┐    │    │
-│  │  │  ConfigMaps & Secrets                    │    │    │
-│  │  │  - kentra-tool-specs (tool definitions)         │    │    │
-│  │  │  - fluent-bit-config (logging)           │    │    │
-│  │  │  - loki-credentials (log destination)    │    │    │
-│  │  └──────────────────────────────────────────┘    │    │
-│  │                                                    │    │
-│  └────────────────────────────────────────────────────┘    │
-│                                                              │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │    User Namespaces (security-testing, etc.)       │    │
-│  │                                                    │    │
-│  │  SecurityAttack / Enumeration / Liveness CRs     │    │
-│  │         ↓                                          │    │
-│  │  ┌───────────────────────────────────────┐        │    │
-│  │  │  Jobs & CronJobs (Batch API)          │        │    │
-│  │  │  - One-time Job (one-off attacks)     │        │    │
-│  │  │  - CronJob (periodic scanning)        │        │    │
-│  │  └───────────────────────────────────────┘        │    │
-│  │         ↓                                          │    │
-│  │  ┌───────────────────────────────────────┐        │    │
-│  │  │  Pod (running security tool)          │        │    │
-│  │  │  - Main container (nmap, nikto, etc)  │        │    │
-│  │  │  - Fluent Bit sidecar (log shipping)  │        │    │
-│  │  └───────────────────────────────────────┘        │    │
-│  │                                                    │    │
-│  └────────────────────────────────────────────────────┘    │
-│                                                              │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │  External Services (Optional)                      │    │
-│  │  - Loki (log aggregation)                          │    │
-│  │  - Prometheus (metrics)                            │    │
-│  └────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-```
+<img src="./img/logical_arch.svg" alt="logical_arch" width="400" />
 
-## Core Components
+The workflow begins when an attack is defined in a YAML file and applied to the cluster, either manually or via a git push. This action creates a Custom Resource (CR) which the Kentra Controller monitors.
 
-### 1. Manager (Controller Runtime)
+The entrypoint in `cmd/main.go` initializes the controller manager, registers specific controllers for each Custom Resource Definition (CRD), and sets up essential health checks. Supporting this, `cmd/manager.go` bootstraps the controller-runtime, configures RBAC for secure access, and manages the metrics and webhook servers.
 
-The Manager is the main entry point of Kentra, implemented in `cmd/main.go`. It:
+Once a CR is detected, the reconciler translates the high-level specification into a standard Kubernetes Job. This Job launches a Pod containing two specific components: a main container that executes the security tool's CLI command and an optional Fluent Bit sidecar. If Loki is configured, the sidecar captures the tool's output and forwards it to Loki, allowing users to monitor live attack progress and results through Grafana. If not, the logs are shown in the pod logs.
 
-- Initializes the Kubernetes Scheme and client
-- Sets up webhook servers for CRD validation
-- Registers all reconcilers (SecurityAttack, Enumeration, Liveness)
-- Manages metrics and health endpoints
-- Implements TLS certificate handling for webhooks
+## List of CRDs
 
-**Key Responsibilities:**
-- Bootstrap controller-runtime
-- Configure RBAC and authentication
-- Setup metrics server (default port: 8080)
-- Setup webhook server (default port: 9443)
+### Attacks 
+  | CRD | Description |
+ | :--- | :--- |
+| Liveness | Availability and health verification. |
+ | Exploit | Active vulnerability testing. |
+ | Osint | Reconnaissance and data gathering. |
 
-### 2. Reconcilers
+### Pools
+ | CRD | Description |
+ | :--- | :--- |
+ | Storage | Persistent data and artifact repositories. |
+ | Asset | Grouped entities for miscellaneous purpose. |
+ | Target | Grouped objects for scanning. |
 
-Each reconciler implements the core business logic for a specific CRD type.
+## Flow Example with nmap scan
 
-#### SecurityAttackReconciler (`internal/controller/securityattack_controller.go`)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant KubernetesAPI as Kubernetes API Server
+    participant Controller as Attack Reconciler
+    participant Kubelet as Worker Node (Kubelet)
+    participant Loki as Loki/Grafana
 
-Handles `SecurityAttack` resources and orchestrates security testing operations.
+    User->>KubernetesAPI: kubectl apply -f attack.yaml
+    KubernetesAPI->>Controller: New Attack detected
+    
+    Note over Controller: 1. Load kentra-tool-specs<br/>2. Resolve tool args<br/>3. Build Job Spec
+    
+    Controller->>KubernetesAPI: Create Kubernetes Job
+    
+    Note over KubernetesAPI: Job Controller<br/>creates Pod & Scheduler assigns Node
+    
+    KubernetesAPI->>Kubelet: Pull images & Start Pod
+    
+    rect rgb(240, 240, 240)
+        Note over Kubelet: tool runs & writes to /logs/job.log
+        Note over Kubelet: Fluent Bit sidecar reads /logs/job.log
+    end
 
-**Responsibilities:**
-- Watch SecurityAttack custom resources
-- Create Job or CronJob based on `Periodic` flag
-- Build pod specifications with proper tool configuration
-- Update status with job state and execution time
-- Handle resource cleanup
-
-**Reconciliation Loop:**
-1. Load tool specifications from ConfigMap
-2. Fetch SecurityAttack resource
-3. Determine if periodic (CronJob) or one-time (Job)
-4. Create or update the corresponding Kubernetes job
-5. Update status with job information
-
-#### EnumerationReconciler
-
-Similar to SecurityAttackReconciler, specialized for enumeration tasks.
-
-#### LivenessReconciler
-
-Handles liveness probes and health checks.
-
-### 3. Tool Management Components
-
-#### ToolsConfigurator (`internal/controller/config.go`)
-
-Manages tool specifications and their configurations loaded from ConfigMaps.
-
-**Responsibilities:**
-- Load tool specifications from ConfigMaps with label `kentra.sh/resource-type: tool-specs`
-- Parse and validate tool definitions
-- Provide tool metadata (image, command templates, capabilities, etc.)
-- Support tool discovery by name or type
-- Merge configurations from multiple ConfigMaps
-
-Handles tool-specific configuration:
-
-- Build pod specifications for tools
-- Inject environment variables
-- Configure proxy settings
-- Map tool arguments to pod commands
-- Configure debug/logging modes
-
-### 4. Job Builders
-
-Responsible for constructing Kubernetes Job and CronJob objects:
-
-- **BuildJob**: Creates one-time Job objects
-- **BuildCronJob**: Creates CronJob objects with schedule
-- Handle pod template creation
-- Attach Fluent Bit sidecar for logging
-
-## Custom Resource Definitions (CRDs)
-
-### SecurityAttack CRD
-
-```yaml
-apiVersion: kentra.sh/v1alpha1
-kind: SecurityAttack
-metadata:
-  name: example-attack
-  namespace: security-testing
-spec:
-  # Type of attack: Enumeration, Vulnerability, Exploitation
-  attackType: Enumeration
-  
-  # Target system
-  target: "192.168.1.0/24"
-  
-  # Security tool to use
-  tool: nmap
-  
-  # Optional: HTTP proxy
-  http_proxy: "http://proxy:8080"
-  
-  # Optional: Additional environment variables
-  additional_env:
-    - name: CUSTOM_VAR
-      value: "value"
-  
-  # Optional: Run on schedule
-  periodic: false
-  schedule: "0 2 * * *"  # 2 AM daily (if periodic: true)
-  
-  # Optional: Additional tool arguments
-  args:
-    - "-sV"
-    - "-A"
-  
-  # Optional: Enable debug mode (output to stdout)
-  debug: false
-
-status:
-  # Last execution timestamp
-  lastExecuted: "2025-01-01T10:30:00Z"
-  
-  # Created Job/CronJob name
-  jobName: "example-attack-12345"
-  
-  # Current state: Pending, Running, Completed, Failed
-  state: Running
+    Kubelet->>Loki: Push logs via Fluent Bit
+    Loki-->>User: View scan results
 ```
 
-### Enumeration CRD
-
-Similar structure with specific fields for enumeration operations.
-
-### Liveness CRD
-
-Defines health checks and availability probes.
-
-## Controller Reconciliation Flow
-
-The reconciliation flow follows a standard Kubernetes operator pattern:
-
-```
-Event Triggered
-    ↓
-┌─────────────────────┐
-│ Reconcile Called    │
-│ with Request        │
-└─────────────────────┘
-    ↓
-┌─────────────────────────────────────────┐
-│ Load Tool Configurations                │
-│ (from ConfigMap - kentra-tool-specs)           │
-└─────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────┐
-│ Fetch SecurityAttack Resource           │
-│ (check if exists, handle deletion)      │
-└─────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────┐
-│ Determine Execution Type                │
-│ Periodic=true → CronJob                 │
-│ Periodic=false → Job                    │
-└─────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────┐
-│ Build Job/CronJob Specification         │
-│ - Pod spec with security tool           │
-│ - Fluent Bit sidecar (if debug=false)   │
-│ - Resource limits                       │
-│ - Environment variables                 │
-└─────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────┐
-│ Create or Update Job/CronJob            │
-│ (detect if already exists)              │
-└─────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────┐
-│ Update SecurityAttack Status            │
-│ - Set state (Running/Completed/Failed)  │
-│ - Record lastExecuted timestamp         │
-│ - Store jobName                         │
-└─────────────────────────────────────────┘
-    ↓
-Return Result (Requeue if needed)
-```
-
-## Job and CronJob Management
-
-### One-Time Job Execution
-
-When `Periodic: false`, Kentra creates a Kubernetes `Job`:
-
-1. **Job Name**: `{securityattack-name}`
-2. **Restart Policy**: `Never` (fail on error)
-3. **Backoff Limit**: 3 (retries)
-4. **TTL**: 3600 seconds (cleanup after 1 hour)
-5. **Pod Template**:
-   - Main container: executes security tool
-   - Sidecar: Fluent Bit (if debug=false)
-
-### Periodic Execution (CronJob)
-
-When `Periodic: true`, Kentra creates a Kubernetes `CronJob`:
-
-1. **CronJob Name**: `{securityattack-name}-cronjob`
-2. **Schedule**: Standard cron format (e.g., `0 2 * * *`)
-3. **Concurrency Policy**: `Forbid` (prevent overlapping runs)
-4. **History Limit**: Keep last 3 failed, 1 successful
-5. **Pod Template**: Same as one-time job
-
-### Pod Structure
-
-```
-Pod
-├── Container: security-tool
-│   ├── Image: defined in ToolSpec
-│   ├── Args: tool arguments + target + proxy
-│   ├── Env: tool-specific environment variables
-│   ├── VolumeMounts: /logs (for log output)
-│   └── Resources: limits (CPU, memory)
-│
-└── Container: fluent-bit (sidecar, if debug=false)
-    ├── Image: fluent/fluent-bit
-    ├── VolumeMounts: /logs (read), fluent-bit-config
-    ├── Env: LOKI_* credentials
-    └── Command: tail /logs/job.log → Loki
-```
-
-## Tool Integration
-
-### Tool Specification Format
-
-Tools are defined in the `kentra-tool-specs` ConfigMap:
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kentra-tool-specs
-  namespace: kentra-system
-data:
-  tools.yaml: |
-    tools:
-      nmap:
-        image: "nmap/nmap:latest"
-        default_args:
-          - "-sV"
-          - "-A"
-        timeout: 3600
-        resource_limits:
-          cpu: "500m"
-          memory: "256Mi"
-      
-      nikto:
-        image: "nikto:latest"
-        default_args:
-          - "-display 1234"
-        timeout: 1800
-        resource_limits:
-          cpu: "250m"
-          memory: "128Mi"
-```
-
-### Tool Execution
-
-The flow for executing a tool:
-
-1. **Tool Resolution**: Match requested tool with spec from ConfigMap
-2. **Container Configuration**: Set image, args, environment
-3. **Argument Building**: Combine default args with custom args and target
-4. **Volume Mounting**: Attach shared volume for logs
-5. **Pod Creation**: Submit configured pod to Kubernetes
-
-## Logging and Monitoring
-
-### Fluent Bit Sidecar Architecture
-
-When `debug: false`:
-
-1. **Main Container**: Redirects output to `/logs/job.log`
-2. **Fluent Bit Sidecar**: 
-   - Tails `/logs/job.log`
-   - Applies filters (adds labels, enriches metadata)
-   - Sends to Loki over HTTPS
-3. **Log Labels**: job, namespace, tool, cluster
-
-### Fluent Bit Configuration
-
-```yaml
-[INPUT]
-  Name tail
-  Path /logs/*.log
-  Read_from_Head true
-
-[FILTER]
-  Name modify
-  Add job=${JOB_NAME}
-  Add namespace=${NAMESPACE}
-  Add tool=${TOOL_TYPE}
-  Add cluster=${CLUSTER_NAME}
-
-[OUTPUT]
-  Name loki
-  host ${LOKI_HOST}
-  port ${LOKI_PORT}
-  http_user ${LOKI_USER}
-  http_passwd ${LOKI_PASSWORD}
-```
-
-See [Fluent Bit Sidecar Documentation](./FLUENT_BIT_SIDECAR.md) for complete details.
-
-### Metrics
-
-Kentra exposes Prometheus metrics:
-
-- `kentra_securityattack_total`: Total SecurityAttacks created
-- `kentra_job_duration_seconds`: Job execution duration
-- `kentra_tool_invocations`: Tool execution count by type
-
-Metrics are exposed on `http://:8080/metrics`.
-
-## Security and RBAC
-
-### ServiceAccount and Roles
-
-Kentra requires specific Kubernetes permissions:
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: manager-role
-rules:
-# SecurityAttack CRD
-- apiGroups: ["kentra.sh"]
-  resources: ["securityattacks", "securityattacks/status"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-# Jobs and CronJobs
-- apiGroups: ["batch"]
-  resources: ["jobs", "cronjobs"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-# Pods and ConfigMaps
-- apiGroups: [""]
-  resources: ["pods", "configmaps"]
-  verbs: ["get", "list", "watch"]
-```
-
-### Pod Security
-
-- **Non-root User**: Pods run as UID 65532
-- **Read-only Filesystem**: Root filesystem is read-only
-- **Network Policies**: Optional network isolation between testing pods
-
-### Secret Management
-
-- **Loki Credentials**: Stored in `kentra-system` namespace Secret
-- **Tool Secrets**: Can be injected via environment variables
-- **TLS Certificates**: Managed by cert-manager for webhook TLS
-
-## Data Flow Example
-
-### Complete flow for creating a SecurityAttack:
-
-```
-User
-  ↓ kubectl apply -f securityattack.yaml
-Kubernetes API Server
-  ↓ (CRD stored in etcd)
-SecurityAttackReconciler
-  ↓ (watch event triggered)
-Load kentra-tool-specs ConfigMap
-  ↓ (resolve nmap configuration)
-Validate target and tool
-  ↓
-Build Job Spec
-  ├─ Container 1: nmap with args
-  └─ Container 2: fluent-bit sidecar
-  ↓ (create in Kubernetes)
-Kubernetes Batch Controller
-  ↓ (creates Pod)
-Pod Scheduler
-  ↓ (assigns node)
-Kubelet
-  ├─ Pulls images
-  ├─ Creates containers
-  ├─ nmap starts scanning
-  └─ Fluent Bit tails logs
-  ↓
-Logs written to /logs/job.log
-  ↓
-Fluent Bit reads and forwards
-  ↓
-Loki (log aggregation)
-  ↓ (accessible via Grafana)
-```
-
-## Extensibility
-
-### Adding New CRD Types
-
-To add a new CRD (e.g., `VulnerabilityAssessment`):
-
-1. **Define API Types** in `api/v1alpha1/vulnerabilityassessment_types.go`
-2. **Create Reconciler** in `internal/controller/vulnerabilityassessment_controller.go`
-3. **Register with Manager** in `cmd/main.go`
-4. **Generate CRD** with `make manifests`
-5. **Add RBAC** rules to reconciler
-
-For more info on this topic, refer to this [example](./NEW_CRD_EXAMPLE.md).
-
-### Adding New Tool Support
-
-To support a new security tool:
-
-1. **Create Tool Image**: Build or use existing Docker image
-2. **Define ToolSpec**: Add entry to `kentra-tool-specs` ConfigMap
-3. **Test**: Create SecurityAttack with new tool
-4. **Document**: Update tool configuration examples
-
-## Performance Considerations
-
-- **Controller Concurrency**: Configurable worker threads
-- **Job Timeouts**: Configurable per tool in ToolSpec
-- **Pod Resource Limits**: Prevent runaway resource consumption
-- **Log Volume**: Fluent Bit tail plugin with rotation
-- **Namespace Scoping**: RBAC limits controller to designated namespaces
-
-## Troubleshooting Guide
-
-### Common Issues
-
-**Issue**: SecurityAttack stuck in "Pending"
-
-- Check if kentra-tool-specs ConfigMap exists
-- Verify tool image is accessible
-- Check node capacity (CPU/memory limits)
-
-**Issue**: Logs not appearing in Loki
-
-- Verify Fluent Bit sidecar started: `kubectl logs <pod> -c fluent-bit`
-- Check Loki credentials in Secret
-- Verify network connectivity to Loki endpoint
-
-**Issue**: CronJob not executing
-
-- Verify cron schedule syntax
-- Check CronJob status: `kubectl describe cronjob <name>`
-- Review controller logs for scheduling errors
-
-## References
-
-- [Kubernetes Operator Pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
-- [Kubebuilder Documentation](https://book.kubebuilder.io/)
-- [Controller Runtime Documentation](https://pkg.go.dev/sigs.k8s.io/controller-runtime)
-- [Fluent Bit Documentation](https://docs.fluentbit.io/)

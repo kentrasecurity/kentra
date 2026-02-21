@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" aria-label="Minimal geometric K logo with negative space">
+  <defs>
+    <clipPath id="b">
+      <path d="M40 32h72v192H40z"/>
+    </clipPath>
+    <clipPath id="c">
+      <path d="M128 32h96l-64 96 64 96h-96z"/>
+    </clipPath>
+    <clipPath id="a">
+      <path d="M0 0h256v256H0z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#a)">
+    <path fill="#1e9fb3" d="M40 32h72v192H40z"/>
+    <path fill="#7a1c2b" d="M128 32h93.5L160 128l61.5 96H128z"/>
+    <g clip-path="url(#b)">
+      <circle cx="128" cy="128" r="56" fill="#f4f4f2"/>
+    </g>
+    <circle cx="128" cy="128" r="56" fill="none" stroke="#020617" stroke-width="5"/>
+    <g clip-path="url(#c)">
+      <circle cx="128" cy="128" r="56" fill="#020617"/>
+    </g>
+  </g>
+</svg>

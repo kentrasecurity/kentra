@@ -36,20 +36,3 @@ spec:
   targetPool: targetpool-test
   tool: netcat
 ---
-# THIS CANNOT WORK FOR THE MOMENT
-apiVersion: kentra.sh/v1alpha1
-kind: Enumeration
-metadata:
-  name: netcat-banner-grab
-  namespace: kentra-system
-spec:
-  args:
-    - '-v'
-    - '-w'
-    - '5'
-  category: Reconnaissance
-  debug: true
-  periodic: false
-  targetPool: targetpool-test
-  tool: netcat
----
