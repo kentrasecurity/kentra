@@ -14,7 +14,7 @@ This document provides a comprehensive overview of the Kentra Kubernetes Operato
 
 ## High-Level Architecture
 
-![logical_arch](./img/logical_arch.svg)
+<img src="./img/logical_arch.svg" alt="logical_arch" width="400" />
 
 The workflow begins when an attack is defined in a YAML file and applied to the cluster, either manually or via a git push. This action creates a Custom Resource (CR) which the Kentra Controller monitors.
 

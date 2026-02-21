@@ -45,13 +45,6 @@ This allows for flexible command construction based on the target specifications
 
 
 ## Running Enumerations
-
-To execute enumerations, create a manifest file and apply it:
-
-```bash
-kubectl apply -f enumerations.yaml
-```
-
 Here's an example manifest with a TargetPool and two different Enumeration jobs:
 
 ```yaml
@@ -109,20 +102,27 @@ spec:
 
 This manifest executes two enumerations against multiple targets. The behavior depends on the tool's capabilities:
 
-**For tools that support multiple inline hosts** (like nmap):
+**For tools that support multiple inline hosts** (like [nmap](https://nmap.org/book/port-scanning-options.html)):
 - The render engine creates a single pod with a single command:
 ```bash
-nmap 192.168.1.0 192.168.1.1 192.168.1.2... -p 22
+nmap 192.168.1.0 192.168.1.1 192.168.1.2 ... -p 22
 ```
 
-**For tools that don't support multiple inline targets** (like netcat):
+**For tools that don't easily support multiple inline targets** (like [netcat](https://linux.die.net/man/1/nc)):
 - Kentra automatically creates multiple pod instances, one for each target:
 ```bash
 nc 192.168.1.0 22
 nc 192.168.1.1 22
 nc 192.168.1.2 22
+...
 ```
 
+To execute this enumeration, create a `enumerations.yaml` manifest file and apply it
+
+```bash
+kubectl apply -f enumerations.yaml
+```
+The result of the will be the following
 
 ```
 > kubectl get po,jobs,storagepool -n kentra-system
