@@ -1,119 +1,96 @@
-# Kentra - Kubernetes Security Testing Framework
+<h1 align="center">Kentra</h1>
 
-A comprehensive Kubernetes Operator for orchestrating and managing security testing operations within Kubernetes clusters. Kentra enables automated security scanning, enumeration, vulnerability testing, and security attack simulations through Kubernetes Custom Resource Definitions (CRDs).
+<h3 align="center">
+  <a name="readme-top"></a>
+  <img
+    src="img/logo.svg"
+    height="250"
+  >
+</h3>
+<div align="center">
+
+<p align="center">
+  A Kubernetes offensive security framework for orchestrating penetration testing, red teaming operations, and large-scale reproducible security scans both inside and outside your cluster.
+</p>
+
+<div align="center">
+  <a href="https://github.com/kentrasecurity/kentra/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/kentrasecurity/kentra" alt="License">
+  </a>
+  <a href="https://github.com/kentrasecurity/kentra/releases">
+    <img src="https://img.shields.io/github/v/release/kentrasecurity/kentra" alt="Release">
+  </a>
+</div>
+
+<div align="center">
+  <a href="https://github.com/orgs/kentrasecurity/packages/container/package/helm/kentra">
+    <img src="https://img.shields.io/badge/ghcr.io-kentra-blue" alt="GitHub Container Registry">
+  </a>
+  <a href="https://kubernetes.io/">
+    <img src="https://img.shields.io/badge/kubernetes-ready-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes">
+  </a>
+  <a href="https://github.com/kentrasecurity/kentra/tree/main/helm">
+    <img src="https://img.shields.io/badge/helm-chart-0F1689?logo=helm&logoColor=white" alt="Helm Chart">
+  </a>
+</div>
+
+<br>
+
+<p align="center">
+  <a href="#overview">Overview</a> •
+  <a href="#-installation-methods">Installation</a> •
+  <a href="#key-features">Features</a> •
+  <a href="./docs/GETTING_STARTED.md">Quick Start</a> •
+  <a href="./ToDo.md">Todo</a> •
+  <a href="#contributing">Contributing</a>
+</p>
+
+<br>
+</div>
 
 ## Overview
 
 Kentra provides a declarative way to define and execute security operations as native Kubernetes resources. Instead of manually managing security testing tools and scripts, you define your security tests as YAML manifests and let Kentra's Kubernetes Operator handle orchestration, scheduling, logging, and resource management.
 
-
 ## Demo
-This is a view-only demo. To explore all Kentra features, please spin up the project and have fun :)
+This is a view-only demo. 
+
+To explore all Kentra features, please spin up the project and have fun :)
 #### Kentra URL: [https://demo.kentrasecurity.sh](https://demo.kentrasecurity.sh)
 
-### Key Features
+## Prerequisites
+A Kubernetes cluster
 
-- **Custom Resource Definitions (CRDs)**: Define security tests declaratively using Kubernetes-native resources
-  - `SecurityAttack`: Execute security testing operations
-  - `Enumeration`: Network and service enumeration
-  - `Liveness`: System health and availability checks
-
-- **Flexible Tool Integration**: Support for popular security tools (Nmap, Nikto, Feroxbuster, etc.)
-- **Periodic Execution**: Schedule security tests using standard Kubernetes CronJob syntax
-- **Centralized Logging**: Integrated Fluent Bit sidecar for log aggregation to Loki
-- **Multi-tenant Support**: Namespace-aware resource management
-- **Comprehensive Monitoring**: Prometheus metrics and health checks
-
-## Documentation
-
-Complete documentation is available in the [docs directory](./docs/):
-
-- **[Documentation Index](./docs/INDEX.md)** - Complete guide to all documentation resources
-- **[Getting Started](./docs/GETTING_STARTED.md)** - Quick start guide to create your first security test (5 minutes)
-- **[Installation Guide](./docs/INSTALLATION_GUIDE.md)** - Detailed installation instructions for all deployment methods
-- **[Architecture Guide](./docs/ARCHITECTURE.md)** - Comprehensive overview of system design, components, and interactions
-- **[API Reference](./docs/API_REFERENCE.md)** - Complete CRD specification and field reference
-- **[Fluent Bit Sidecar Documentation](./docs/FLUENT_BIT_SIDECAR.md)** - Setup and configuration for centralized logging
-
-## Quick Start
-
-For detailed installation instructions, refer to the [Installation Guide](./docs/INSTALLATION_GUIDE.md). Below is a quick overview of installation steps.
-
-## Getting Started
-
-### Prerequisites
-
-- **Go**: v1.24.0 or higher
-- **Docker**: v17.03 or higher
-- **kubectl**: v1.11.3 or higher
-- **Kubernetes Cluster**: v1.11.3 or higher with cluster-admin access
-
-### Installation Methods
-
-Choose one of the following installation methods based on your needs:
-
-#### Method 1: Quick Start with Pre-built Image
-
-If you have a pre-built Docker image available in a registry:
-
-```bash
-# Set your image registry and tag
-export IMG=your-registry/kentra:v1.0.0
-
-# Install CRDs
-make install
-
-# Deploy the manager
-make deploy IMG=$IMG
-```
-
-#### Method 2: Build and Deploy from Source
-
-Build the controller from source code:
-
-```bash
-# Clone the repository
-git clone https://github.com/kentrasecurity/kentra.git
-cd kentra
-
-# Build the Docker image
-make docker-build IMG=your-registry/kentra:v1.0.0
-
-# Push to your registry (ensure you have push permissions)
-make docker-push IMG=your-registry/kentra:v1.0.0
-
-# Install CRDs into the cluster
-make install
-
-# Deploy the manager
-make deploy IMG=your-registry/kentra:v1.0.0
-```
-
-**Note**: Replace `your-registry` with your actual Docker registry URL (e.g., `docker.io/myorg`, `ghcr.io/myorg`, `gcr.io/myproject`).
-
-#### Method 3: Using Kustomize (Bundle Distribution)
-
-Create a bundled installation file:
-
-```bash
-# Build the installer bundle
-make build-installer IMG=your-registry/kentra:v1.0.0
-```
-
-This generates an `install.yaml` file in the `dist/` directory containing all resources. Users can then deploy with:
-
-```bash
-# Install from bundle
-kubectl apply -f https://path-to-your-bundle/install.yaml
-```
-
-#### Method 4: Using Helm Chart
+## Installation
+### Helm Chart
 
 Helm chart support is available for simplified deployment. Refer to the Helm values documentation for configuration options.
 
-### Deployment Verification
+```bash
+helm install kentra-platform \
+  oci://ghcr.io/kentrasecurity/helm/kentra-platform \
+  --version 0.4.0 \
+  --namespace kentra-system \
+  --create-namespace \
+  -f values.yaml
+```
 
-Verify the deployment was successful:
+To uninstall it 
+```bash
+helm uninstall kentra-platform -n kentra-system
+```
+
+
+### Kustomize
+This will use Kustomize to install Kentra via [kustomization.yaml](kentra/config/default/kustomization.yaml). The default namespace is `kentra-system`
+```bash
+kubectl apply -k config/default
+```
+To uninstall it 
+```bash
+kubectl delete -k config/default
+```
+### Verify the Deployment
 
 ```bash
 # Check if the manager pod is running
@@ -126,27 +103,72 @@ kubectl get crds | grep kentra.sh
 kubectl logs -n kentra-system deployment/kentra-controller-manager -f
 ```
 
-### Configure Tool Specifications (Optional)
+## Quick Start
 
-Kentra uses a ConfigMap to define tool specifications:
+Quick example:
+
+```yaml
+apiVersion: kentra.sh/v1alpha1
+kind: SecurityAttack
+metadata:
+  name: my-first-scan
+  namespace: security-testing
+spec:
+  attackType: Enumeration
+  target: "192.168.1.0/24"
+  tool: nmap
+  periodic: false
+  debug: true
+  args:
+    - "-sV"
+```
+
+## Configure Tool Specifications
+Kentra uses the ConfigMap [tool-specs.yaml](config/default/tool-specs.yaml) to define tool specifications. When modified, apply it again with
 
 ```bash
 kubectl apply -f config/default/kentra-tool-specs.yaml
 ```
 
-### Configure Logging to Loki (Optional)
+To specify a new tool, use the following fields:
 
-For centralized logging with Fluent Bit and Loki:
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `type` | string | The operation type the tool performs, used for greppable purposes | `"enumeration"`, `"exploitation"`, `"scanning"` |
+| `category` | string | The category or domain of the tool, used for logic separation | `"network"`, `"web"`, `"vulnerability"` |
+| `image` | string | Docker image URI for the tool container | `"instrumentisto/nmap:latest"` |
+| `commandTemplate` | string | Command execution template with placeholders | `"nmap {{.Args}} -p {{.Target.port}} {{.Target.endpoint}}"` |
+| `endpointSeparator` | string (Optional) | Delimiter for multiple endpoints/targets (if supported by the tool) | `" "` (space), `","` (comma) |
+| `portSeparator` | string (Optional) | Delimiter for multiple ports (if supported by the tool)| `","` |
+| `capabilities` | object (Optional)| Linux capabilities required for the container | [See all capabilities example](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container0) |
 
-```bash
-# Apply Loki credentials secret
-kubectl apply -f config/default/loki-secret.yaml
+**Example configuration:** [nmap](https://nmap.org/)
 
-# Apply Fluent Bit configuration
-kubectl apply -f config/default/fluent-bit-config.yaml
+Nmap is a standard and well knonw tool that support both separators for targets and ports, [as specified in the documentation](https://nmap.org/book/port-scanning-options.html).
+
+```yaml
+nmap:
+  type: "enumeration"
+  category: "network"
+  image: "instrumentisto/nmap:latest"
+  commandTemplate: "nmap {{.Args}} -p {{.Target.port}} {{.Target.endpoint}}"
+  endpointSeparator: " "
+  portSeparator: ","
+  capabilities:
+    add:
+      - NET_RAW
 ```
 
-See [Fluent Bit Sidecar Documentation](./docs/FLUENT_BIT_SIDECAR.md) for detailed configuration.
+> [!IMPORTANT]
+>
+> This example of toolspec's nmap configuration will rely on `endpointSeparator` and `portSeparator` to create the full nmap command. If no separator is specified, or if the tool doesn't support the separator, **Kentra will create a command for each entry in the target and in the port section.**
+
+See [EXAMPLES.md](docs/EXAMPLES.md) for full examples and configurations
+
+
+## Configure Logging
+
+For centralized logging with Fluent Bit and Loki view [LOGGING.md](docs/LOGGING.md)
 
 ## Usage Examples
 
@@ -175,147 +197,29 @@ kubectl describe securityattack <name> -n <namespace>
 kubectl logs -n <namespace> -l job-name=<attack-name>
 ```
 
-## First Test (5-minute Quick Start)
+## Development & Building from Source
 
-To create your first security test, follow the [Getting Started Guide](./docs/GETTING_STARTED.md).
+To see development and compilation process view the [development documentation](docs/DEVELOPMENT.md)
 
-Quick example:
-
-```yaml
-apiVersion: kentra.sh/v1alpha1
-kind: SecurityAttack
-metadata:
-  name: my-first-scan
-  namespace: security-testing
-spec:
-  attackType: Enumeration
-  target: "192.168.1.0/24"
-  tool: nmap
-  periodic: false
-  debug: true
-  args:
-    - "-sV"
-```
-
-## Uninstallation
-
-### Remove Security Test Resources
-
-Delete all custom resources:
-
-```bash
-kubectl delete -k config/samples/
-```
-
-### Remove CRDs and Controller
-
-Uninstall the controller and CRDs:
-
-```bash
-# Undeploy the manager
-make undeploy
-
-# Remove CRDs
-make uninstall
-```
-
-## Development
-
-### Building from Source
-
-```bash
-# Generate manifests (CRDs, RBAC)
-make manifests
-
-# Generate Go code
-make generate
-
-# Run tests
-make test
-
-# Build binary
-make build
-```
-
-### Testing
-
-```bash
-# Run unit tests
-make test
-
-# Run end-to-end tests (requires Kind cluster)
-make setup-test-e2e
-```
-
-### Code Style
-
-```bash
-# Format code
-make fmt
-
-# Run static analysis
-make vet
-```
-
-## Project Distribution
-
-### Publishing to Container Registry
-
-Ensure your image is published to a registry accessible from your Kubernetes cluster:
-
-```bash
-make docker-build docker-push IMG=<registry>/kentra:tag
-```
-
-### Creating Release Bundles
-
-Generate a complete installation bundle:
-
-```bash
-make build-installer IMG=<registry>/kentra:tag
-```
-
-Users can then deploy using:
-
-```bash
-kubectl apply -f dist/install.yaml
-```
-
-### Helm Chart Distribution
-
-Build the Helm chart for distribution:
-
-```bash
-kubebuilder edit --plugins=helm/v1-alpha
-```
-
-The generated chart will be available in the `dist/chart` directory.
+## Disclaimers
+**User Responsibility & Legal Notice**
+> [!CAUTION]
+>
+> You are required to secure clear, written permission from the system owner before using Kentra on any target. 
+Kentra Security and its contributors disclaim all responsibility for any harm, damages, losses, or legal repercussions arising from the use of this project. This includes, but is not limited to, unauthorized access, data breaches, system disruption, or criminal charges. By using this tool, you acknowledge that you are solely accountable for your actions and any resulting consequences..
 
 ## Contributing
 
 Contributions are welcome! Please ensure that any changes:
 
+0. Fork the project and make your changes
 1. Follow the existing code style and patterns
 2. Include appropriate tests
 3. Update documentation as needed
 4. Pass all existing tests and linters
+5. Open a Pull Request
+6. Merged :)
 
 ## Support
 
 For issues, questions, or contributions, please visit the [GitHub Repository](https://github.com/kentrasecurity/kentra).
-
-## License
-
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
