@@ -9,14 +9,14 @@ spec:
   targets:  
     - name: test1
       endpoint: 
-        - "192.168.1.5"
-        - "192.168.1.5"
+        - "192.168.1.0/32"
+        - "192.168.2.0"
       port:
         - "22"
         - "80"
     - name: test2
-      endpoint:
-        - "192.168.1.5" 
+      endpoint: 
+        - "192.168.3.1"
       port:
         - "22-24"
 ---
@@ -36,4 +36,3 @@ spec:
   targetPool: targetpool-test
   tool: netcat
 ---
-

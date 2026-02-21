@@ -61,7 +61,7 @@ var _ = Describe("Kentra Attack Operator", func() {
 				"tool":                    "netcat",
 			},
 			Samples: []string{
-				"examples/attacks/enumeration/netcat.yaml",
+				"examples/attacks/enumeration/",
 			},
 		}),
 		Entry("Enumeration Nmap", AttackConfig{
