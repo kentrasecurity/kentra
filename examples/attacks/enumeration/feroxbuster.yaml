@@ -35,3 +35,15 @@ spec:
     - "/config/raft-medium-directories.txt"
   debug: true
   periodic: false
+---
+apiVersion: kentra.sh/v1alpha1
+kind: StoragePool
+metadata:
+  name: web-wordlists
+  namespace: kentra-system
+spec:
+  files:
+  - raft-medium-directories.txt
+  - raft-large-directories-lowercase.txt
+  description: "Storage group for web enumeration wordlists"
+      
