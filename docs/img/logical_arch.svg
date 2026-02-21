@@ -1,0 +1,122 @@
+<svg viewBox="0 0 800 950" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-main: #333333;
+      --stroke-main: #333333;
+      --box-bg: #ffffff;
+      /* Section 1: Definition */
+      --def-bg: #f3e5f5;
+      --def-stroke: #9c27b0;
+      /* Dashboard */
+      --dash-bg: #bbdefb;
+      --dash-stroke: #1976d2;
+      --editor-bg: #e0f7fa;
+      --editor-stroke: #00bcd4;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #1a1a1a;
+        --text-main: #e0e0e0;
+        --stroke-main: #b0b0b0;
+        --box-bg: #2d2d2d;
+        /* Section 1: Definition */
+        --def-bg: #3b2a3d;
+        --def-stroke: #ce93d8;
+        /* Dashboard */
+        --dash-bg: #1a2a3a;
+        --dash-stroke: #42a5f5;
+        --editor-bg: #1a3a3a;
+        --editor-stroke: #4dd0e1;
+      }
+    }
+
+    text { font-family: Arial; }
+    .label-bold { font-weight: bold; }
+    .main-text { fill: var(--text-main); }
+    .stroke-main { stroke: var(--stroke-main); }
+  </style>
+
+  <rect width="800" height="950" fill="var(--bg-color)" />
+
+  <rect x="250" y="20" width="160" height="120" fill="var(--def-bg)" stroke="var(--def-stroke)" stroke-width="2" />
+  <text x="260" y="40" font-size="14" fill="var(--def-stroke)" class="label-bold">1. Definition</text>
+  <text x="315" y="80" font-size="12" fill="var(--def-stroke)" text-anchor="middle">Git</text>
+  <rect x="270" y="90" width="120" height="30" fill="var(--box-bg)" stroke="var(--stroke-main)" />
+  <text x="330" y="110" font-size="11" text-anchor="middle" class="main-text">Attack Definition</text>
+
+  <rect x="290" y="220" width="300" height="100" fill="none" stroke="var(--stroke-main)" stroke-width="2" />
+  <text x="440" y="240" font-size="14" text-anchor="middle" class="label-bold main-text">2. Kentra Core</text>
+  <rect x="380" y="260" width="120" height="40" fill="var(--box-bg)" stroke="var(--stroke-main)" />
+  <text x="440" y="285" font-size="12" text-anchor="middle" class="main-text">Kentra Controller</text>
+
+  <rect x="250" y="380" width="380" height="80" fill="none" stroke="var(--stroke-main)" stroke-width="2" />
+  <text x="440" y="400" font-size="14" text-anchor="middle" class="label-bold main-text">3. Provisioning</text>
+  
+  <rect x="270" y="410" width="90" height="35" fill="#ffebee" stroke="#f44336" />
+  <text x="315" y="432" font-size="11" fill="#f44336" text-anchor="middle">Attack Pod 1</text>
+  <rect x="395" y="410" width="90" height="35" fill="#ffebee" stroke="#f44336" />
+  <text x="440" y="432" font-size="11" fill="#f44336" text-anchor="middle">Attack Pod 2</text>
+  <rect x="520" y="410" width="90" height="35" fill="#ffebee" stroke="#f44336" />
+  <text x="565" y="432" font-size="11" fill="#f44336" text-anchor="middle">Attack Pod N</text>
+
+  <ellipse cx="730" cy="380" rx="45" ry="20" fill="#ffebee" stroke="#f44336" />
+  <text x="730" y="385" font-size="12" fill="#f44336" text-anchor="middle">target</text>
+  <ellipse cx="730" cy="430" rx="45" ry="20" fill="#ffebee" stroke="#f44336" />
+  <text x="730" y="435" font-size="12" fill="#f44336" text-anchor="middle">target</text>
+  <ellipse cx="730" cy="480" rx="45" ry="20" fill="#ffebee" stroke="#f44336" />
+  <text x="730" y="485" font-size="12" fill="#f44336" text-anchor="middle">target</text>
+
+  <rect x="80" y="550" width="650" height="220" fill="var(--dash-bg)" stroke="var(--dash-stroke)" stroke-width="2" />
+  <text x="60" y="680" font-size="16" fill="var(--dash-stroke)" transform="rotate(-90, 60, 680)" class="label-bold">Dashboard</text>
+
+  <text x="440" y="575" font-size="14" text-anchor="middle" class="label-bold main-text">4. Observability</text>
+  <rect x="380" y="585" width="120" height="30" fill="#64b5f6" stroke="var(--dash-stroke)" />
+  <text x="440" y="605" font-size="12" fill="white" text-anchor="middle">Monitor</text>
+
+  <rect x="110" y="600" width="150" height="130" fill="var(--editor-bg)" stroke="var(--editor-stroke)" stroke-width="1.5" />
+  <rect x="120" y="615" width="130" height="40" fill="var(--box-bg)" stroke="var(--stroke-main)" />
+  <text x="185" y="640" font-size="11" text-anchor="middle" class="main-text">Attack Definition</text>
+  <text x="185" y="680" font-size="12" fill="var(--editor-stroke)" text-anchor="middle">Editor</text>
+  <text x="120" y="720" font-size="11" class="main-text">1. Definition</text>
+
+  <circle cx="440" cy="880" r="40" fill="var(--box-bg)" stroke="var(--stroke-main)" stroke-width="2" />
+  <text x="440" y="875" font-size="12" text-anchor="middle" class="main-text">Security</text>
+  <text x="440" y="890" font-size="12" text-anchor="middle" class="main-text">User</text>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" />
+    </marker>
+  </defs>
+
+  <g fill="none" stroke="var(--stroke-main)" marker-end="url(#arrowhead)">
+    <path d="M 330 140 Q 350 180 430 250" />
+    <path d="M 185 600 Q 185 300 370 280" />
+    <path d="M 410 300 L 320 370" />
+    <path d="M 440 300 L 440 370" />
+    <path d="M 470 300 L 560 370" />
+    <path d="M 315 445 Q 315 520 400 580" />
+    <path d="M 440 445 L 440 580" />
+    <path d="M 565 445 Q 565 520 480 580" />
+    <path d="M 440 615 L 440 830" />
+  </g>
+
+  <g font-size="11" class="main-text">
+    <text x="210" y="320">Spawn</text>
+    <text x="330" y="340">Spawn</text>
+    <text x="450" y="340">Spawn</text>
+    <text x="550" y="340">Spawn</text>
+    <text x="325" y="500">Live Logs</text>
+    <text x="445" y="500">Live Logs</text>
+    <text x="510" y="500">Live Logs</text>
+    <text x="445" y="660" text-anchor="middle" font-size="12">Analyze &amp; Re-run</text>
+  </g>
+
+  <g fill="none" stroke="#f44336" stroke-width="1.5" marker-end="url(#arrowhead)">
+    <path d="M 610 425 Q 650 400 685 385" />
+    <path d="M 610 430 Q 650 430 685 430" />
+    <path d="M 610 435 Q 650 460 685 475" />
+  </g>
+</svg>

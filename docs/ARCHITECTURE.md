@@ -14,7 +14,7 @@ This document provides a comprehensive overview of the Kentra Kubernetes Operato
 
 ## High-Level Architecture
 
-![logical_arch](./img/logical_arch.png)
+![logical_arch](./img/logical_arch.svg)
 
 The workflow begins when an attack is defined in a YAML file and applied to the cluster, either manually or via a git push. This action creates a Custom Resource (CR) which the Kentra Controller monitors.
 
@@ -40,5 +40,32 @@ Once a CR is detected, the reconciler translates the high-level specification in
 
 ## Flow Example with nmap scan
 
-![flow](./img/flow.png)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant KubernetesAPI as Kubernetes API Server
+    participant Controller as Attack Reconciler
+    participant Kubelet as Worker Node (Kubelet)
+    participant Loki as Loki/Grafana
+
+    User->>KubernetesAPI: kubectl apply -f attack.yaml
+    KubernetesAPI->>Controller: New Attack detected
+    
+    Note over Controller: 1. Load kentra-tool-specs<br/>2. Resolve tool args<br/>3. Build Job Spec
+    
+    Controller->>KubernetesAPI: Create Kubernetes Job
+    
+    Note over KubernetesAPI: Job Controller<br/>creates Pod & Scheduler assigns Node
+    
+    KubernetesAPI->>Kubelet: Pull images & Start Pod
+    
+    rect rgb(240, 240, 240)
+        Note over Kubelet: tool runs & writes to /logs/job.log
+        Note over Kubelet: Fluent Bit sidecar reads /logs/job.log
+    end
+
+    Kubelet->>Loki: Push logs via Fluent Bit
+    Loki-->>User: View scan results
+```
 
