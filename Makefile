@@ -77,7 +77,7 @@ test-e2e-kind: generate manifests docker-build setup-test-e2e ## Run the e2e tes
 # 	@$(MAKE) cleanup-test-e2e
 
 .PHONY: test-e2e
-test-e2e: manifests generate fmt vet ## Run the e2e tests.
+test-e2e: manifests generate fmt vet 
 	go test -tags=e2e ./test/e2e/ -v -ginkgo.v
 
 .PHONY: setup-test-e2e
