@@ -167,7 +167,7 @@ func buildS3Downloader(files []string) corev1.Container {
 	script.WriteString("#!/bin/sh\nset -e\n")
 	script.WriteString("mc alias set s3 http://loki-minio-svc.kentra-system.svc.cluster.local:9000 \"${MINIO_ROOT_USER}\" \"${MINIO_ROOT_PASSWORD}\" --api S3v4\n")
 	for _, file := range files {
-		script.WriteString(fmt.Sprintf("mc cp s3/configs/%s /config/%s\n", file, file))
+		_, _ = fmt.Fprintf(&script, "mc cp s3/configs/%s /config/%s\n", file, file)
 	}
 
 	return corev1.Container{

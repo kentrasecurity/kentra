@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/kentrasecurity/kentra/test/utils"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 )
 
 type AttackConfig struct {
@@ -35,16 +35,16 @@ func RunAttackFlow(ns string, conf AttackConfig) {
 
 	// 3. Phase 1: Verify Job Creation (Usa il selettore dinamico)
 	fmt.Printf("%s⏳ Waiting for Jobs of %s (Selector: %s)...\n", prefix, conf.Name, labelSelector)
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		// Verifichiamo se esiste almeno un job con quei label
 		return utils.RunIgnoringOutput(exec.Command("kubectl", "get", "jobs", "-n", ns, "-l", labelSelector))
-	}, "2m", "5s").Should(Succeed(), "At least one Job should be created for: "+conf.Name)
+	}, "2m", "5s").Should(gomega.Succeed(), "At least one Job should be created for: "+conf.Name)
 	fmt.Printf("%s✅ Job(s) detected.\n", prefix)
 
 	// 4. Phase 2: Verify Completion of ALL Jobs
 	fmt.Printf("%s⏳ Waiting for all Jobs of %s to complete...\n", prefix, conf.Name)
 
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		// Otteniamo il conteggio totale dei Job presenti per questo attacco
 		countOut, _ := utils.Run(exec.Command("kubectl", "get", "jobs", "-n", ns, "-l", labelSelector, "--no-headers"))
 		jobLines := strings.Split(strings.TrimSpace(string(countOut)), "\n")
@@ -86,7 +86,7 @@ func RunAttackFlow(ns string, conf AttackConfig) {
 		}
 
 		return nil
-	}, conf.Time, rate).Should(Succeed(), "All jobs for "+conf.Name+" should complete successfully")
+	}, conf.Time, rate).Should(gomega.Succeed(), "All jobs for "+conf.Name+" should complete successfully")
 
 	fmt.Printf("%s🏁 All Jobs for %s finished successfully.\n", prefix, conf.Name)
 }
